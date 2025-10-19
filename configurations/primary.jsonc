@@ -47,6 +47,8 @@
         }
     },
     "internal_settings": {
+        "global_update": "*/10 * * * * *", 
+        "update_check": "0 */6 * * *",
         "request_timeout": 10,
         "random_alert_timeout": 30 
     },
@@ -86,46 +88,57 @@
     },
     "filters": {
         "listening_events": [
-            "Tornado Emergency", "PDS Tornado Warning",
-            "PDS Tornado Watch", "EDS Severe Thunderstorm Warning",
-            "Considerable Severe Thunderstorm Warning (TPROB)",
-            "Destructive Severe Thunderstorm Warning (TPROB)",
-            "Severe Thunderstorm Warning (TPROB)",
-            "Considerable Severe Thunderstorm Warning",
-            "Destructive Severe Thunderstorm Warning",
-            "Confirmed Tornado Warning",
-            "Radar Indicated Tornado Warning",
-            "Considerable Flash Flood Warning",
+            "Tornado Emergency", "PDS Tornado Warning", "PDS Tornado Watch",
+            "EDS Severe Thunderstorm Warning", "Considerable Severe Thunderstorm Warning (TPROB)",
+            "Destructive Severe Thunderstorm Warning (TPROB)", "Severe Thunderstorm Warning (TPROB)",
+            "Considerable Severe Thunderstorm Warning", "Destructive Severe Thunderstorm Warning",
+            "Confirmed Tornado Warning", "Radar Indicated Tornado Warning",
             "Flash Flood Emergency", "Flash Flood Watch",
             "Severe Thunderstorm Watch", "Tornado Watch",
             "Special Marine Warning", "Flash Flood Warning",
             "Severe Thunderstorm Warning", "Tornado Warning",
-            "Snow Squall Warning", "Tsunami Warning", "Tsunami Watch",
-            "Tsunami Advisory", "Earthquake Warning",
-            "Hurricane Warning", "Hurricane Watch",
-            "Special Weather Statement", "Tropical Storm Warning"
+            "Snow Squall Warning", "Tsunami Warning",
+            "Tsunami Watch", "Tsunami Advisory",
+            "Earthquake Warning", "Hurricane Warning",
+            "Hurricane Watch", "Special Weather Statement",
+            "Tropical Storm Warning"
+        ],
+        "priority_events": [
+            "Tornado Emergency", "PDS Tornado Warning", "PDS Tornado Watch",
+            "EDS Severe Thunderstorm Warning", "Considerable Severe Thunderstorm Warning (TPROB)",
+            "Destructive Severe Thunderstorm Warning (TPROB)", "Severe Thunderstorm Warning (TPROB)",
+            "Considerable Severe Thunderstorm Warning", "Destructive Severe Thunderstorm Warning",
+            "Confirmed Tornado Warning",
+            "Flash Flood Emergency", 
+            "Tsunami Warning", "Hurricane Warning",
+            "Tropical Storm Warning"
         ],
         "all_events": false,
+        "sfx_beep_only": false,
+        "show_updates": true,
+        "check_expired": true,
+        "ignore_tests": true,
         "ignored_events": [],
         "listening_icoa": [],
         "listening_ugcs": [],
         "listening_state": [],
         "ignored_icoa": ["KWNS"],
-        "check_expired": true,
         "eas_settings": {
-            "listening_eas": [],
-            "eas_directory": "../../storage/nwws/scenarios",
-            "eas_intro": "../../stroage/nwws/scenarios/intro.wav" // .WAV FILES ONLY
+            "eas_directory": "../storage/nwws/scenarios",
+            "eas_intro": "../storage/nwws/scenarios/intro.wav" // .WAV FILES ONLY
         },
         "location_settings": {
-            "max_distance_miles": 75
+            "enabled": false,
+            "unit": "miles",
+            "max_distance": 1000
         }
     },
     "sources": {
-        "atmosphericx_alerts_settings": {
+        "atmosx_parser_settings": {
             "noaa_weather_wire_service": false, 
+            "journal": true,
             "national_weather_service_settings": {
-                "interval": 30,
+                "interval": 29,
                 "endpoint": "https://api.weather.gov/alerts/active"
             },
             "weather_wire_settings": {
@@ -133,7 +146,7 @@
                 "client_credentials": {
                     "username": "username_here",
                     "password": "password_here",
-                    "nickname": "display_name_here"
+                    "nickname": "nwws_client_atmosx"
                 },
                 "client_reconnections": {
                     "attempt_reconnections": true,
@@ -163,7 +176,7 @@
             },
             "spotter_network_feed": {
                 "enabled": true,
-                "pin_by_name": "SN_NAME_HERE_OR_DESCRIPTION",
+                "pin_by_name": [],
                 "pins": {
                     "offline": true,
                     "idle": true,

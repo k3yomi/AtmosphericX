@@ -99,16 +99,19 @@ export class Alerts {
         });
     }
 
-    public updateCache(isWire?: Record<string, any>): Promise<void> {
+    public updateCache(isAlertupdate?: boolean): Promise<void> {
         return new Promise(async (resolve) => {
+            loader.submodules.utils.configurations();
+            loader.submodules.utils.filterInternals();
+            loader.submodules.alerts.instance(true);
+            await loader.submodules.utils.sleep(200);
             const defConfig = loader.cache.internal.configurations as types.defConfigurations;
-            const { atmosphericx_alerts_settings, ...sources } = defConfig.sources;
+            const { atmosx_parser_settings, ...sources } = defConfig.sources;
             const setTime = new Date().getTime();
             const structure = [];
             let data = {};
             let results = ``;
-        
-            if (isWire == undefined) {
+            if (isAlertupdate == undefined) {
                 for (const topic in sources) {
                     for (const [key, value] of Object.entries(sources[topic])) {
                         const source = value as Record<string, unknown>;
@@ -125,7 +128,7 @@ export class Alerts {
                     source.contradictions.forEach((contradiction: string) => {
                         let index = structure.findIndex((h: any) => h.name == contradiction);
                         if (index !== -1 && structure[index].enabled && source.enabled) {
-                            loader.submodules.utils.log({message: `Evoking contradiction: ${source.name} disables ${structure[index].name}`, echoFile: true});
+                            loader.submodules.utils.log(`Evoking contradiction: ${source.name} disables ${structure[index].name}`, {echoFile: true});
                             structure[index].enabled = false;
                         }
                     });
@@ -139,21 +142,31 @@ export class Alerts {
                             if (resp.error) { 
                                 if (retries == 2) {
                                     data[source.name] = undefined;
-                                    results += `${source.name.slice(0, 10)}... (failed) `;
+                                    results += `(ERR) ${source.name.toUpperCase()}, `;
                                 }
-                                loader.submodules.utils.log({message: `Error fetching data from ${source.name.slice(0, 10)}}... Retrying... (${retries + 1}/3)`, echoFile: true});
+                                loader.submodules.utils.log(`Error fetching data from ${source.name.toUpperCase()} (${retries + 1}/3)`, {echoFile: true});
                                 continue;
                             }
                             data[source.name] = resp.message;
-                            results += `${source.name.slice(0, 10)}... (ok) `;
+                            results += `(OK) ${source.name.toUpperCase()}, `;
                             break;
                         }
                      }
                 }));
+                if (!defConfig.sources.atmosx_parser_settings.noaa_weather_wire_service) {
+                    const cacheTime = defConfig.sources.atmosx_parser_settings.national_weather_service_settings.interval;
+                    if (!loader.cache.internal.http_timers[`nws_alerts`] || setTime - loader.cache.internal.http_timers[`nws_alerts`] > cacheTime * 1000) {
+                        loader.cache.internal.http_timers[`nws_alerts`] = setTime;
+                        results += `(OK) NWS_ALERTS, `;
+                        data[`nws_alerts`] = {};
+                    }
+                }
+            } else { 
+                data = { alerts: loader.cache.internal.wire.features };
             }
             if (Object.keys(data).length > 0) {
-                if (results) loader.submodules.utils.log(`Cache Updated: ${results.trim()} - Taken: ${Date.now() - setTime}ms`, {echoFile: true});
-                loader.submodules.structure.create(data, isWire)
+                if (results) loader.submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${results.trim().replace(/,\s*$/, '')}`, {echoFile: true});
+                loader.submodules.structure.create(data, isAlertupdate);
             }
             resolve();
         })

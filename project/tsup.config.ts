@@ -1,11 +1,14 @@
-import { defineConfig } from 'tsup';
+import { defineConfig } from 'tsup'
 
 export default defineConfig({
-	entry: ['src/**/*.ts'],
-	format: ['esm', 'cjs'],
+	entry: ['src/index.ts'],
 	outDir: 'dist',
-	splitting: false,
+	format: ['esm', 'cjs'],
 	clean: true,
-	outExtension({ format }) {return {js: format === 'esm' ? '.mjs' : '.cjs',};},
-	esbuildOptions(options, context) { options.outdir = `dist/${context.format}`; },
-});
+	outExtension({ format }) {
+		return { js: format === 'esm' ? '.mjs' : '.cjs' }
+	},
+	esbuildOptions(options, context) {
+		options.outdir = `dist/${context.format}`
+	},
+})

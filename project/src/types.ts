@@ -3,6 +3,10 @@ export interface defConfigurations {
     internal_settings?: any,
     sources?: any,
     hosting?: any,
+    tones?: any,
+    alert_dictionary?: any,
+    alert_schemes?: any,
+    filters?: any,
 }
 
 export interface defExternal {

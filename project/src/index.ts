@@ -17,9 +17,8 @@ import * as types from './types';
 
 new Promise(async (resolve) => {
     const defConfig = loader.cache.internal.configurations as types.defConfigurations;
-    const defExternal = loader.cache.external as types.defExternal;
-    const defInternal = loader.cache.internal as types.defInternal;
-
+    new loader.packages.jobs.Cron(defConfig.internal_settings.global_update, () => { loader.submodules.networking.updateCache();  });
+    new loader.packages.jobs.Cron(defConfig.internal_settings.update_check, () => { loader.submodules.networking.getUpdates(); });
 })
 
 

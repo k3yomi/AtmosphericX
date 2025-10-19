@@ -13,7 +13,7 @@
 
 
 /* [ AtmosphericX Custom Modules ] */
-import * as nwws from 'atmosx-nwws-parser';
+import * as manager from 'atmosx-nwws-parser';
 import * as tempest from 'atmosx-tempest-pulling';
 import * as placefile from 'atmosx-placefile-parser';
 
@@ -36,11 +36,10 @@ import * as os from 'os';
 import * as xml2js from 'xml2js';
 import * as shapefile from 'shapefile';
 import * as ws from 'ws';
-import * as nodemailer from 'nodemailer';
 import * as firebaseApp from 'firebase/app';
 import * as firebaseDatabase from 'firebase/database';
 import * as streamerBot from '@streamerbot/client';
-import * as cron from 'node-cron';
+import * as jobs from 'croner';
 import * as jsonc from 'jsonc-parser';
 
 /* [ Submodule Exports ] */
@@ -85,8 +84,14 @@ export const cache = {
         manual_alert: [],
         active_alerts: [],
         locations: {
-            spotter_network: [],
-            realtime_irl: [],
+            spotter_network: {
+                lat: 0,
+                lon: 0
+            },
+            realtime_irl: {
+                lat: 0,
+                lon: 0
+            },
         },
     }, 
     internal: {
@@ -98,6 +103,7 @@ export const cache = {
         events: [],
         http_timers: {},
         express: undefined,
+        manager: undefined,
         websocket: undefined,
         sessions: [],
     },
@@ -105,8 +111,9 @@ export const cache = {
 };
 
 export const strings = {
-    updated_requied: `New version available: {X_ONLINE_PARSED} (Current version: {X_OFFLINE_VERSION})\n\t\t\t\t\t Update by running update.sh or download the latest version from GitHub.\n\t\t\t\t\t =================== CHANGE LOGS ======================= \n\t\t\t\t\t {X_ONLINE_CHANGELOGS}\n\n`,
+    updated_requied: `New version available: {X_ONLINE_PARSED} (Current version: {X_OFFLINE_VERSION})\n${("\t").repeat(5)} Update by running update.sh or download the latest version from GitHub.\n${("\t").repeat(5)} =================== CHANGE LOGS ======================= \n${("\t").repeat(5)} {X_ONLINE_CHANGELOGS}\n\n`,
     updated_required_failed: `Failed to check for updates. Please check your internet connection. This may also be due to an endpoint configuration change.`,
+    new_event: `{X_EVENT} {X_STATUS} [{X_TRACKING}]\n${("\t").repeat(5)} Source: {X_SOURCE}\n${("\t").repeat(5)} Issued: {X_ISSUED} | Expires: {X_EXPIRES}\n${("\t").repeat(5)} Tags: {X_TAGS}\n${("\t").repeat(5)} {X_DISTANCE}`,
 }
 
 /* [ Package Exports ] */
@@ -114,9 +121,9 @@ export const packages = {
     events, path, fs, sqlite3,
     express, cookieParser, crypto, http,
     https, axios, xmpp, os, jsonc,
-    xml2js, nwws, tempest, placefile, 
-    shapefile, ws, nodemailer, firebaseApp, 
-    firebaseDatabase, streamerBot, cron
+    xml2js, manager, tempest, placefile, 
+    shapefile, ws, firebaseApp, 
+    firebaseDatabase, streamerBot, jobs
 };
 
 

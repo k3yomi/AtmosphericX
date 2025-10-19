@@ -40,6 +40,10 @@ export class Utils {
         this.log(`${this.NAME_SPACE} initialized.`)
     }
     
+    public sleep(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     /**
      * Reads the version from a file, this will updated per update depending how big it is. This will also help us 
      * keep tracking of changelogs from the past and future. Each version is x.xx.xxx or similar.
@@ -80,10 +84,10 @@ export class Utils {
      * @param {?types.LogOptions} [options] 
      */
     public log(message?: string, options?: types.LogOptions): void {
-        const title = options?.title || `AtmosphericX`;
+        const title = options?.title || `ATMOSX-SERVER`;
         const msg = message || `No message provided.`;
         const echoFile = options?.echoFile || false;
-        console.log(`[${title}] [${new Date().toLocaleString()}] ${msg}`);
+        console.log(`\x1b[32m[${title}]\x1b[0m [${new Date().toLocaleString()}] ${msg}`);
         if (echoFile) { 
             loader.packages.fs.appendFileSync(this.LOGS_PATH, `[${title}] [${new Date().toLocaleString()}] ${msg}\n`);
         }
@@ -154,6 +158,17 @@ export class Utils {
             }
         }
         return content;
+    }
+
+    /**
+     * Filters internal cache with wire and event hashes. 
+     *
+     * @public
+     */
+    public filterInternals() {
+        const defInternal = loader.cache.internal as types.defInternal;
+        defInternal.wire = { features: defInternal.wire?.features.filter(f => f !== undefined && new Date(f.properties.expires).getTime() > new Date().getTime())}
+        defInternal.events = defInternal.events.filter(e => e !== undefined && new Date(e.expires).getTime() > new Date().getTime())
     }
 
 }

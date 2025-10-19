@@ -40,24 +40,30 @@ export class Calculations {
                     const feedConfig = defConfig.sources?.location_settings?.spotter_network_feed;
                     loader.packages.placefile.AtmosXPlacefileParser.parsePlacefile(body).then((parsed: unknown) => {
                         for (const feature of parsed as any[]) {
-                            let distance = 0;
+                            let distance = 99999999999;
                             const isActive = (feature.icon.scale == 6 && feature.icon.type == '2') && feedConfig.pins.active;
                             const isStreaming = (feature.icon.scale == 1 && feature.icon.type == '19') && feedConfig.pins.streaming;
                             const isIdle = (feature.icon.scale == 6 && feature.icon.type == '6') && feedConfig.pins.idle;
                             if (!isActive && !isStreaming && (!isIdle || !feedConfig.pins.offline)) { continue; }
-                            if (loader.cache.external.locations.spotter_network.length != 0) {
-                                distance = loader.submodules.calculations.getDistanceBetweenCoordinates(
-                                    {lat: feature.object.coordinates[1], lon: feature.object.coordinates[0]}, 
-                                    {lat: loader.cache.external.locations.spotter_network[0].latitude, lon: loader.cache.external.locations.spotter_network[0].longitude}
-                                );
-                            }
-                            if (feedConfig.pin_by_name != `` || feedConfig.pin_by_name != `SN_NAME_HERE_OR_DESCRIPTION`) {
-                                if (feature.icon.label.toLowerCase().includes(feedConfig.pin_by_name.toLowerCase())) {
-                                    loader.cache.external.locations.spotter_network = [
-                                        feature.object.coordinates[1],
-                                        feature.object.coordinates[0]
-                                    ]
+                            if (feedConfig.pin_by_name.length > 0) {
+                                const isNameInPool = feedConfig.pin_by_name.findIndex((name: string) => feature.icon.label.includes(name));
+                                if (isNameInPool !== -1) {    
+                                    const name = feedConfig.pin_by_name[isNameInPool];     
+                                    loader.cache.external.locations.spotter_network = {
+                                        lat: feature.object.coordinates[0],
+                                        lon: feature.object.coordinates[1]
+                                    };
+                                    loader.cache.internal.manager.setCurrentLocation(name, {
+                                        lat: feature.object.coordinates[0],
+                                        lon: feature.object.coordinates[1]
+                                    });
                                 }
+                            }
+                            if (Object.keys(loader.cache.external.locations.spotter_network.lat != 0)) {
+                                distance = loader.submodules.calculations.getDistanceBetweenCoordinates({
+                                    coords: {lat: feature.object.coordinates[1], lon: feature.object.coordinates[0]}, 
+                                    coords2: {lat: loader.cache.external.locations.spotter_network.lat, lon: loader.cache.external.locations.spotter_network.lon}
+                                });
                             }
                             imports.features.push({
                                 type: 'Feature',
@@ -76,9 +82,9 @@ export class Calculations {
                     loader.packages.placefile.AtmosXPlacefileParser.parseGeoJSON(body).then((parsed: unknown) => {
                         for (const feature of (parsed as any)) {
                             if (feature.properties.expires_at_ms < Date.now()) { continue }
-                            const torProb = loader.packages.nwws.TextParser.textProductToString(feature.properties.text, `MOST PROBABLE PEAK TORNADO INTENSITY...`, []);
-                            const winProb = loader.packages.nwws.TextParser.textProductToString(feature.properties.text, `MOST PROBABLE PEAK WIND GUST...`, []);
-                            const hagProb = loader.packages.nwws.TextParser.textProductToString(feature.properties.text, `MOST PROBABLE PEAK HAIL SIZE...`, []);
+                            const torProb = loader.packages.manager.TextParser.textProductToString(feature.properties.text, `MOST PROBABLE PEAK TORNADO INTENSITY...`, []);
+                            const winProb = loader.packages.manager.TextParser.textProductToString(feature.properties.text, `MOST PROBABLE PEAK WIND GUST...`, []);
+                            const hagProb = loader.packages.manager.TextParser.textProductToString(feature.properties.text, `MOST PROBABLE PEAK HAIL SIZE...`, []);
                             imports.features.push({
                                 type: 'Feature',
                                 geometry: { type: 'Polygon', coordinates: feature.coordinates, },
@@ -86,7 +92,7 @@ export class Calculations {
                                     mesoscale_id: feature.properties.number,
                                     expires: new Date(feature.properties.expires_at_ms).toLocaleString(),
                                     issued: new Date(feature.properties.issued_at_ms).toLocaleString(),
-                                    description: loader.packages.nwws.TextParser.textProductToDescription(feature.properties.text).replace(/\n/g, '<br>'),
+                                    description: loader.packages.manager.TextParser.textProductToDescription(feature.properties.text).replace(/\n/g, '<br>'),
                                     locations: feature.properties.tags.AREAS_AFFECTED.join(', '),
                                     outlook: feature.properties.tags.CONCERNING.join(', '),
                                     population: feature.properties.population.people.toLocaleString(),
@@ -209,9 +215,46 @@ export class Calculations {
         })
     }
 
-    public create(data: unknown, isWire: boolean): Promise<void> {
+    private getEventMetadata(event: any) {
+        const defConfig = loader.cache.internal.configurations as types.defConfigurations;
+        const schemes = defConfig.alert_schemes[event.properties.event] || defConfig.alert_schemes[event.properties.parent] || defConfig.alert_schemes['Default'];
+        const dictionary = defConfig.alert_dictionary[event.properties.event] || defConfig.alert_dictionary[event.properties.parent] || defConfig.alert_dictionary['Special Event'];
+        if (event.properties.is_cancelled) { return {sfx: dictionary.sfx_cancel, scheme: schemes, metadata: dictionary.metadata}}
+        if (event.properties.is_issued) { return {sfx: dictionary.sfx_issued, scheme: schemes, metadata: dictionary.metadata}}
+        if (event.properties.is_updated) { return {sfx: dictionary.sfx_update, scheme: schemes, metadata: dictionary.metadata}}
+        return {sfx: dictionary.sfx_cancel, scheme: schemes, metadata: dictionary.metadata};
+    }
+
+    private register(event: any) {
+        const defConfig = loader.cache.internal.configurations as types.defConfigurations;
+        const isBeepAuthorizedOnly = defConfig.filters.sfx_beep_only;
+        const isPriorityEvent = defConfig.filters.priority_events
+        const isShowingUpdatesAllowed = defConfig.filters.show_updates;
+        let isIgnored = false;
+        let isBeepOnly = false; 
+        let setDefaultAudio = defConfig.tones.sfx_beep;
+        let getEventDictionary = this.getEventMetadata(event);
+        let getDistanceAway = 99999999999;
+        if (isBeepAuthorizedOnly && isPriorityEvent.includes(event.properties.event)) { isBeepOnly = true; }
+        if (!isShowingUpdatesAllowed && !isPriorityEvent.includes(event.properties.event)) { isIgnored = true; }
+        return { 
+            event,
+            metadata: getEventDictionary.metadata,
+            scheme: getEventDictionary.scheme,
+            sfx: isBeepOnly ? setDefaultAudio : getEventDictionary.sfx,
+            ignored: isIgnored,
+            beep: isBeepOnly,
+        }
+    }
+
+
+
+    public create(data: unknown, isAlertupdate?: boolean): Promise<void> {
         return new Promise(async (resolve) => {
             const clean = loader.submodules.utils.filterWebContent(data)
+            const defConfig = loader.cache.internal.configurations as types.defConfigurations;
+            const isWire = defConfig.sources.atmosx_parser_settings.noaa_weather_wire_service;
+            const isCap = defConfig.sources.atmosx_parser_settings.weather_wire_settings.alert_preferences.cap_only;
             const dataTypes = [
                 { key: 'spotter_network_feed', cache: 'spotter_network_feed' },
                 { key: 'spotter_reports', cache: 'spotter_reports' },
@@ -224,8 +267,31 @@ export class Calculations {
                 { key: 'wx_radio', cache: 'wx_radio' },
             ]
             for (const { key, cache } of dataTypes) { if (clean[key]) { loader.cache.external[cache] = await this.parsing(clean[key], key); } }
-            console.log((loader.cache.external))
-            if ((clean.noaa_weather_wire_service && isWire) || clean.national_weather_service) {}
+            if (isAlertupdate) {
+                if (clean.alerts) {
+                    for (const feature of clean.alerts) {
+                        if (!loader.cache.internal.events.some(log => log.id == feature.hash)) {
+                            loader.cache.internal.events.push({ id: feature.hash, expires: feature.properties.expires});
+                            const register = this.register(feature);
+                            if (register.ignored) { continue; }
+                            const getSource = isWire ? `NOAA Weather Wire Service${isCap ? ` (CAP)` : ``}` : `National Weather Service API`;
+                            loader.submodules.utils.log(loader.strings.new_event
+                                .replace(`{X_SOURCE}`, getSource)
+                                .replace(`{X_EVENT}`, register.event.properties.event)
+                                .replace(`{X_STATUS}`, register.event.properties.action_type)
+                                .replace(`{X_EXPIRES}`, (register.event.properties.expires))
+                                .replace(`{X_ISSUED}`, register.event.properties.issued)
+                                .replace(`{X_TRACKING}`, register.event.tracking)
+                                .replace(`{X_TAGS}`, register.event.properties.tags ? register.event.properties.tags.join(', ') : 'N/A')
+                                .replace(`{X_DISTANCE}`, (register.event.properties.distance?.range != null ? Object.entries(register.event.properties.distance.range).map(([key, value]: [string, any]) => {
+                                    return `${key}: ${value.distance} ${value.unit}`;
+                                }).join(', ') : ``) + `\n`)
+                            );
+                        }
+                    }
+
+                }
+            }
         })
     }
     

@@ -44,15 +44,22 @@ export class Calculations {
         const lon1 = coords.lon;
         const lat2 = coords2.lat;
         const lon2 = coords2.lon;
-        const toRad = (deg: number) => deg * Math.PI / 180;
-        let earthRadius = type == 'miles' ? 3958.8 : 6371,
-            dLat = (toRad(lat2) - toRad(lat1)),
-            dLon = (toRad(lon2) - toRad(lon1)),
-            a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2, 
-            c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)), 
-            distance = earthRadius * c;
-        return isNaN(distance) ? undefined : distance.toFixed(2);
+        const toRad = (deg: number): number => deg * Math.PI / 180;
+        const earthRadius = type === 'miles' ? 3958.8 : 6371;
+        let dLat = toRad(lat2 - lat1);
+        let dLon = toRad(lon2 - lon1);
+        if (dLon > Math.PI) dLon -= 2 * Math.PI;
+        if (dLon < -Math.PI) dLon += 2 * Math.PI;
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = earthRadius * c;
+        return isNaN(distance) ? 0 : distance.toFixed(2);
     }
+
+    
+
+
+    
     
 }
 
