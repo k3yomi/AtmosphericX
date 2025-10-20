@@ -13,6 +13,7 @@
 */
 
 
+import { config } from 'process';
 import * as loader from '../bootstrap';
 import * as types from '../types';
 
@@ -23,10 +24,12 @@ export class Utils {
     NAME_SPACE: string
     VERSION_PATH: string
     LOGO_PATH: string
+    LOGO_LEGACY_PATH: string
     LOGS_PATH: string
     CONFIGURATIONS_PATH: string
     constructor() {
         this.VERSION_PATH = `../version`;
+        this.LOGO_LEGACY_PATH = `../storage/logo-legacy.txt`;
         this.LOGO_PATH = `../storage/logo.txt`;
         this.LOGS_PATH = `../storage/logs.txt`;
         this.CONFIGURATIONS_PATH = `../configurations`;
@@ -35,11 +38,18 @@ export class Utils {
     }
 
     private initialize() {
-        this.logo();
         this.configurations();
+        this.logo();
         this.log(`${this.NAME_SPACE} initialized.`)
     }
-    
+
+    /**
+     * A simple sleep function that returns a promise that resolves after a specified number of milliseconds.
+     *
+     * @public
+     * @param {number} ms 
+     * @returns {Promise<void>} 
+     */
     public sleep(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -60,17 +70,30 @@ export class Utils {
     }
 
     /**
+     * Checks if the fancy display is enabled in the configurations.
+     *
+     * @public
+     * @returns {boolean} 
+     */
+    public isFancyDisplay(): boolean {
+        return (loader.cache.internal.configurations as types.defConfigurations).internal_settings.fancy_interface || false;
+    }
+
+    /**
      * This prints out the logo while clearing the console and retrieves the version
      * by using version(). If no version found, it will simply by v0.0.0 as an undefined placeholder
      * If you have any ideas for the future use of the logo, please feel free to let StartflightWx know.
      *
      * @public
      */
-    public logo(): void {
-        const logo = loader.packages.fs.existsSync(this.LOGO_PATH) 
-            ? loader.packages.fs.readFileSync(this.LOGO_PATH, `utf-8`).replace(`{VERSION}`, this.version()) 
+    public logo(): string | void{
+        const path = this.isFancyDisplay() ? this.LOGO_PATH : this.LOGO_LEGACY_PATH;
+        const defConfig = loader.cache.internal.configurations as types.defConfigurations;
+        const logo = loader.packages.fs.existsSync(path) 
+            ? loader.packages.fs.readFileSync(path, `utf-8`).replace(`{VERSION}`, this.version()) 
             : `AtmosphericX {VERSION}`;
-        console.clear()
+        if (defConfig.internal_settings.fancy_interface) { return logo } 
+        console.clear();
         console.log(logo);
     }
   
@@ -84,10 +107,15 @@ export class Utils {
      * @param {?types.LogOptions} [options] 
      */
     public log(message?: string, options?: types.LogOptions): void {
-        const title = options?.title || `ATMOSX-SERVER`;
+        const title = options?.title || `\x1b[32m[ATMOSX-UTILS]\x1b[0m`;
         const msg = message || `No message provided.`;
+        const rawConsole = options?.rawConsole || false;
         const echoFile = options?.echoFile || false;
-        console.log(`\x1b[32m[${title}]\x1b[0m [${new Date().toLocaleString()}] ${msg}`);
+        if (!rawConsole) {
+            loader.cache.internal.logs.push({title: title, message: msg, timestamp: new Date().toLocaleString()}); 
+            if (loader.cache.internal.logs.length > 25) { loader.cache.internal.logs.shift(); }
+        }
+        if (rawConsole || !this.isFancyDisplay()) { console.log(`${title}\x1b[0m [${new Date().toLocaleString()}] ${msg}`); }
         if (echoFile) { 
             loader.packages.fs.appendFileSync(this.LOGS_PATH, `[${title}] [${new Date().toLocaleString()}] ${msg}\n`);
         }
@@ -110,7 +138,7 @@ export class Utils {
      *
      * @public
      */
-    public configurations() { 
+    public configurations(): void {
         let configurations = loader.packages.fs.existsSync(this.CONFIGURATIONS_PATH)
             ? loader.packages.fs.readdirSync(this.CONFIGURATIONS_PATH).reduce((acc: Record<string, any>, file: string) => {
             const filePath = `${this.CONFIGURATIONS_PATH}/${file}`;
@@ -161,14 +189,14 @@ export class Utils {
     }
 
     /**
-     * Filters internal cache with wire and event hashes. 
+     * Filters internal cache with events and event hashes. 
      *
      * @public
      */
-    public filterInternals() {
+    public filterInternals(): void {
         const defInternal = loader.cache.internal as types.defInternal;
-        defInternal.wire = { features: defInternal.wire?.features.filter(f => f !== undefined && new Date(f.properties.expires).getTime() > new Date().getTime())}
-        defInternal.events = defInternal.events.filter(e => e !== undefined && new Date(e.expires).getTime() > new Date().getTime())
+        defInternal.events = { features: defInternal.events?.features.filter(f => f !== undefined && new Date(f.properties.expires).getTime() > new Date().getTime())}
+        defInternal.hashes = defInternal.hashes.filter(e => e !== undefined && new Date(e.expires).getTime() > new Date().getTime())
     }
 
 }

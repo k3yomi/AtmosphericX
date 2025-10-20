@@ -247,8 +247,6 @@ export class Calculations {
         }
     }
 
-
-
     public create(data: unknown, isAlertupdate?: boolean): Promise<void> {
         return new Promise(async (resolve) => {
             const clean = loader.submodules.utils.filterWebContent(data)
@@ -269,27 +267,22 @@ export class Calculations {
             for (const { key, cache } of dataTypes) { if (clean[key]) { loader.cache.external[cache] = await this.parsing(clean[key], key); } }
             if (isAlertupdate) {
                 if (clean.alerts) {
-                    for (const feature of clean.alerts) {
-                        if (!loader.cache.internal.events.some(log => log.id == feature.hash)) {
-                            loader.cache.internal.events.push({ id: feature.hash, expires: feature.properties.expires});
-                            const register = this.register(feature);
+                    for (const event of clean.alerts) {
+                        if (!loader.cache.internal.hashes.some(log => log.id == event.hash)) {
+                            loader.cache.internal.hashes.push({ id: event.hash, expires: event.properties.expires});
+                            const register = this.register(event);
                             if (register.ignored) { continue; }
-                            const getSource = isWire ? `NOAA Weather Wire Service${isCap ? ` (CAP)` : ``}` : `National Weather Service API`;
-                            loader.submodules.utils.log(loader.strings.new_event
-                                .replace(`{X_SOURCE}`, getSource)
-                                .replace(`{X_EVENT}`, register.event.properties.event)
-                                .replace(`{X_STATUS}`, register.event.properties.action_type)
-                                .replace(`{X_EXPIRES}`, (register.event.properties.expires))
-                                .replace(`{X_ISSUED}`, register.event.properties.issued)
-                                .replace(`{X_TRACKING}`, register.event.tracking)
-                                .replace(`{X_TAGS}`, register.event.properties.tags ? register.event.properties.tags.join(', ') : 'N/A')
-                                .replace(`{X_DISTANCE}`, (register.event.properties.distance?.range != null ? Object.entries(register.event.properties.distance.range).map(([key, value]: [string, any]) => {
-                                    return `${key}: ${value.distance} ${value.unit}`;
-                                }).join(', ') : ``) + `\n`)
-                            );
+                            if (!loader.submodules.utils.isFancyDisplay()) {
+                                const getSource = isWire ? `NWWS${isCap ? ` (CAP)` : ``}` : `NWS`;
+                                loader.submodules.utils.log(loader.strings.new_event_legacy
+                                    .replace(`{EVENT}`, register.event.properties.event)
+                                    .replace(`{STATUS}`, register.event.properties.action_type)
+                                    .replace(`{TRACKING}`, register.event.tracking.substring(0, 18))
+                                    .replace(`{SOURCE}`, getSource)
+                                );
+                            }
                         }
                     }
-
                 }
             }
         })

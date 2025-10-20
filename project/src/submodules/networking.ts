@@ -93,7 +93,7 @@ export class Alerts {
             }
 
             if (isNewerVersionDiscovered(onlineVersionParsed, offlineVersion)) {
-                loader.submodules.utils.log(loader.strings.updated_requied.replace(`{X_ONLINE_PARSED}`, onlineVersionParsed).replace(`{X_OFFLINE_VERSION}`, offlineVersion).replace(`{X_ONLINE_CHANGELOGS}`, onlineChangelogsParsed), {echoFile: true});
+                loader.submodules.utils.log(loader.strings.updated_requied.replace(`{ONLINE_PARSED}`, onlineVersionParsed).replace(`{OFFLINE_VERSION}`, offlineVersion).replace(`{ONLINE_CHANGELOGS}`, onlineChangelogsParsed), {echoFile: true});
             }
             return {error: false, message: `Update check completed.`};
         });
@@ -162,7 +162,7 @@ export class Alerts {
                     }
                 }
             } else { 
-                data = { alerts: loader.cache.internal.wire.features };
+                data = { alerts: loader.cache.internal.events.features };
             }
             if (Object.keys(data).length > 0) {
                 if (results) loader.submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${results.trim().replace(/,\s*$/, '')}`, {echoFile: true});

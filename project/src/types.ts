@@ -19,8 +19,8 @@ export interface defExternal {
 
 export interface defInternal {
     webhook_queue?: any[],
-    wire?: any,
-    events?: any[],
+    events?: any,
+    hashes?: any[],
 }
 
 export interface defVersion {
@@ -31,6 +31,7 @@ export interface defVersion {
 export type LogOptions = { 
     title?: string, 
     echoFile?: boolean 
+    rawConsole?: boolean
 }
 
 export type LatitudeAndLongitude = {

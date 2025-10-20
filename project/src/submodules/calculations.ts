@@ -56,10 +56,38 @@ export class Calculations {
         return isNaN(distance) ? 0 : distance.toFixed(2);
     }
 
-    
+    public getTimeRemaining(futureDate: Date): string {
+        const now = new Date();
+        const future = new Date(futureDate);
+        const diff = future.getTime() - now.getTime();
+        if (diff <= 0) return `Expired`;
+        const seconds = Math.floor((diff / 1000) % 60);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        let timeString = '';
+        if (days > 0) timeString += `${days}d `;
+        if (hours > 0) timeString += `${hours}h `;
+        if (minutes > 0) timeString += `${minutes}m `;
+        timeString += `${seconds}s`;
+        return timeString.trim();
+    }
 
-
-    
+    public formatUptime(uptimeMs: number): string {
+        let totalSeconds = Math.floor(uptimeMs / 1000);
+        const days = Math.floor(totalSeconds / 86400);
+        totalSeconds %= 86400;
+        const hours = Math.floor(totalSeconds / 3600);
+        totalSeconds %= 3600;
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const parts = [];
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0) parts.push(`${minutes}m`);
+        parts.push(`${seconds}s`);
+        return parts.join(' ');
+    }
     
 }
 

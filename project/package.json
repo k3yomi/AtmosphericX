@@ -37,6 +37,7 @@
 		"atmosx-tempest-pulling": "latest",
 		"axios": "^1.8.2",
 		"better-sqlite3": "^11.10.0",
+		"blessed": "^0.1.81",
 		"cookie-parser": "^1.4.7",
 		"croner": "^9.1.0",
 		"express": "^4.21.2",

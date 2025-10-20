@@ -3930,6 +3930,7 @@ var init_utils = __esm({
     Utils = class {
       constructor() {
         this.VERSION_PATH = `../version`;
+        this.LOGO_LEGACY_PATH = `../storage/logo-legacy.txt`;
         this.LOGO_PATH = `../storage/logo.txt`;
         this.LOGS_PATH = `../storage/logs.txt`;
         this.CONFIGURATIONS_PATH = `../configurations`;
@@ -3937,10 +3938,17 @@ var init_utils = __esm({
         this.initialize();
       }
       initialize() {
-        this.logo();
         this.configurations();
+        this.logo();
         this.log(`${this.NAME_SPACE} initialized.`);
       }
+      /**
+       * A simple sleep function that returns a promise that resolves after a specified number of milliseconds.
+       *
+       * @public
+       * @param {number} ms 
+       * @returns {Promise<void>} 
+       */
       sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
       }
@@ -3957,6 +3965,15 @@ var init_utils = __esm({
         return version;
       }
       /**
+       * Checks if the fancy display is enabled in the configurations.
+       *
+       * @public
+       * @returns {boolean} 
+       */
+      isFancyDisplay() {
+        return cache.internal.configurations.internal_settings.fancy_interface || false;
+      }
+      /**
        * This prints out the logo while clearing the console and retrieves the version
        * by using version(). If no version found, it will simply by v0.0.0 as an undefined placeholder
        * If you have any ideas for the future use of the logo, please feel free to let StartflightWx know.
@@ -3964,7 +3981,12 @@ var init_utils = __esm({
        * @public
        */
       logo() {
-        const logo = packages.fs.existsSync(this.LOGO_PATH) ? packages.fs.readFileSync(this.LOGO_PATH, `utf-8`).replace(`{VERSION}`, this.version()) : `AtmosphericX {VERSION}`;
+        const path2 = this.isFancyDisplay() ? this.LOGO_PATH : this.LOGO_LEGACY_PATH;
+        const defConfig = cache.internal.configurations;
+        const logo = packages.fs.existsSync(path2) ? packages.fs.readFileSync(path2, `utf-8`).replace(`{VERSION}`, this.version()) : `AtmosphericX {VERSION}`;
+        if (defConfig.internal_settings.fancy_interface) {
+          return logo;
+        }
         console.clear();
         console.log(logo);
       }
@@ -3978,10 +4000,19 @@ var init_utils = __esm({
        * @param {?types.LogOptions} [options] 
        */
       log(message, options) {
-        const title = (options == null ? void 0 : options.title) || `ATMOSX-SERVER`;
+        const title = (options == null ? void 0 : options.title) || `\x1B[32m[ATMOSX-UTILS]\x1B[0m`;
         const msg = message || `No message provided.`;
+        const rawConsole = (options == null ? void 0 : options.rawConsole) || false;
         const echoFile = (options == null ? void 0 : options.echoFile) || false;
-        console.log(`\x1B[32m[${title}]\x1B[0m [${(/* @__PURE__ */ new Date()).toLocaleString()}] ${msg}`);
+        if (!rawConsole) {
+          cache.internal.logs.push({ title, message: msg, timestamp: (/* @__PURE__ */ new Date()).toLocaleString() });
+          if (cache.internal.logs.length > 25) {
+            cache.internal.logs.shift();
+          }
+        }
+        if (rawConsole || !this.isFancyDisplay()) {
+          console.log(`${title}\x1B[0m [${(/* @__PURE__ */ new Date()).toLocaleString()}] ${msg}`);
+        }
         if (echoFile) {
           packages.fs.appendFileSync(this.LOGS_PATH, `[${title}] [${(/* @__PURE__ */ new Date()).toLocaleString()}] ${msg}
 `);
@@ -4058,15 +4089,15 @@ var init_utils = __esm({
         return content;
       }
       /**
-       * Filters internal cache with wire and event hashes. 
+       * Filters internal cache with events and event hashes. 
        *
        * @public
        */
       filterInternals() {
         var _a;
         const defInternal = cache.internal;
-        defInternal.wire = { features: (_a = defInternal.wire) == null ? void 0 : _a.features.filter((f) => f !== void 0 && new Date(f.properties.expires).getTime() > (/* @__PURE__ */ new Date()).getTime()) };
-        defInternal.events = defInternal.events.filter((e) => e !== void 0 && new Date(e.expires).getTime() > (/* @__PURE__ */ new Date()).getTime());
+        defInternal.events = { features: (_a = defInternal.events) == null ? void 0 : _a.features.filter((f) => f !== void 0 && new Date(f.properties.expires).getTime() > (/* @__PURE__ */ new Date()).getTime()) };
+        defInternal.hashes = defInternal.hashes.filter((e) => e !== void 0 && new Date(e.expires).getTime() > (/* @__PURE__ */ new Date()).getTime());
       }
     };
     utils_default = Utils;
@@ -4094,35 +4125,37 @@ var init_alerts = __esm({
       handle(alerts) {
         for (const alert of alerts) {
           let tracking = alert.tracking;
-          let find = cache.internal.wire.features.findIndex((feature) => feature && feature.tracking == tracking);
+          let find = cache.internal.events.features.findIndex((feature) => feature && feature.tracking == tracking);
           if (alert.properties.is_cancelled && find !== -1) {
-            cache.internal.wire.features[find] = void 0;
+            cache.internal.events.features[find] = void 0;
           }
-          if (alert.properties.is_issued) {
-            cache.internal.wire.features.push(alert);
+          if (alert.properties.is_issued && find == -1) {
+            cache.internal.events.features.push(alert);
           }
           if (alert.properties.is_updated) {
             if (find !== -1) {
-              const newHistory = cache.internal.wire.features[find].history.concat(alert.history).sort((a, b) => new Date(b.issued).getTime() - new Date(a.issued).getTime());
-              const newLocations = cache.internal.wire.features[find].properties.locations;
-              cache.internal.wire.features[find] = alert;
-              cache.internal.wire.features[find].history = newHistory;
+              const newHistory = cache.internal.events.features[find].history.concat(alert.history).sort((a, b) => new Date(b.issued).getTime() - new Date(a.issued).getTime());
+              const newLocations = cache.internal.events.features[find].properties.locations;
+              cache.internal.events.features[find] = alert;
+              cache.internal.events.features[find].history = newHistory;
               for (let i = 0; i < newHistory.length; i++) {
                 for (let j = 0; j < newHistory.length; j++) {
                   let vTimeDiff = Math.abs(new Date(newHistory[i].issued).getTime() - new Date(newHistory[j].issued).getTime());
                   if (vTimeDiff < 1e3) {
-                    let combinedLocations = newLocations + `; ` + cache.internal.wire.features[find].properties.locations;
+                    let combinedLocations = newLocations + `; ` + cache.internal.events.features[find].properties.locations;
                     let uniqueLocations = [...new Set(combinedLocations.split(";").map((location) => location.trim()))];
-                    cache.internal.wire.features[find].properties.locations = uniqueLocations.join("; ");
+                    cache.internal.events.features[find].properties.locations = uniqueLocations.join("; ");
                   }
                 }
               }
             } else {
-              cache.internal.wire.features.push(alert);
+              cache.internal.events.features.push(alert);
             }
           }
         }
+        packages.fs.writeFileSync(`test.json`, JSON.stringify(cache.internal.events, null, 4));
         submodules.networking.updateCache(true);
+        cache.internal.metrics.events_processed += alerts.length;
       }
       instance(isRefreshing) {
         if (isRefreshing && !this.manager) return;
@@ -4134,6 +4167,9 @@ var init_alerts = __esm({
         let now = /* @__PURE__ */ new Date();
         let displayName = nwws.client_credentials.nickname.replace(`AtmosphericX`, ``).trim();
         let displayTimestamp = `${String(now.getUTCMonth() + 1).padStart(2, "0")}/${String(now.getUTCDate()).padStart(2, "0")} ${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`;
+        if (alerts.noaa_weather_wire_service == true) {
+          cache.internal.getSource = `NWWS`;
+        }
         const settings = {
           database: nwws.database,
           isNWWS: alerts.noaa_weather_wire_service,
@@ -4157,7 +4193,7 @@ var init_alerts = __esm({
               ignoredICOAs: filter.ignored_icoa,
               ugcFilter: filter.listening_ugcs,
               stateFilter: filter.listening_states,
-              checkExpired: filter.check_expired
+              checkExpired: false
             },
             easSettings: { easDirectory: filter.eas_settings.eas_directory, easIntroWav: filter.eas_settings.eas_intro }
           }
@@ -4177,6 +4213,9 @@ var init_alerts = __esm({
           now = /* @__PURE__ */ new Date();
           displayTimestamp = `${String(now.getUTCMonth() + 1).padStart(2, "0")}/${String(now.getUTCDate()).padStart(2, "0")} ${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`;
           this.manager.setDisplayName(`AtmosphericX v${submodules.utils.version()} -> ${displayName} (${displayTimestamp}) (x${service.reconnects})`);
+        });
+        this.manager.on(`log`, (message) => {
+          submodules.utils.log(message, { title: `\x1B[33m[ATMOSX-PARSER]\x1B[0m` });
         });
         cache.internal.manager = this.manager;
       }
@@ -4221,6 +4260,37 @@ var init_calculations = __esm({
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const distance = earthRadius * c;
         return isNaN(distance) ? 0 : distance.toFixed(2);
+      }
+      getTimeRemaining(futureDate) {
+        const now = /* @__PURE__ */ new Date();
+        const future = new Date(futureDate);
+        const diff = future.getTime() - now.getTime();
+        if (diff <= 0) return `Expired`;
+        const seconds = Math.floor(diff / 1e3 % 60);
+        const minutes = Math.floor(diff / (1e3 * 60) % 60);
+        const hours = Math.floor(diff / (1e3 * 60 * 60) % 24);
+        const days = Math.floor(diff / (1e3 * 60 * 60 * 24));
+        let timeString = "";
+        if (days > 0) timeString += `${days}d `;
+        if (hours > 0) timeString += `${hours}h `;
+        if (minutes > 0) timeString += `${minutes}m `;
+        timeString += `${seconds}s`;
+        return timeString.trim();
+      }
+      formatUptime(uptimeMs) {
+        let totalSeconds = Math.floor(uptimeMs / 1e3);
+        const days = Math.floor(totalSeconds / 86400);
+        totalSeconds %= 86400;
+        const hours = Math.floor(totalSeconds / 3600);
+        totalSeconds %= 3600;
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const parts = [];
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0) parts.push(`${minutes}m`);
+        parts.push(`${seconds}s`);
+        return parts.join(" ");
       }
     };
     calculations_default = Calculations;
@@ -4306,7 +4376,7 @@ var init_networking = __esm({
             return ma > mb || ma === mb && mi > mi2 || ma === mb && mi === mi2 && pa > pb;
           };
           if (isNewerVersionDiscovered(onlineVersionParsed, offlineVersion)) {
-            submodules.utils.log(strings.updated_requied.replace(`{X_ONLINE_PARSED}`, onlineVersionParsed).replace(`{X_OFFLINE_VERSION}`, offlineVersion).replace(`{X_ONLINE_CHANGELOGS}`, onlineChangelogsParsed), { echoFile: true });
+            submodules.utils.log(strings.updated_requied.replace(`{ONLINE_PARSED}`, onlineVersionParsed).replace(`{OFFLINE_VERSION}`, offlineVersion).replace(`{ONLINE_CHANGELOGS}`, onlineChangelogsParsed), { echoFile: true });
           }
           return { error: false, message: `Update check completed.` };
         }));
@@ -4374,7 +4444,7 @@ var init_networking = __esm({
               }
             }
           } else {
-            data = { alerts: cache.internal.wire.features };
+            data = { alerts: cache.internal.events.features };
           }
           if (Object.keys(data).length > 0) {
             if (results) submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${results.trim().replace(/,\s*$/, "")}`, { echoFile: true });
@@ -4637,7 +4707,6 @@ var init_structure = __esm({
       }
       create(data, isAlertupdate) {
         return new Promise((resolve) => __async(this, null, function* () {
-          var _a;
           const clean = submodules.utils.filterWebContent(data);
           const defConfig = cache.internal.configurations;
           const isWire = defConfig.sources.atmosx_parser_settings.noaa_weather_wire_service;
@@ -4660,20 +4729,19 @@ var init_structure = __esm({
           }
           if (isAlertupdate) {
             if (clean.alerts) {
-              for (const feature of clean.alerts) {
-                if (!cache.internal.events.some((log) => log.id == feature.hash)) {
-                  cache.internal.events.push({ id: feature.hash, expires: feature.properties.expires });
-                  const register = this.register(feature);
+              for (const event of clean.alerts) {
+                if (!cache.internal.hashes.some((log) => log.id == event.hash)) {
+                  cache.internal.hashes.push({ id: event.hash, expires: event.properties.expires });
+                  const register = this.register(event);
                   if (register.ignored) {
                     continue;
                   }
-                  const getSource = isWire ? `NOAA Weather Wire Service${isCap ? ` (CAP)` : ``}` : `National Weather Service API`;
-                  submodules.utils.log(
-                    strings.new_event.replace(`{X_SOURCE}`, getSource).replace(`{X_EVENT}`, register.event.properties.event).replace(`{X_STATUS}`, register.event.properties.action_type).replace(`{X_EXPIRES}`, register.event.properties.expires).replace(`{X_ISSUED}`, register.event.properties.issued).replace(`{X_TRACKING}`, register.event.tracking).replace(`{X_TAGS}`, register.event.properties.tags ? register.event.properties.tags.join(", ") : "N/A").replace(`{X_DISTANCE}`, (((_a = register.event.properties.distance) == null ? void 0 : _a.range) != null ? Object.entries(register.event.properties.distance.range).map(([key, value]) => {
-                      return `${key}: ${value.distance} ${value.unit}`;
-                    }).join(", ") : ``) + `
-`)
-                  );
+                  if (!submodules.utils.isFancyDisplay()) {
+                    const getSource = isWire ? `NWWS${isCap ? ` (CAP)` : ``}` : `NWS`;
+                    submodules.utils.log(
+                      strings.new_event_legacy.replace(`{EVENT}`, register.event.properties.event).replace(`{STATUS}`, register.event.properties.action_type).replace(`{TRACKING}`, register.event.tracking.substring(0, 18)).replace(`{SOURCE}`, getSource)
+                    );
+                  }
                 }
               }
             }
@@ -4685,6 +4753,171 @@ var init_structure = __esm({
   }
 });
 
+// src/submodules/display.ts
+var Display, display_default;
+var init_display = __esm({
+  "src/submodules/display.ts"() {
+    init_bootstrap();
+    Display = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:display`;
+        this.elements = {};
+        this.initialize();
+      }
+      initialize() {
+        return __async(this, null, function* () {
+          submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+          if (!submodules.utils.isFancyDisplay()) {
+            return;
+          }
+          this.package = packages.gui;
+          this.manager = this.package.screen({
+            smartCSR: true,
+            title: `AtmosphericX v${submodules.utils.version()}`
+          });
+          yield this.intro(1e3);
+          this.create();
+          this.keybindings();
+          this.update();
+          setInterval(() => {
+            this.update();
+          }, 1e3);
+        });
+      }
+      intro(delay) {
+        return new Promise((resolve) => __async(this, null, function* () {
+          this.manager.append(this.package.box({
+            width: "shrink",
+            height: "shrink",
+            top: "center",
+            left: "center",
+            content: submodules.utils.logo(),
+            tags: true,
+            style: { align: "center", fg: "white" },
+            valign: "middle",
+            align: "center"
+          }));
+          this.manager.append(this.package.box({
+            top: "65%",
+            left: "center",
+            width: "80%",
+            height: "15%",
+            label: ` Preparing AtmosphericX v${submodules.utils.version()} `,
+            tags: true,
+            wrap: true,
+            content: cache.internal.logs.map((log) => {
+              return `${log.title} [${log.timestamp}] ${log.message}`;
+            }).join("\n"),
+            border: { type: "line" },
+            scrollable: true,
+            alwaysScroll: true,
+            style: { border: { fg: "white" } }
+          }));
+          this.manager.render();
+          yield submodules.utils.sleep(delay);
+          resolve();
+        }));
+      }
+      create() {
+        this.elements.logs = this.package.box({
+          top: "50%",
+          left: 0,
+          width: "100%",
+          height: "50%",
+          label: ` AtmosphericX v${submodules.utils.version()} `,
+          tags: true,
+          wrap: true,
+          border: { type: "line" },
+          scrollable: true,
+          alwaysScroll: true,
+          style: { border: { fg: "white" } }
+        });
+        this.elements.system = this.package.box({
+          top: 0,
+          left: "75%",
+          width: "25%",
+          height: "15%",
+          label: " System Info ",
+          tags: true,
+          wrap: true,
+          border: { type: "line" },
+          scrollable: true,
+          alwaysScroll: true,
+          style: { border: { fg: "white" } }
+        });
+        this.elements.sessions = this.package.box({
+          top: "15%",
+          left: "75%",
+          width: "25%",
+          height: "37%",
+          label: " Active Sessions ",
+          tags: true,
+          wrap: true,
+          border: { type: "line" },
+          scrollable: true,
+          alwaysScroll: true,
+          style: { border: { fg: "white" } }
+        });
+        this.elements.events = this.package.box({
+          top: 0,
+          left: 0,
+          width: "75%",
+          height: "50%",
+          label: " Active Events (X{INT}) - {STR} ",
+          tags: true,
+          wrap: true,
+          border: { type: "line" },
+          scrollable: true,
+          alwaysScroll: true,
+          style: { border: { fg: "white" } }
+        });
+        for (const key in this.elements) {
+          this.manager.append(this.elements[key]);
+        }
+        this.manager.render();
+      }
+      update() {
+        this.modifyElement(`events`, cache.internal.events.features.sort((a, b) => {
+          const dateA = new Date(a.properties.issued).getTime();
+          const dateB = new Date(b.properties.issued).getTime();
+          return dateA - dateB;
+        }).map((event) => {
+          var _a;
+          return strings.new_event_fancy.replace(`{EVENT}`, event.properties.event).replace(`{ACTION_TYPE}`, event.properties.action_type).replace(`{TRACKING}`, event.tracking.substring(0, 18)).replace(`{SENDER}`, event.properties.sender_name).replace(`{ISSUED}`, event.properties.issued).replace(`{EXPIRES}`, submodules.calculations.getTimeRemaining(event.properties.expires)).replace(`{TAGS}`, event.properties.tags ? event.properties.tags.join(", ") : "N/A").replace(`{LOCATIONS}`, event.properties.locations.substring(0, 100)).replace(`{DISTANCE}`, ((_a = event.properties.distance) == null ? void 0 : _a.range) != null ? Object.entries(event.properties.distance.range).map(([key, value]) => {
+            return `${key}: ${value.distance} ${value.unit}`;
+          }).join(", ") : `No Distance Data Available`);
+        }).join("\n"), ` Active Events (X${cache.internal.events.features.length}) - ${cache.internal.getSource} `);
+        this.elements.system.setContent(
+          strings.system_info.replace(`{UPTIME}`, submodules.calculations.formatUptime(Date.now() - cache.internal.metrics.start_uptime)).replace(`{MEMORY}`, ((packages.os.totalmem() - packages.os.freemem()) / (1024 * 1024)).toFixed(2)).replace(`{HEAP}`, (process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(2)).replace(`{EVENTS_PROCESSED}`, cache.internal.metrics.events_processed.toString()),
+          ` System Info `
+        );
+        this.modifyElement(
+          `logs`,
+          cache.internal.logs.map((log) => {
+            return `${log.title} [${log.timestamp}] ${log.message}`;
+          }).join("\n"),
+          `AtmosphericX v${submodules.utils.version()}`
+        );
+        this.manager.render();
+      }
+      modifyElement(key, content, title) {
+        if (this.elements[key]) {
+          this.elements[key].setContent(content);
+          if (title) this.elements[key].setLabel(` ${title} `);
+          this.elements[key].setScrollPerc(100);
+          this.manager.render();
+        }
+      }
+      keybindings() {
+        this.manager.key(["escape", "C-c"], (ch, key) => {
+          return process.exit(0);
+        });
+      }
+    };
+    display_default = Display;
+  }
+});
+
 // src/bootstrap.ts
 import * as manager from "atmosx-nwws-parser";
 import * as tempest from "atmosx-tempest-pulling";
@@ -4693,6 +4926,7 @@ import sqlite3 from "better-sqlite3";
 import express from "express";
 import cookieParser from "cookie-parser";
 import axios from "axios";
+import * as gui from "blessed";
 import * as events from "events";
 import * as path from "path";
 import * as fs from "fs";
@@ -4717,6 +4951,7 @@ var init_bootstrap = __esm({
     init_calculations();
     init_networking();
     init_structure();
+    init_display();
     cache = {
       external: {
         configurations: {},
@@ -4745,33 +4980,47 @@ var init_bootstrap = __esm({
         }
       },
       internal: {
+        getSource: `NWS`,
         configurations: {},
         random_alert_ms: void 0,
         random_alert_index: void 0,
         webhook_queue: [],
-        wire: { features: [] },
-        events: [],
+        events: { features: [] },
+        hashes: [],
+        logs: [],
         http_timers: {},
         express: void 0,
         manager: void 0,
         websocket: void 0,
-        sessions: []
+        sessions: [],
+        metrics: {
+          start_uptime: Date.now(),
+          memory_usage: 0,
+          events_processed: 0
+        }
       },
       placefiles: {}
     };
     strings = {
-      updated_requied: `New version available: {X_ONLINE_PARSED} (Current version: {X_OFFLINE_VERSION})
+      updated_requied: `New version available: {ONLINE_PARSED} (Current version: {OFFLINE_VERSION})
 ${"	".repeat(5)} Update by running update.sh or download the latest version from GitHub.
 ${"	".repeat(5)} =================== CHANGE LOGS ======================= 
-${"	".repeat(5)} {X_ONLINE_CHANGELOGS}
+${"	".repeat(5)} {ONLINE_CHANGELOGS}
 
 `,
       updated_required_failed: `Failed to check for updates. Please check your internet connection. This may also be due to an endpoint configuration change.`,
-      new_event: `{X_EVENT} {X_STATUS} [{X_TRACKING}]
-${"	".repeat(5)} Source: {X_SOURCE}
-${"	".repeat(5)} Issued: {X_ISSUED} | Expires: {X_EXPIRES}
-${"	".repeat(5)} Tags: {X_TAGS}
-${"	".repeat(5)} {X_DISTANCE}`
+      new_event_legacy: `{SOURCE} | Alert {STATUS} >> {EVENT} [{TRACKING}]`,
+      new_event_fancy: `\u251C\u2500 {bold}{EVENT} ({ACTION_TYPE}) [{TRACKING}]{/bold}
+\u2502  \u251C\u2500 Issued: {ISSUED} ({EXPIRES})
+\u2502  \u251C\u2500 Sender {SENDER}
+\u2502  \u251C\u2500 Tags: {TAGS}
+\u2502  \u251C\u2500 Locations: {LOCATIONS}
+\u2502  \u2514\u2500 Distance: {DISTANCE})`,
+      system_info: `{bold}Uptime:{/bold} {UPTIME}
+{bold}Memory Usage:{/bold} {MEMORY} MB
+{bold}Heap Usage:{/bold} {HEAP} MB
+{bold}Events Processed:{/bold} {EVENTS_PROCESSED}
+`
     };
     packages = {
       events,
@@ -4796,14 +5045,16 @@ ${"	".repeat(5)} {X_DISTANCE}`
       firebaseApp,
       firebaseDatabase,
       streamerBot,
-      jobs
+      jobs,
+      gui
     };
     submoduleClasses = {
       utils: utils_default,
       alerts: alerts_default,
       calculations: calculations_default,
       networking: networking_default,
-      structure: structure_default
+      structure: structure_default,
+      display: display_default
     };
     submodules = {};
     Object.entries(submoduleClasses).forEach(([key, Class]) => {

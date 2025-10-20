@@ -47,6 +47,7 @@
         }
     },
     "internal_settings": {
+        "fancy_interface": true,
         "global_update": "*/10 * * * * *", 
         "update_check": "0 */6 * * *",
         "request_timeout": 10,
@@ -116,7 +117,6 @@
         "all_events": false,
         "sfx_beep_only": false,
         "show_updates": true,
-        "check_expired": true,
         "ignore_tests": true,
         "ignored_events": [],
         "listening_icoa": [],
@@ -130,13 +130,13 @@
         "location_settings": {
             "enabled": false,
             "unit": "miles",
-            "max_distance": 1000
+            "max_distance": 125
         }
     },
     "sources": {
         "atmosx_parser_settings": {
             "noaa_weather_wire_service": false, 
-            "journal": true,
+            "journal": false,
             "national_weather_service_settings": {
                 "interval": 29,
                 "endpoint": "https://api.weather.gov/alerts/active"

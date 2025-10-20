@@ -23,8 +23,8 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import axios from 'axios';
 
-
 /* [ All Modules Export ] */
+import * as gui from 'blessed';
 import * as events from 'events';
 import * as path from 'path'; 
 import * as fs from 'fs';
@@ -48,23 +48,7 @@ import alerts from './submodules/alerts';
 import calculations from './submodules/calculations';
 import networking from './submodules/networking';
 import structure from './submodules/structure';
-//import websockets from './src/submodules/websockets';
-//import streaming from './src/submodules/streaming';
-//import gps from './src/submodules/gps';
-//import routing from './src/submodules/routing';
-//import parsing from './src/submodules/parsing';
-
-//import database from './src/submodules/database';
-//import commands from './src/submodules/commands';
-//import character from './src/submodules/character';
-//import building from './src/submodules/building';
-
-
-/* [ ATMOSX MODULES ] */
-//import placefiles from './src/submodules/atmsx-modules/placefiles';
-//import wire from './src/submodules/atmsx-modules/wire';
-//import stations from './src/submodules/atmsx-modules/stations';
-
+import display from './submodules/display';
 
 /* [ Global Cache ] */
 export const cache = {
@@ -95,25 +79,34 @@ export const cache = {
         },
     }, 
     internal: {
+        getSource: `NWS`,
         configurations: {}, 
         random_alert_ms: undefined,
         random_alert_index: undefined,
         webhook_queue: [],
-        wire: {features: []},
-        events: [],
+        events: {features: []},
+        hashes: [],
+        logs: [],
         http_timers: {},
         express: undefined,
         manager: undefined,
         websocket: undefined,
         sessions: [],
+        metrics: {
+            start_uptime: Date.now(),
+            memory_usage: 0,
+            events_processed: 0,
+        }
     },
     placefiles: {},
 };
 
 export const strings = {
-    updated_requied: `New version available: {X_ONLINE_PARSED} (Current version: {X_OFFLINE_VERSION})\n${("\t").repeat(5)} Update by running update.sh or download the latest version from GitHub.\n${("\t").repeat(5)} =================== CHANGE LOGS ======================= \n${("\t").repeat(5)} {X_ONLINE_CHANGELOGS}\n\n`,
+    updated_requied: `New version available: {ONLINE_PARSED} (Current version: {OFFLINE_VERSION})\n${("\t").repeat(5)} Update by running update.sh or download the latest version from GitHub.\n${("\t").repeat(5)} =================== CHANGE LOGS ======================= \n${("\t").repeat(5)} {ONLINE_CHANGELOGS}\n\n`,
     updated_required_failed: `Failed to check for updates. Please check your internet connection. This may also be due to an endpoint configuration change.`,
-    new_event: `{X_EVENT} {X_STATUS} [{X_TRACKING}]\n${("\t").repeat(5)} Source: {X_SOURCE}\n${("\t").repeat(5)} Issued: {X_ISSUED} | Expires: {X_EXPIRES}\n${("\t").repeat(5)} Tags: {X_TAGS}\n${("\t").repeat(5)} {X_DISTANCE}`,
+    new_event_legacy: `{SOURCE} | Alert {STATUS} >> {EVENT} [{TRACKING}]`,
+    new_event_fancy: `├─ {bold}{EVENT} ({ACTION_TYPE}) [{TRACKING}]{/bold}\n` +`│  ├─ Issued: {ISSUED} ({EXPIRES})\n` +`│  ├─ Sender {SENDER}\n` + `│  ├─ Tags: {TAGS}\n` +`│  ├─ Locations: {LOCATIONS}\n` +`│  └─ Distance: {DISTANCE})`,
+    system_info: `{bold}Uptime:{/bold} {UPTIME}\n{bold}Memory Usage:{/bold} {MEMORY} MB\n{bold}Heap Usage:{/bold} {HEAP} MB\n{bold}Events Processed:{/bold} {EVENTS_PROCESSED}\n`,
 }
 
 /* [ Package Exports ] */
@@ -123,14 +116,15 @@ export const packages = {
     https, axios, xmpp, os, jsonc,
     xml2js, manager, tempest, placefile, 
     shapefile, ws, firebaseApp, 
-    firebaseDatabase, streamerBot, jobs
+    firebaseDatabase, streamerBot, jobs, 
+    gui
 };
 
 
 /* [ Submodule Initialization ] */
 const submoduleClasses = {
     utils, alerts, calculations, networking,
-    structure
+    structure, display,
 };
 
 export const submodules: any = {};
