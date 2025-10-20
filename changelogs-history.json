@@ -1,4 +1,19 @@
 {
+    "8.0.001": {
+        "version": "8.0.001",
+        "updated": "Monday, October, 20th",
+        "headline": "<span style='color:green'>[FEED]</span>__BETA_BRANCH_DEVELOPER_USE_ONLY__ DO NOT USE",
+        "changelogs": [
+            "feat(parsing): add comprehensive parsing support for weather-related data",
+            "add: Introduced a new Parsing class to handle various weather data formats.",
+            "add: Implemented methods to convert WxRadio API, Tropical Storm API, Gibson Ridge Report, Spotter Network, and SPC Discussions responses into GeoJSON FeatureCollection format.",
+            "add: Enhanced type safety and method accessibility throughout the code.",
+            "add: Added support for parsing WxEye Sonde API responses.",
+            "refactor: Refactored existing parsing methods for improved clarity and maintainability.",
+            "update: Updated version to 8.0.001."
+        ],
+        "rewrite": true
+    },
     "7.1.425": {
         "version": "7.1.425",
         "updated": "Sunday, September, 28th",

@@ -9,13 +9,15 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx      
-                          
+    Last Updated: 2025-10-20
+    Changelogs: 
+        - Added type definitions for better clarity and maintainability.
+
 */
 
 
 import * as loader from '../bootstrap';
 import * as types from '../types';
-
 
 export class Alerts { 
     name: string
@@ -27,49 +29,99 @@ export class Alerts {
         this.initalize()
     }
 
-    public refresh() {
-        loader.cache.internal.manager.setSettings()
-    }
-
     private initalize() {
         loader.submodules.utils.log(`${this.name} initialized.`)
         this.instance();
     }
 
-    private handle(alerts : any[]) {
+    /**
+     * displayAlert generates a formatted alert message based on the event data.
+     *
+     * @public
+     * @param {*} event 
+     * @returns {string} 
+     */
+    public displayAlert(event: types.EventType): string {
+        if (!loader.submodules.utils.isFancyDisplay()) { 
+            return loader.strings.new_event_legacy
+                .replace(`{EVENT}`, event.properties.event)
+                .replace(`{STATUS}`, event.properties.action_type)
+                .replace(`{TRACKING}`, event.tracking.substring(0, 18))
+                .replace(`{SOURCE}`, loader.cache.internal.getSource)
+        } else {
+            return loader.cache.internal.events.features.sort((a: types.EventType, b: types.EventType) => {
+                const dateA = new Date(a.properties.issued).getTime();
+                const dateB = new Date(b.properties.issued).getTime();
+                return dateA - dateB
+            }).map((event: types.EventType) => {
+                return loader.strings.new_event_fancy
+                .replace(`{EVENT}`, event.properties.event)
+                .replace(`{ACTION_TYPE}`, event.properties.action_type)
+                .replace(`{TRACKING}`, event.tracking.substring(0, 18))
+                .replace(`{SENDER}`, event.properties.sender_name)
+                .replace(`{ISSUED}`, event.properties.issued)
+                .replace(`{EXPIRES}`, loader.submodules.calculations.timeRemaining(new Date(event.properties.expires)))
+                .replace(`{TAGS}`, event.properties.tags ? event.properties.tags.join(', ') : 'N/A')
+                .replace(`{LOCATIONS}`, event.properties.locations.substring(0, 100))
+                .replace(`{DISTANCE}`, (event.properties.distance?.range != null ? Object.entries(event.properties.distance.range).map(([key, value]: [string, any]) => {return `${key}: ${value.distance} ${value.unit}`;}).join(', ') : `No Distance Data Available`));
+            }).join('\n')
+        }
+    }
+
+    /**
+     * handle processes incoming alerts and updates the internal cache accordingly.
+     *
+     * @private
+     * @param {*} alerts 
+     */
+    private handle(alerts:  types.EventType[]): void {
+        const InternalType = loader.cache.internal as types.InternalType;
+        const features = loader.cache.internal.events.features;
         for (const alert of alerts) {
-            let tracking = alert.tracking
-            let find = loader.cache.internal.events.features.findIndex(feature => feature && feature.tracking == tracking);
-            if (alert.properties.is_cancelled && find !== -1) { loader.cache.internal.events.features[find] = undefined;  }
-            if (alert.properties.is_issued && find == -1) { loader.cache.internal.events.features.push(alert); } 
-            if (alert.properties.is_updated) {
-                if (find !== -1) {
-                    const newHistory = loader.cache.internal.events.features[find].history.concat(alert.history).sort((a: { issued: string }, b: { issued: string }) => new Date(b.issued).getTime() - new Date(a.issued).getTime());
-                    const newLocations = loader.cache.internal.events.features[find].properties.locations;
-                    loader.cache.internal.events.features[find] = alert;
-                    loader.cache.internal.events.features[find].history = newHistory;
-                    for (let i = 0; i < newHistory.length; i++) {
-                        for (let j = 0; j < newHistory.length; j++) {
-                            let vTimeDiff = Math.abs(new Date(newHistory[i].issued).getTime() - new Date(newHistory[j].issued).getTime());
-                            if (vTimeDiff < 1000) {
-                                let combinedLocations = newLocations + `; ` + loader.cache.internal.events.features[find].properties.locations;
-                                let uniqueLocations = [...new Set(combinedLocations.split(';').map(location => location.trim()))];
-                                loader.cache.internal.events.features[find].properties.locations = uniqueLocations.join('; ');
-                            }
-                        }
-                    }
-                } else { 
-                    loader.cache.internal.events.features.push(alert);
+            const { tracking, properties, history = [] } = alert;
+            const index = features.findIndex( feature => feature && feature.tracking === tracking );
+            if (properties.is_cancelled && index !== -1) {
+                features[index] = undefined; continue;
+            }
+            if (properties.is_issued && index === -1) {
+                features.push(alert); continue;
+            }
+            if (properties.is_updated) {
+                if (index !== -1 && features[index]) {
+                    const existing = features[index];
+                    const mergedHistory = [ ...(existing.history ?? []), ...history ].sort(
+                        (a, b) => new Date(b.issued).getTime() - new Date(a.issued).getTime()
+                    );
+                    const existingLocations = existing.properties.locations ?? "";
+                    const newLocations = alert.properties.locations ?? "";
+                    const combinedLocations = [...new Set((existingLocations + "; " + newLocations)
+                        .split(";")
+                        .map(loc => loc.trim())
+                        .filter(Boolean)),
+                    ].join("; ");
+                    features[index] = { ...alert, history: mergedHistory,
+                        properties: { ...alert.properties, locations: combinedLocations, },
+                    };
+                } else {
+                    features.push(alert);
                 }
             }
         }
-        loader.submodules.networking.updateCache(true);
         loader.cache.internal.metrics.events_processed += alerts.length;
+        InternalType.events = { features: InternalType.events?.features.filter(f => f !== undefined && new Date(f.properties.expires).getTime() > new Date().getTime())}
+        InternalType.hashes = InternalType.hashes.filter(e => e !== undefined && new Date(e.expires).getTime() > new Date().getTime())
+        loader.submodules.networking.updateCache(true);
     }
 
+    /**
+     * instance creates or refreshes the AlertManager instance with the current configurations.
+     *
+     * @private
+     * @param {?boolean} [isRefreshing] 
+     */
     private instance(isRefreshing?: boolean) {
         if (isRefreshing && !this.manager) return;
-        const configurations = loader.cache.internal.configurations as Record<string, any>;
+        const configurations = loader.cache.internal.configurations as types.ConfigurationsType
         const alerts = configurations.sources.atmosx_parser_settings
         const nwws = alerts.weather_wire_settings
         const nws = alerts.national_weather_service_settings
@@ -97,7 +149,7 @@ export class Alerts {
                     locationFiltering: { maxDistance: filter.location_settings.max_distance, unit: filter.location_settings.unit, filter: filter.location_settings.enabled },
                     filteredEvents: filter.all_events == true ? [] : filter.listening_events, ignoredEvents: filter.ignored_events, filteredICOAs: filter.listening_icoa, ignoredICOAs: filter.ignored_icoa, ugcFilter: filter.listening_ugcs, stateFilter: filter.listening_states, checkExpired: false,
                 },
-                easSettings: { easDirectory: filter.eas_settings.eas_directory, easIntroWav: filter.eas_settings.eas_intro }
+                easSettings: { festivalVoice: filter.festival_voice, easDirectory: filter.eas_settings.eas_directory, easIntroWav: filter.eas_settings.eas_intro }
             }
         }
 

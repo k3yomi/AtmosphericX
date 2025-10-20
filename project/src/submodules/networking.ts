@@ -8,14 +8,19 @@
                                      | |                                 
                                      |_|                                                                                                                
     
-    Written by: KiyoWx (k3yomi) & StarflightWx      
-                          
+    Written by: KiyoWx (k3yomi) & StarflightWx  
+    Last Updated: 2025-10-20
+    Changelogs: 
+        - Added type definitions for better clarity and maintainability.
+        - Implemented caching and contradiction resolution for data sources.
+        - Enhanced error handling and retry logic for data fetching.
+        - Created methods for update checking and cache refreshing.
+        - Developed a comprehensive HTTP request handler with customizable options.                             
 */
 
 
 import * as loader from '../bootstrap';
 import * as types from '../types';
-
 
 export class Alerts { 
     name: string
@@ -30,20 +35,80 @@ export class Alerts {
         this.updateCache();
     }
 
-    private async getDataFromSource(url: string): Promise<{error: boolean, message: any}> {
-        try {
-            const resp: any = await this.httpRequest(url);
-            if (resp.error) { return { error: true, message: `Error fetching data from ${url}` }; }
-            return { error: false, message: resp.message };
-        } catch (e) {
-            return { error: true, message: `Exception fetching data from ${url}: ${e}` };
+    /**
+     * buildSourceStructure constructs an array of CacheStructure objects from the provided sources.
+     *
+     * @private
+     * @param {*} sources 
+     * @returns {types.CacheStructure[]} 
+     */
+    private buildSourceStructure(sources: any): types.CacheStructure[] {
+        const structure: types.CacheStructure[] = [];
+        for (const source in sources) {
+            for (const [key, value] of Object.entries(sources[source])) {
+                const source = value as Record<string, any>;
+                structure.push({
+                    name: key,
+                    url: source.endpoint,
+                    enabled: source.enabled,
+                    cache: source.cache_time,
+                    contradictions: source.contradictions ?? [],
+                });
+            }
+        }
+        return structure;
+    }
+
+    /**
+     * resolveContradictions disables sources based on their defined contradictions.
+     *
+     * @private
+     * @param {types.CacheStructure[]} structure 
+     */
+    private resolveContradictions(structure: types.CacheStructure[]): void {
+        for (const source of structure.filter(s => s.enabled)) {
+            for (const contradiction of source.contradictions) {
+                const index = structure.findIndex(s => s.name === contradiction);
+                if (index !== -1 && structure[index].enabled) {
+                    loader.submodules.utils.log(`Evoking contradiction: ${source.name} disables ${structure[index].name}`, { echoFile: true });
+                    structure[index].enabled = false;
+                }
+            }
         }
     }
 
+    /**
+     * getDataFromSource retrieves data from the specified URL and handles errors.
+     *
+     * @private
+     * @async
+     * @param {string} url 
+     * @returns {Promise<{ error: boolean; message: any }>} 
+     */
+    private async getDataFromSource(url: string): Promise<{ error: boolean; message: any }> {
+        try {
+            const response = await this.httpRequest(url);
+            if (response?.error) {
+                return { error: true, message: `Error fetching data from ${url}`, };
+            }
+            return { error: false, message: response?.message ?? response, };
+        } catch (error) {
+            return { error: true, message: `Exception fetching data from ${url}: ${(error as Error).message ?? error}`, };
+        }
+    }
+
+    /**
+     * httpRequest performs an HTTP GET request to the specified URL with optional settings.
+     *
+     * @public
+     * @param {string} url 
+     * @param {?types.HTTPOptions} [options] 
+     * @returns {Promise<any>} 
+     */
     public httpRequest(url: string, options?: types.HTTPOptions): Promise<any> {
         return new Promise(async (resolve) => {
             try { 
-                const config = loader.cache.internal.configurations as types.defConfigurations;
+                const config = loader.cache.internal.configurations as types.ConfigurationsType;
                 const isOptionsProvided = options !== undefined;
                 if (!isOptionsProvided) {
                     options = {
@@ -72,26 +137,28 @@ export class Alerts {
         });
     }
 
+    /**
+     * getUpdates checks for updates by comparing the online version with the local version.
+     *
+     * @public
+     * @returns {Promise<{error: boolean, message: string}>} 
+     */
     public getUpdates(): Promise<{error: boolean, message: string}> {
         return new Promise(async (resolve) => {
             const onlineVersion = await this.httpRequest(`https://raw.githubusercontent.com/k3yomi/AtmosphericX/main/version`, undefined)
             const onlineChangelogs = await this.httpRequest(`https://raw.githubusercontent.com/k3yomi/AtmosphericX/main/changelogs-history.json`, undefined)
             const offlineVersion = loader.submodules.utils.version();
-
             if (onlineVersion.error == true || onlineChangelogs.error == true) { loader.submodules.utils.log(loader.strings.updated_required_failed, {echoFile: true}); return resolve({error: true, message: `Failed to check for updates.`}); }
-
             const onlineVersionParsed = onlineVersion.message.replace(/\n/g, ``);
             const onlineChangelogsParsed = onlineChangelogs.message[onlineVersion] ? 
                 onlineChangelogs.message[onlineVersionParsed].changelogs.join(`\n\t`) : `No changelogs available.`;
             loader.cache.external.version = onlineVersionParsed;
             loader.cache.external.changelogs = onlineChangelogsParsed;
-
             const isNewerVersionDiscovered = (a: string, b: string) => {
                 const [ma, mi, pa] = a.split(".").map(Number);
                 const [mb, mi2, pb] = b.split(".").map(Number);
                 return ma > mb || (ma === mb && mi > mi2) || (ma === mb && mi === mi2 && pa > pb);
             }
-
             if (isNewerVersionDiscovered(onlineVersionParsed, offlineVersion)) {
                 loader.submodules.utils.log(loader.strings.updated_requied.replace(`{ONLINE_PARSED}`, onlineVersionParsed).replace(`{OFFLINE_VERSION}`, offlineVersion).replace(`{ONLINE_CHANGELOGS}`, onlineChangelogsParsed), {echoFile: true});
             }
@@ -99,77 +166,54 @@ export class Alerts {
         });
     }
 
-    public updateCache(isAlertupdate?: boolean): Promise<void> {
-        return new Promise(async (resolve) => {
-            loader.submodules.utils.configurations();
-            loader.submodules.utils.filterInternals();
-            loader.submodules.alerts.instance(true);
-            await loader.submodules.utils.sleep(200);
-            const defConfig = loader.cache.internal.configurations as types.defConfigurations;
-            const { atmosx_parser_settings, ...sources } = defConfig.sources;
-            const setTime = new Date().getTime();
-            const structure = [];
-            let data = {};
-            let results = ``;
-            if (isAlertupdate == undefined) {
-                for (const topic in sources) {
-                    for (const [key, value] of Object.entries(sources[topic])) {
-                        const source = value as Record<string, unknown>;
-                        structure.push({
-                            name: key,
-                            url: source.endpoint,
-                            enabled: source.enabled,
-                            cache: source.cache_time,
-                            contradictions: source.contradictions || [],
-                        })
-                    }
-                }
-                for (const source of structure.filter(s => s.enabled).sort((a, b) => a.cache - b.cache)) {
-                    source.contradictions.forEach((contradiction: string) => {
-                        let index = structure.findIndex((h: any) => h.name == contradiction);
-                        if (index !== -1 && structure[index].enabled && source.enabled) {
-                            loader.submodules.utils.log(`Evoking contradiction: ${source.name} disables ${structure[index].name}`, {echoFile: true});
-                            structure[index].enabled = false;
+    /**
+     * updateCache refreshes the internal cache by fetching data from active sources.
+     *
+     * @public
+     * @async
+     * @param {?boolean} [isAlertUpdate] 
+     * @returns {Promise<void>} 
+     */
+    public async updateCache(isAlertUpdate?: boolean): Promise<void> {
+        loader.submodules.utils.configurations();
+        loader.submodules.alerts.instance(true);
+        await loader.submodules.utils.sleep(200);
+        let data = {}
+        let stringText = ``
+        const setTime = Date.now();
+        const defConfig = loader.cache.internal.configurations as types.ConfigurationsType;
+        const { atmosx_parser_settings, ...sources } = defConfig.sources;
+        if (!isAlertUpdate) { 
+            const structure = this.buildSourceStructure(sources);
+            this.resolveContradictions(structure);
+            const activeSources = structure.filter(s => s.enabled && s.url != null);
+            await Promise.all(activeSources.map(async source => {
+                const lastFetched = loader.cache.internal.http_timers[source.name] ?? 0;
+                if (setTime - lastFetched <= source.cache * 1000) return;
+                loader.cache.internal.http_timers[source.name] = setTime;
+                for (let attempt = 0; attempt < 3; attempt++) {
+                    const response = await this.getDataFromSource(source.url);
+                    if (!response.error) {
+                        data[source.name] = response.message;
+                        stringText += `(OK) ${source.name.toUpperCase()}, `
+                        break;
+                    } else { 
+                        loader.submodules.utils.log(`Error fetching data from ${source.name.toUpperCase()} (${attempt + 1}/3)`, { echoFile: true });
+                        if (attempt === 2) {
+                            data[source.name] = undefined;
+                            stringText += `(ERR) ${source.name.toUpperCase()}, `
                         }
-                    });
-                }
-                const active = structure.filter(s => s.enabled);
-                await Promise.all(active.map(async (source: any) => {
-                     if (!loader.cache.internal.http_timers[source.name] || setTime - loader.cache.internal.http_timers[source.name] > source.cache * 1000) {
-                        loader.cache.internal.http_timers[source.name] = setTime;
-                        for (let retries = 0; retries < 3; retries++) {
-                            const resp = await this.getDataFromSource(source.url)
-                            if (resp.error) { 
-                                if (retries == 2) {
-                                    data[source.name] = undefined;
-                                    results += `(ERR) ${source.name.toUpperCase()}, `;
-                                }
-                                loader.submodules.utils.log(`Error fetching data from ${source.name.toUpperCase()} (${retries + 1}/3)`, {echoFile: true});
-                                continue;
-                            }
-                            data[source.name] = resp.message;
-                            results += `(OK) ${source.name.toUpperCase()}, `;
-                            break;
-                        }
-                     }
-                }));
-                if (!defConfig.sources.atmosx_parser_settings.noaa_weather_wire_service) {
-                    const cacheTime = defConfig.sources.atmosx_parser_settings.national_weather_service_settings.interval;
-                    if (!loader.cache.internal.http_timers[`nws_alerts`] || setTime - loader.cache.internal.http_timers[`nws_alerts`] > cacheTime * 1000) {
-                        loader.cache.internal.http_timers[`nws_alerts`] = setTime;
-                        results += `(OK) NWS_ALERTS, `;
-                        data[`nws_alerts`] = {};
                     }
-                }
-            } else { 
-                data = { alerts: loader.cache.internal.events.features };
+                }})
+            )
+        }
+        data["alerts"] = loader.cache.internal.events.features;
+        if (Object.keys(data).length > 0) {
+            if (stringText.length > 0) {
+                loader.submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${stringText.slice(0, -2)}`, { echoFile: true })
             }
-            if (Object.keys(data).length > 0) {
-                if (results) loader.submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${results.trim().replace(/,\s*$/, '')}`, {echoFile: true});
-                loader.submodules.structure.create(data, isAlertupdate);
-            }
-            resolve();
-        })
+            loader.submodules.structure.create(data, isAlertUpdate);
+        }
     }
 }
 

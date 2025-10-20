@@ -8,10 +8,16 @@
                                      | |
                                      |_|
     Written by: KiyoWx (k3yomi) & StarflightWx
+    Last Updated: 2025-10-20
+    Changelogs: 
+        - Added type definitions for better clarity and maintainability.
+        - Implemented a terminal-based display using Blessed for real-time monitoring.
+        - Created dynamic elements for logs, system info, sessions, and active events.
+        - Established periodic updates to refresh displayed information.
+        - Integrated keybindings for graceful exit and interaction.
 */
 
 import * as loader from '../bootstrap';
-import * as types from '../types';
 
 export class Display {
     NAME_SPACE = `submodule:display`;
@@ -108,24 +114,9 @@ export class Display {
     }
 
     private update(): void {
-        this.modifyElement(`events`, loader.cache.internal.events.features.sort((a: any, b: any) => {
-            const dateA = new Date(a.properties.issued).getTime();
-            const dateB = new Date(b.properties.issued).getTime();
-            return dateA - dateB
-        }).map((event: any) => {
-            return loader.strings.new_event_fancy
-            .replace(`{EVENT}`, event.properties.event)
-            .replace(`{ACTION_TYPE}`, event.properties.action_type)
-            .replace(`{TRACKING}`, event.tracking.substring(0, 18))
-            .replace(`{SENDER}`, event.properties.sender_name)
-            .replace(`{ISSUED}`, event.properties.issued)
-            .replace(`{EXPIRES}`, loader.submodules.calculations.getTimeRemaining(event.properties.expires))
-            .replace(`{TAGS}`, event.properties.tags ? event.properties.tags.join(', ') : 'N/A')
-            .replace(`{LOCATIONS}`, event.properties.locations.substring(0, 100))
-            .replace(`{DISTANCE}`, (event.properties.distance?.range != null ? Object.entries(event.properties.distance.range).map(([key, value]: [string, any]) => {return `${key}: ${value.distance} ${value.unit}`;}).join(', ') : `No Distance Data Available`));
-        }).join('\n'), ` Active Events (X${loader.cache.internal.events.features.length}) - ${loader.cache.internal.getSource} `);
+        this.modifyElement(`events`, loader.submodules.alerts.displayAlert(), ` Active Events (X${loader.cache.internal.events.features.length}) - ${loader.cache.internal.getSource} `);
         this.elements.system.setContent(loader.strings.system_info
-            .replace(`{UPTIME}`, loader.submodules.calculations.formatUptime(Date.now() - loader.cache.internal.metrics.start_uptime))
+            .replace(`{UPTIME}`, loader.submodules.calculations.formatDuration(Date.now() - loader.cache.internal.metrics.start_uptime))
             .replace(`{MEMORY}`, ((loader.packages.os.totalmem() - loader.packages.os.freemem()) / (1024 * 1024)).toFixed(2))
             .replace(`{HEAP}`, (process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(2))
             .replace(`{EVENTS_PROCESSED}`, loader.cache.internal.metrics.events_processed.toString())
@@ -137,7 +128,7 @@ export class Display {
         this.manager.render();
     }
 
-    private modifyElement(key: string, content: string, title: string): void {
+    private modifyElement(key: string, content: string, title?: string): void {
         if (this.elements[key]) {
             this.elements[key].setContent(content);
             if (title) this.elements[key].setLabel(` ${title} `);

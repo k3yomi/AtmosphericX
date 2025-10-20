@@ -9,17 +9,19 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx      
-                          
+	Last Updated: 2025-10-20
+    Changelogs: 
+        - Added type definitions for better clarity and maintainability.
+		- Refactored parsing and event registration methods for improved structure.
+		- Enhanced event metadata retrieval for flexibility.
+		- Implemented event registration with filtering options.
+		- Created a comprehensive create method for handling various data types and alert updates.
 */
-
 
 import * as loader from '../bootstrap';
 import * as types from '../types';
 
-
-
-
-export class Calculations { 
+export class Structure { 
     NAME_SPACE: string
     constructor() {
         this.NAME_SPACE = `submodule:structure`;
@@ -30,265 +32,123 @@ export class Calculations {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
     }
 
-    private parsing(body?: any, type?: string): Promise<any> {
-        return new Promise(async (resolve) => {
-            const defConfig = loader.cache.internal.configurations as types.defConfigurations;
-            let imports: any = [];
-            switch (type) {
-                case 'spotter_network_feed': 
-                    imports = { type: 'FeatureCollection', features: [] }
-                    const feedConfig = defConfig.sources?.location_settings?.spotter_network_feed;
-                    loader.packages.placefile.AtmosXPlacefileParser.parsePlacefile(body).then((parsed: unknown) => {
-                        for (const feature of parsed as any[]) {
-                            let distance = 99999999999;
-                            const isActive = (feature.icon.scale == 6 && feature.icon.type == '2') && feedConfig.pins.active;
-                            const isStreaming = (feature.icon.scale == 1 && feature.icon.type == '19') && feedConfig.pins.streaming;
-                            const isIdle = (feature.icon.scale == 6 && feature.icon.type == '6') && feedConfig.pins.idle;
-                            if (!isActive && !isStreaming && (!isIdle || !feedConfig.pins.offline)) { continue; }
-                            if (feedConfig.pin_by_name.length > 0) {
-                                const isNameInPool = feedConfig.pin_by_name.findIndex((name: string) => feature.icon.label.includes(name));
-                                if (isNameInPool !== -1) {    
-                                    const name = feedConfig.pin_by_name[isNameInPool];     
-                                    loader.cache.external.locations.spotter_network = {
-                                        lat: feature.object.coordinates[0],
-                                        lon: feature.object.coordinates[1]
-                                    };
-                                    loader.cache.internal.manager.setCurrentLocation(name, {
-                                        lat: feature.object.coordinates[0],
-                                        lon: feature.object.coordinates[1]
-                                    });
-                                }
-                            }
-                            if (Object.keys(loader.cache.external.locations.spotter_network.lat != 0)) {
-                                distance = loader.submodules.calculations.getDistanceBetweenCoordinates({
-                                    coords: {lat: feature.object.coordinates[1], lon: feature.object.coordinates[0]}, 
-                                    coords2: {lat: loader.cache.external.locations.spotter_network.lat, lon: loader.cache.external.locations.spotter_network.lon}
-                                });
-                            }
-                            imports.features.push({
-                                type: 'Feature',
-                                geometry: {type: 'Point', coordinates: [feature.object.coordinates[0], feature.object.coordinates[1]]},
-                                properties: {
-                                    description: feature.icon.label.replace(/\\n/g, `<br>`),
-                                    distance: distance,
-                                    status: isActive ? `Active` : isStreaming ? `Streaming` : isIdle ? `Idle` : `Unknown`,
-                                }
-                            });
-                        }
-                    })  
-                break;
-                case 'storm_prediction_center_mesoscale': 
-                    imports = { type: 'FeatureCollection', features: [] }
-                    loader.packages.placefile.AtmosXPlacefileParser.parseGeoJSON(body).then((parsed: unknown) => {
-                        for (const feature of (parsed as any)) {
-                            if (feature.properties.expires_at_ms < Date.now()) { continue }
-                            const torProb = loader.packages.manager.TextParser.textProductToString(feature.properties.text, `MOST PROBABLE PEAK TORNADO INTENSITY...`, []);
-                            const winProb = loader.packages.manager.TextParser.textProductToString(feature.properties.text, `MOST PROBABLE PEAK WIND GUST...`, []);
-                            const hagProb = loader.packages.manager.TextParser.textProductToString(feature.properties.text, `MOST PROBABLE PEAK HAIL SIZE...`, []);
-                            imports.features.push({
-                                type: 'Feature',
-                                geometry: { type: 'Polygon', coordinates: feature.coordinates, },
-                                properties: {
-                                    mesoscale_id: feature.properties.number,
-                                    expires: new Date(feature.properties.expires_at_ms).toLocaleString(),
-                                    issued: new Date(feature.properties.issued_at_ms).toLocaleString(),
-                                    description: loader.packages.manager.TextParser.textProductToDescription(feature.properties.text).replace(/\n/g, '<br>'),
-                                    locations: feature.properties.tags.AREAS_AFFECTED.join(', '),
-                                    outlook: feature.properties.tags.CONCERNING.join(', '),
-                                    population: feature.properties.population.people.toLocaleString(),
-                                    homes: feature.properties.population.homes.toLocaleString(),
-                                    parameters: {
-                                        tornado_probability: torProb,
-                                        wind_probability: winProb,
-                                        hail_probability: hagProb,
-                                    },
-                                }
-                            })
-                        }
-                    })
-                break;
-                case 'spotter_reports': 
-                    imports = { type: 'FeatureCollection', features: [] }
-                    loader.packages.placefile.AtmosXPlacefileParser.parsePlacefile(body).then(parsed => {
-                        for (const feature of parsed as any[]) {
-                            imports.features.push({
-                                type: 'Feature',
-                                geometry: {type: 'Point', coordinates: [parseFloat(feature.icon.x), parseFloat(feature.icon.y)]},
-                                properties: {
-                                    event: feature.icon.label.split('\\n')[1]?.trim() || 'N/A',
-                                    reporter: feature.icon.label.split('\\n')[0]?.replace('Reported By:', '').trim() || 'N/A',
-                                    size: feature.icon.label.split('\\n')[2]?.replace('Size:', '').trim() || 'N/A',
-                                    notes: feature.icon.label.split('\\n')[3]?.replace('Notes:', '').trim() || 'N/A',
-                                    sender: "Spotter Network",
-                                    description: feature.icon.label.replace(/\\n/g, '<br>').trim() || 'N/A'
-                                }
-                            })
-                        }
-                    })
-                break;
-                case 'grlevelx_reports': 
-                    imports = { type: 'FeatureCollection', features: [] }
-                    loader.packages.placefile.AtmosXPlacefileParser.parseTable(body).then((parsed: any) => {
-                        for (const feature of parsed) {
-                            imports.features.push({
-                                type: 'Feature',
-                                geometry: {type: 'Point', coordinates: [parseFloat(feature.lat), parseFloat(feature.lon)]},
-                                properties: {
-                                    location: `${feature.city}, ${feature.county}, ${feature.state}`,
-                                    event: feature.event, sender: feature.source,
-                                    description: `${feature.event} reported at ${feature.city}, ${feature.county}, ${feature.state}. ${feature.comment || 'No additional details.'}`,
-                                    magnitude: feature.mag, office: feature.office,
-                                    date: feature.date, time: feature.time
-                                }
-                            })
-                        }
-                    })
-                break;
-                case 'tropical_storm_tracks': 
-                    for (const feature of body as any) {
-                        imports.push({
-                            type: 'Feature',
-                            properties: {
-                                name: feature.name,
-                                discussion: feature.forecast_discussion,
-                                classification: feature.classification,
-                                pressure: feature.pressure,
-                                wind_speed: feature.wind_speed_mph,
-                                last_updated: feature.last_update_at.toLocaleString(),
-                            }
-                        })
-                    }
-                break;
-                case 'tornado': 
-                    const torThreshold = defConfig.sources?.probability_settings?.tornado?.percentage_treshold;
-                    loader.packages.placefile.AtmosXPlacefileParser.parsePlacefile(body).then(parsed => {
-                        for (let feature of parsed) {
-                            let probability = feature.line.text.match(/ProbTor: (\d+)%/) ? feature.line.text.match(/ProbTor: (\d+)%/)[1] : '0';
-                            if (torThreshold > parseInt(probability)) continue;
-                            imports.push({
-                                type: 'tornado',
-                                probability: probability,
-                                shear: parseFloat(feature.line.text.match(/Max LLAzShear: ([\d.]+)/) ? feature.line.text.match(/Max LLAzShear: ([\d.]+)/)[1] : '0'),
-                                description: feature.line.text.replace(/\\n/g, '<br>')
-                            });
-                        }
-                    })
-                break;
-                case 'severe': 
-                    const svrThreshold = defConfig.sources?.probability_settings?.severe?.percentage_treshold;
-                    loader.packages.placefile.AtmosXPlacefileParser.parsePlacefile(body).then(parsed => {
-                        for (let feature of parsed) {
-                            let probability = feature.line.text.match(/PSv3: (\d+)%/) ? feature.line.text.match(/PSv3: (\d+)%/)[1] : '0';
-                            if (svrThreshold > parseInt(probability)) continue;
-                            imports.push({
-                                type: 'severe',
-                                probability: probability,
-                                shear: parseFloat(feature.line.text.match(/Max LLAzShear: ([\d.]+)/) ? feature.line.text.match(/Max LLAzShear: ([\d.]+)/)[1] : '0'),
-                                description: feature.line.text.replace(/\\n/g, '<br>')
-                            });
-                        }
-                    })
-                break;
-                case 'sonde_project_weather_eye': 
-                    for (const feature of body as any) {
-                        imports.push(feature);
-                    }
-                break;
-                case 'wx_radio': 
-                    imports = { type: 'FeatureCollection', features: [] }
-                    for (const feature of body.sources as any) {
-                        imports.features.push({
-                            type: 'Feature',
-                            geometry: {type: 'Point', coordinates: [parseFloat(feature.lon), parseFloat(feature.lat)]},
-                            properties: {
-                                location: feature?.location,
-                                callsign: feature?.callsign,
-                                frequency: feature?.frequency,
-                                stream: feature?.listen_url,
-                            }
-                        })
-                    }
-                break;
-                default: return resolve([]);
-            }
-            resolve(imports);
-        })
-    }
-
-    private getEventMetadata(event: any) {
-        const defConfig = loader.cache.internal.configurations as types.defConfigurations;
-        const schemes = defConfig.alert_schemes[event.properties.event] || defConfig.alert_schemes[event.properties.parent] || defConfig.alert_schemes['Default'];
-        const dictionary = defConfig.alert_dictionary[event.properties.event] || defConfig.alert_dictionary[event.properties.parent] || defConfig.alert_dictionary['Special Event'];
-        if (event.properties.is_cancelled) { return {sfx: dictionary.sfx_cancel, scheme: schemes, metadata: dictionary.metadata}}
-        if (event.properties.is_issued) { return {sfx: dictionary.sfx_issued, scheme: schemes, metadata: dictionary.metadata}}
-        if (event.properties.is_updated) { return {sfx: dictionary.sfx_update, scheme: schemes, metadata: dictionary.metadata}}
-        return {sfx: dictionary.sfx_cancel, scheme: schemes, metadata: dictionary.metadata};
-    }
-
-    private register(event: any) {
-        const defConfig = loader.cache.internal.configurations as types.defConfigurations;
-        const isBeepAuthorizedOnly = defConfig.filters.sfx_beep_only;
-        const isPriorityEvent = defConfig.filters.priority_events
-        const isShowingUpdatesAllowed = defConfig.filters.show_updates;
-        let isIgnored = false;
-        let isBeepOnly = false; 
-        let setDefaultAudio = defConfig.tones.sfx_beep;
-        let getEventDictionary = this.getEventMetadata(event);
-        let getDistanceAway = 99999999999;
-        if (isBeepAuthorizedOnly && isPriorityEvent.includes(event.properties.event)) { isBeepOnly = true; }
-        if (!isShowingUpdatesAllowed && !isPriorityEvent.includes(event.properties.event)) { isIgnored = true; }
-        return { 
-            event,
-            metadata: getEventDictionary.metadata,
-            scheme: getEventDictionary.scheme,
-            sfx: isBeepOnly ? setDefaultAudio : getEventDictionary.sfx,
-            ignored: isIgnored,
-            beep: isBeepOnly,
+    /**
+	 * Parses incoming data based on type 
+	 * Anything that requires specific parsing should be handled here 
+	 *
+	 * @private
+	 * @async
+	 * @param {?unknown} [body] 
+	 * @param {?string} [type] 
+	 * @returns {Promise<any[]>} 
+	 */
+	private async parsing(body?: unknown, type?: string): Promise<any[]> {
+        switch (type) {
+            case 'spotter_network_feed': return loader.submodules.parsing.getSpotterFeed(body);
+            case 'storm_prediction_center_mesoscale': return loader.submodules.parsing.getSPCDiscussions(body);
+            case 'spotter_reports': return loader.submodules.parsing.getSpotterReportStructure(body);
+            case 'grlevelx_reports': return loader.submodules.parsing.getGibsonReportStructure(body);
+            case 'tropical_storm_tracks': return loader.submodules.parsing.getTropicalStormStructure(body);
+            case 'tornado': return loader.submodules.parsing.getProbabilityStructure(body, 'tornado');
+            case 'severe': return loader.submodules.parsing.getProbabilityStructure(body, 'severe');
+            case 'sonde_project_weather_eye': return loader.submodules.parsing.getWxEyeSondeStructure(body);
+            case 'wx_radio': return loader.submodules.parsing.getWxRadioStructure(body);
+            default: return [];
         }
     }
 
-    public create(data: unknown, isAlertupdate?: boolean): Promise<void> {
-        return new Promise(async (resolve) => {
-            const clean = loader.submodules.utils.filterWebContent(data)
-            const defConfig = loader.cache.internal.configurations as types.defConfigurations;
-            const isWire = defConfig.sources.atmosx_parser_settings.noaa_weather_wire_service;
-            const isCap = defConfig.sources.atmosx_parser_settings.weather_wire_settings.alert_preferences.cap_only;
-            const dataTypes = [
-                { key: 'spotter_network_feed', cache: 'spotter_network_feed' },
-                { key: 'spotter_reports', cache: 'spotter_reports' },
-                { key: 'grlevelx_reports', cache: 'grlevelx_reports' },
-                { key: 'storm_prediction_center_mesoscale', cache: 'storm_prediction_center_mesoscale' },
-                { key: 'tropical_storm_tracks', cache: 'tropical_storm_tracks' },
-                { key: 'tornado', cache: 'tornado' },
-                { key: 'severe', cache: 'severe' },
-                { key: 'sonde_project_weather_eye', cache: 'sonde_project_weather_eye' },
-                { key: 'wx_radio', cache: 'wx_radio' },
-            ]
-            for (const { key, cache } of dataTypes) { if (clean[key]) { loader.cache.external[cache] = await this.parsing(clean[key], key); } }
-            if (isAlertupdate) {
-                if (clean.alerts) {
-                    for (const event of clean.alerts) {
-                        if (!loader.cache.internal.hashes.some(log => log.id == event.hash)) {
-                            loader.cache.internal.hashes.push({ id: event.hash, expires: event.properties.expires});
-                            const register = this.register(event);
-                            if (register.ignored) { continue; }
-                            if (!loader.submodules.utils.isFancyDisplay()) {
-                                const getSource = isWire ? `NWWS${isCap ? ` (CAP)` : ``}` : `NWS`;
-                                loader.submodules.utils.log(loader.strings.new_event_legacy
-                                    .replace(`{EVENT}`, register.event.properties.event)
-                                    .replace(`{STATUS}`, register.event.properties.action_type)
-                                    .replace(`{TRACKING}`, register.event.tracking.substring(0, 18))
-                                    .replace(`{SOURCE}`, getSource)
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-        })
-    }
+    /**
+	 * Retrieves event metadata such as SFX, scheme, and additional metadata 
+	 *
+	 * @private
+	 * @param {types.EventType} event 
+	 * @returns {{ sfx: string; scheme: Record<string, string>; metadata: Record<string, unknown>; }} 
+	 */
+	private getEventMetadata(event: types.EventType) {
+    	const defConfig = loader.cache.internal.configurations as types.ConfigurationsType;
+		const schemes = defConfig.alert_schemes[event.properties.event]
+			|| defConfig.alert_schemes[event.properties.parent]
+			|| defConfig.alert_schemes['Default'];
+		const dictionary = defConfig.alert_dictionary[event.properties.event]
+			|| defConfig.alert_dictionary[event.properties.parent]
+			|| defConfig.alert_dictionary['Special Event'];
+		// Determine SFX based on event status
+		let sfx = dictionary.sfx_cancel;
+		if (event.properties.is_issued) sfx = dictionary.sfx_issued;
+		else if (event.properties.is_updated) sfx = dictionary.sfx_update;
+		else if (event.properties.is_cancelled) sfx = dictionary.sfx_cancel;
+		return { sfx, scheme: schemes, metadata: dictionary.metadata };
+	}
+
+    /**
+	 * Registers an event with additional data such as sfx type, color scheme, and event metadata
+	 *
+	 * @private
+	 * @param {types.EventType} event 
+	 * @returns {{ event: types.EventType; metadata: any; scheme: any; sfx: any; ignored: boolean; beep: any; }} 
+	 */
+	private register(event: types.EventType) {
+		const defConfig = loader.cache.internal.configurations as types.ConfigurationsType;
+		const eventName = event.properties.event;
+		const isPriorityEvent = defConfig.filters.priority_events.includes(eventName);
+		const isBeepAuthorizedOnly = defConfig.filters.sfx_beep_only;
+		const isShowingUpdatesAllowed = defConfig.filters.show_updates;
+		const eventMetadata = this.getEventMetadata(event);
+		const isBeepOnly = isBeepAuthorizedOnly && isPriorityEvent;
+		const isIgnored = !isShowingUpdatesAllowed && !isPriorityEvent;
+		return {
+			event,
+			metadata: eventMetadata.metadata,
+			scheme: eventMetadata.scheme,
+			sfx: isBeepOnly ? defConfig.tones.sfx_beep : eventMetadata.sfx,
+			ignored: isIgnored,
+			beep: isBeepOnly,
+		};
+	}
+
+    /**
+	 * Creates external cache entries and processes alert updates
+	 *
+	 * @public
+	 * @async
+	 * @param {unknown} data 
+	 * @param {?boolean} [isAlertupdate] 
+	 * @returns {Promise<void>} 
+	 */
+	public async create(data: unknown, isAlertupdate?: boolean): Promise<void> {
+		const clean = loader.submodules.utils.filterWebContent(data);
+		const dataTypes = [
+			{ key: 'spotter_network_feed', cache: 'spotter_network_feed' },
+			{ key: 'spotter_reports', cache: 'spotter_reports' },
+			{ key: 'grlevelx_reports', cache: 'grlevelx_reports' },
+			{ key: 'storm_prediction_center_mesoscale', cache: 'storm_prediction_center_mesoscale' },
+			{ key: 'tropical_storm_tracks', cache: 'tropical_storm_tracks' },
+			{ key: 'tornado', cache: 'tornado' },
+			{ key: 'severe', cache: 'severe' },
+			{ key: 'sonde_project_weather_eye', cache: 'sonde_project_weather_eye' },
+			{ key: 'wx_radio', cache: 'wx_radio' },
+		];
+		for (const { key, cache } of dataTypes) {
+			if (clean[key]) {
+				loader.cache.external[cache] = await this.parsing(clean[key], key);
+			}
+		}
+		if (isAlertupdate && clean.alerts?.length) {
+			for (const event of clean.alerts) {
+				const isAlreadyLogged = loader.cache.internal.hashes.some(log => log.id === event.hash);
+				if (isAlreadyLogged) continue;
+				loader.cache.internal.hashes.push({ id: event.hash, expires: event.properties.expires });
+				const registeredEvent = this.register(event);
+				if (registeredEvent.ignored) continue;
+				if (!loader.submodules.utils.isFancyDisplay()) {
+					loader.submodules.utils.log(loader.submodules.alerts.displayAlert(event));
+				}
+			}
+		}
+	}
+
     
 }
 
-export default Calculations;
+export default Structure;
 

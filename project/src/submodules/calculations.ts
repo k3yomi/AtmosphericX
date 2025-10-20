@@ -9,15 +9,18 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx      
-                          
+    Last Updated: 2025-10-20
+    Changelogs: 
+        - Added type definitions for better clarity and maintainability.
+        - Implemented calculations for geographic and temporal data.
+        - Created methods for distance calculation, time remaining, and duration formatting.
+        - Developed degree to cardinal direction conversion.
+        - Enhanced accuracy and error handling in calculations.                   
 */
 
 
 import * as loader from '../bootstrap';
 import * as types from '../types';
-
-
-
 
 export class Calculations { 
     NAME_SPACE: string
@@ -30,63 +33,102 @@ export class Calculations {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
     }
 
-    public degreesToCardinal(degrees: number): string { 
-        if (degrees > 360 || degrees < 0) return `Invalid`;
-        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-        const index = Math.round(degrees / 45) % 8;
+    /**
+     * Convert degrees to cardinal direction.
+     * Example: 0 -> N, 45 -> NE, 90 -> E, etc.
+     *
+     * @public
+     * @param {number} degrees 
+     * @returns {string} 
+     */
+    public convertDegreesToCardinal(degrees: number): string { 
+        if (!Number.isFinite(degrees) || degrees < 0 || degrees > 360) {
+            return "Invalid";
+        }
+        const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+        const normalized = (degrees % 360 + 360) % 360; // normalize in case of floating precision
+        const index = Math.round(normalized / 45) % 8;
         return directions[index];
     }
 
-    public getDistanceBetweenCoordinates(LatitudeAndLongitude: types.LatitudeAndLongitude, type: 'kilometers' | 'miles' = 'miles'): string | 0 {
-        if (!LatitudeAndLongitude) return 0;
-        const { coords = {lat: 0, lon: 0}, coords2 = {lat: 0, lon: 0} } = LatitudeAndLongitude;
-        const lat1 = coords.lat
-        const lon1 = coords.lon;
-        const lat2 = coords2.lat;
-        const lon2 = coords2.lon;
-        const toRad = (deg: number): number => deg * Math.PI / 180;
-        const earthRadius = type === 'miles' ? 3958.8 : 6371;
-        let dLat = toRad(lat2 - lat1);
-        let dLon = toRad(lon2 - lon1);
-        if (dLon > Math.PI) dLon -= 2 * Math.PI;
-        if (dLon < -Math.PI) dLon += 2 * Math.PI;
-        const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    /**
+     * Calculate the distance between 2 given coordinates.
+     *
+     * @public
+     * @async
+     * @param {types.Coordinates} coord1 
+     * @param {types.Coordinates} coord2 
+     * @param {('miles' | 'kilometers')} [unit='miles'] 
+     * @returns {Promise<number>} 
+     */
+    public calculateDistance(coord1: types.Coordinates, coord2: types.Coordinates, unit: 'miles' | 'kilometers' = 'miles'): number {
+        if (!coord1 || !coord2) return 0;
+        const { lat: lat1, lon: lon1 } = coord1;
+        const { lat: lat2, lon: lon2 } = coord2;
+        if ([lat1, lon1, lat2, lon2].some(v => typeof v !== 'number')) return 0;
+        const toRad = (deg: number) => deg * Math.PI / 180;
+        const R = unit === 'miles' ? 3958.8 : 6371;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const distance = earthRadius * c;
-        return isNaN(distance) ? 0 : distance.toFixed(2);
+        return Math.round(R * c * 100) / 100;
     }
 
-    public getTimeRemaining(futureDate: Date): string {
+    /**
+     * Calculates the time remaining until a specified future date.
+     * Example: 124560000 ms -> "1d 10h 20m 0s"
+     *
+     * @public
+     * @param {Date} futureDate 
+     * @returns {string} 
+     */
+    public timeRemaining(futureDate: Date): string {
+        if (Number.isFinite(futureDate) || isNaN(futureDate.getTime())) {
+            return "Invalid Date";
+        }
         const now = new Date();
-        const future = new Date(futureDate);
-        const diff = future.getTime() - now.getTime();
-        if (diff <= 0) return `Expired`;
-        const seconds = Math.floor((diff / 1000) % 60);
-        const minutes = Math.floor((diff / (1000 * 60)) % 60);
-        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        let timeString = '';
-        if (days > 0) timeString += `${days}d `;
-        if (hours > 0) timeString += `${hours}h `;
-        if (minutes > 0) timeString += `${minutes}m `;
-        timeString += `${seconds}s`;
-        return timeString.trim();
+        const target = new Date(futureDate);
+        const diff = target.getTime() - now.getTime();
+        if (diff <= 0) { return "Expired"; }
+        const totalSeconds = Math.floor(diff / 1000);
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        const parts: string[] = [];
+        if (days) parts.push(`${days}d`);
+        if (hours) parts.push(`${hours}h`);
+        if (minutes) parts.push(`${minutes}m`);
+        parts.push(`${seconds}s`);
+        return parts.join(" ");
     }
 
-    public formatUptime(uptimeMs: number): string {
-        let totalSeconds = Math.floor(uptimeMs / 1000);
+    /**
+     * Formats a duration given in milliseconds into a human-readable string.
+     * Example: 90061000 ms -> "1d 1h 1m 1s"
+     *
+     * @public
+     * @param {number} uptimeMs 
+     * @returns {string} 
+     */
+    public formatDuration(uptimeMs: number): string {
+        if (!Number.isFinite(uptimeMs) || uptimeMs < 0) {
+            return "0s";
+        }
+        const totalSeconds = Math.floor(uptimeMs / 1000);
         const days = Math.floor(totalSeconds / 86400);
-        totalSeconds %= 86400;
-        const hours = Math.floor(totalSeconds / 3600);
-        totalSeconds %= 3600;
-        const minutes = Math.floor(totalSeconds / 60);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
-        const parts = [];
-        if (days > 0) parts.push(`${days}d`);
-        if (hours > 0) parts.push(`${hours}h`);
-        if (minutes > 0) parts.push(`${minutes}m`);
+        const parts: string[] = [];
+        if (days) parts.push(`${days}d`);
+        if (hours) parts.push(`${hours}h`);
+        if (minutes) parts.push(`${minutes}m`);
         parts.push(`${seconds}s`);
-        return parts.join(' ');
+        return parts.join(" ");
     }
     
 }

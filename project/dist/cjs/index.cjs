@@ -4023,7 +4023,7 @@ var Utils = class {
       console.log(`${title}\x1B[0m [${(/* @__PURE__ */ new Date()).toLocaleString()}] ${msg}`);
     }
     if (echoFile) {
-      packages.fs.appendFileSync(this.LOGS_PATH, `[${title}] [${(/* @__PURE__ */ new Date()).toLocaleString()}] ${msg}
+      packages.fs.appendFileSync(this.LOGS_PATH, `[${title.replace(/\x1b\[[0-9;]*m/g, "")}] [${(/* @__PURE__ */ new Date()).toLocaleString()}] ${msg}
 `);
     }
   }
@@ -4097,17 +4097,6 @@ var Utils = class {
     }
     return content;
   }
-  /**
-   * Filters internal cache with events and event hashes. 
-   *
-   * @public
-   */
-  filterInternals() {
-    var _a;
-    const defInternal = cache.internal;
-    defInternal.events = { features: (_a = defInternal.events) == null ? void 0 : _a.features.filter((f) => f !== void 0 && new Date(f.properties.expires).getTime() > (/* @__PURE__ */ new Date()).getTime()) };
-    defInternal.hashes = defInternal.hashes.filter((e) => e !== void 0 && new Date(e.expires).getTime() > (/* @__PURE__ */ new Date()).getTime());
-  }
 };
 var utils_default = Utils;
 
@@ -4118,48 +4107,85 @@ var Alerts = class {
     this.name = `submodule:alerts`;
     this.initalize();
   }
-  refresh() {
-    cache.internal.manager.setSettings();
-  }
   initalize() {
     submodules.utils.log(`${this.name} initialized.`);
     this.instance();
   }
+  /**
+   * displayAlert generates a formatted alert message based on the event data.
+   *
+   * @public
+   * @param {*} event 
+   * @returns {string} 
+   */
+  displayAlert(event) {
+    if (!submodules.utils.isFancyDisplay()) {
+      return strings.new_event_legacy.replace(`{EVENT}`, event.properties.event).replace(`{STATUS}`, event.properties.action_type).replace(`{TRACKING}`, event.tracking.substring(0, 18)).replace(`{SOURCE}`, cache.internal.getSource);
+    } else {
+      return cache.internal.events.features.sort((a, b) => {
+        const dateA = new Date(a.properties.issued).getTime();
+        const dateB = new Date(b.properties.issued).getTime();
+        return dateA - dateB;
+      }).map((event2) => {
+        var _a;
+        return strings.new_event_fancy.replace(`{EVENT}`, event2.properties.event).replace(`{ACTION_TYPE}`, event2.properties.action_type).replace(`{TRACKING}`, event2.tracking.substring(0, 18)).replace(`{SENDER}`, event2.properties.sender_name).replace(`{ISSUED}`, event2.properties.issued).replace(`{EXPIRES}`, submodules.calculations.timeRemaining(new Date(event2.properties.expires))).replace(`{TAGS}`, event2.properties.tags ? event2.properties.tags.join(", ") : "N/A").replace(`{LOCATIONS}`, event2.properties.locations.substring(0, 100)).replace(`{DISTANCE}`, ((_a = event2.properties.distance) == null ? void 0 : _a.range) != null ? Object.entries(event2.properties.distance.range).map(([key, value]) => {
+          return `${key}: ${value.distance} ${value.unit}`;
+        }).join(", ") : `No Distance Data Available`);
+      }).join("\n");
+    }
+  }
+  /**
+   * handle processes incoming alerts and updates the internal cache accordingly.
+   *
+   * @private
+   * @param {*} alerts 
+   */
   handle(alerts) {
+    var _a, _b, _c, _d;
+    const InternalType = cache.internal;
+    const features = cache.internal.events.features;
     for (const alert of alerts) {
-      let tracking = alert.tracking;
-      let find = cache.internal.events.features.findIndex((feature) => feature && feature.tracking == tracking);
-      if (alert.properties.is_cancelled && find !== -1) {
-        cache.internal.events.features[find] = void 0;
+      const { tracking, properties, history = [] } = alert;
+      const index = features.findIndex((feature) => feature && feature.tracking === tracking);
+      if (properties.is_cancelled && index !== -1) {
+        features[index] = void 0;
+        continue;
       }
-      if (alert.properties.is_issued && find == -1) {
-        cache.internal.events.features.push(alert);
+      if (properties.is_issued && index === -1) {
+        features.push(alert);
+        continue;
       }
-      if (alert.properties.is_updated) {
-        if (find !== -1) {
-          const newHistory = cache.internal.events.features[find].history.concat(alert.history).sort((a, b) => new Date(b.issued).getTime() - new Date(a.issued).getTime());
-          const newLocations = cache.internal.events.features[find].properties.locations;
-          cache.internal.events.features[find] = alert;
-          cache.internal.events.features[find].history = newHistory;
-          for (let i = 0; i < newHistory.length; i++) {
-            for (let j = 0; j < newHistory.length; j++) {
-              let vTimeDiff = Math.abs(new Date(newHistory[i].issued).getTime() - new Date(newHistory[j].issued).getTime());
-              if (vTimeDiff < 1e3) {
-                let combinedLocations = newLocations + `; ` + cache.internal.events.features[find].properties.locations;
-                let uniqueLocations = [...new Set(combinedLocations.split(";").map((location) => location.trim()))];
-                cache.internal.events.features[find].properties.locations = uniqueLocations.join("; ");
-              }
-            }
-          }
+      if (properties.is_updated) {
+        if (index !== -1 && features[index]) {
+          const existing = features[index];
+          const mergedHistory = [...(_a = existing.history) != null ? _a : [], ...history].sort(
+            (a, b) => new Date(b.issued).getTime() - new Date(a.issued).getTime()
+          );
+          const existingLocations = (_b = existing.properties.locations) != null ? _b : "";
+          const newLocations = (_c = alert.properties.locations) != null ? _c : "";
+          const combinedLocations = [
+            ...new Set((existingLocations + "; " + newLocations).split(";").map((loc) => loc.trim()).filter(Boolean))
+          ].join("; ");
+          features[index] = __spreadProps(__spreadValues({}, alert), {
+            history: mergedHistory,
+            properties: __spreadProps(__spreadValues({}, alert.properties), { locations: combinedLocations })
+          });
         } else {
-          cache.internal.events.features.push(alert);
+          features.push(alert);
         }
       }
     }
-    packages.fs.writeFileSync(`test.json`, JSON.stringify(cache.internal.events, null, 4));
-    submodules.networking.updateCache(true);
     cache.internal.metrics.events_processed += alerts.length;
+    InternalType.events = { features: (_d = InternalType.events) == null ? void 0 : _d.features.filter((f) => f !== void 0 && new Date(f.properties.expires).getTime() > (/* @__PURE__ */ new Date()).getTime()) };
+    InternalType.hashes = InternalType.hashes.filter((e) => e !== void 0 && new Date(e.expires).getTime() > (/* @__PURE__ */ new Date()).getTime());
+    submodules.networking.updateCache(true);
   }
+  /**
+   * instance creates or refreshes the AlertManager instance with the current configurations.
+   *
+   * @private
+   * @param {?boolean} [isRefreshing] 
+   */
   instance(isRefreshing) {
     if (isRefreshing && !this.manager) return;
     const configurations = cache.internal.configurations;
@@ -4198,7 +4224,7 @@ var Alerts = class {
           stateFilter: filter.listening_states,
           checkExpired: false
         },
-        easSettings: { easDirectory: filter.eas_settings.eas_directory, easIntroWav: filter.eas_settings.eas_intro }
+        easSettings: { festivalVoice: filter.festival_voice, easDirectory: filter.eas_settings.eas_directory, easIntroWav: filter.eas_settings.eas_intro }
       }
     };
     if (isRefreshing) {
@@ -4234,58 +4260,97 @@ var Calculations = class {
   initialize() {
     submodules.utils.log(`${this.NAME_SPACE} initialized.`);
   }
-  degreesToCardinal(degrees) {
-    if (degrees > 360 || degrees < 0) return `Invalid`;
+  /**
+   * Convert degrees to cardinal direction.
+   * Example: 0 -> N, 45 -> NE, 90 -> E, etc.
+   *
+   * @public
+   * @param {number} degrees 
+   * @returns {string} 
+   */
+  convertDegreesToCardinal(degrees) {
+    if (!Number.isFinite(degrees) || degrees < 0 || degrees > 360) {
+      return "Invalid";
+    }
     const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-    const index = Math.round(degrees / 45) % 8;
+    const normalized = (degrees % 360 + 360) % 360;
+    const index = Math.round(normalized / 45) % 8;
     return directions[index];
   }
-  getDistanceBetweenCoordinates(LatitudeAndLongitude, type = "miles") {
-    if (!LatitudeAndLongitude) return 0;
-    const { coords = { lat: 0, lon: 0 }, coords2 = { lat: 0, lon: 0 } } = LatitudeAndLongitude;
-    const lat1 = coords.lat;
-    const lon1 = coords.lon;
-    const lat2 = coords2.lat;
-    const lon2 = coords2.lon;
+  /**
+   * Calculate the distance between 2 given coordinates.
+   *
+   * @public
+   * @async
+   * @param {types.Coordinates} coord1 
+   * @param {types.Coordinates} coord2 
+   * @param {('miles' | 'kilometers')} [unit='miles'] 
+   * @returns {Promise<number>} 
+   */
+  calculateDistance(coord1, coord2, unit = "miles") {
+    if (!coord1 || !coord2) return 0;
+    const { lat: lat1, lon: lon1 } = coord1;
+    const { lat: lat2, lon: lon2 } = coord2;
+    if ([lat1, lon1, lat2, lon2].some((v) => typeof v !== "number")) return 0;
     const toRad = (deg) => deg * Math.PI / 180;
-    const earthRadius = type === "miles" ? 3958.8 : 6371;
-    let dLat = toRad(lat2 - lat1);
-    let dLon = toRad(lon2 - lon1);
-    if (dLon > Math.PI) dLon -= 2 * Math.PI;
-    if (dLon < -Math.PI) dLon += 2 * Math.PI;
+    const R = unit === "miles" ? 3958.8 : 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
     const a = __pow(Math.sin(dLat / 2), 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * __pow(Math.sin(dLon / 2), 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = earthRadius * c;
-    return isNaN(distance) ? 0 : distance.toFixed(2);
+    return Math.round(R * c * 100) / 100;
   }
-  getTimeRemaining(futureDate) {
+  /**
+   * Calculates the time remaining until a specified future date.
+   * Example: 124560000 ms -> "1d 10h 20m 0s"
+   *
+   * @public
+   * @param {Date} futureDate 
+   * @returns {string} 
+   */
+  timeRemaining(futureDate) {
+    if (Number.isFinite(futureDate) || isNaN(futureDate.getTime())) {
+      return "Invalid Date";
+    }
     const now = /* @__PURE__ */ new Date();
-    const future = new Date(futureDate);
-    const diff = future.getTime() - now.getTime();
-    if (diff <= 0) return `Expired`;
-    const seconds = Math.floor(diff / 1e3 % 60);
-    const minutes = Math.floor(diff / (1e3 * 60) % 60);
-    const hours = Math.floor(diff / (1e3 * 60 * 60) % 24);
-    const days = Math.floor(diff / (1e3 * 60 * 60 * 24));
-    let timeString = "";
-    if (days > 0) timeString += `${days}d `;
-    if (hours > 0) timeString += `${hours}h `;
-    if (minutes > 0) timeString += `${minutes}m `;
-    timeString += `${seconds}s`;
-    return timeString.trim();
-  }
-  formatUptime(uptimeMs) {
-    let totalSeconds = Math.floor(uptimeMs / 1e3);
+    const target = new Date(futureDate);
+    const diff = target.getTime() - now.getTime();
+    if (diff <= 0) {
+      return "Expired";
+    }
+    const totalSeconds = Math.floor(diff / 1e3);
     const days = Math.floor(totalSeconds / 86400);
-    totalSeconds %= 86400;
-    const hours = Math.floor(totalSeconds / 3600);
-    totalSeconds %= 3600;
-    const minutes = Math.floor(totalSeconds / 60);
+    const hours = Math.floor(totalSeconds % 86400 / 3600);
+    const minutes = Math.floor(totalSeconds % 3600 / 60);
     const seconds = totalSeconds % 60;
     const parts = [];
-    if (days > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
+    if (days) parts.push(`${days}d`);
+    if (hours) parts.push(`${hours}h`);
+    if (minutes) parts.push(`${minutes}m`);
+    parts.push(`${seconds}s`);
+    return parts.join(" ");
+  }
+  /**
+   * Formats a duration given in milliseconds into a human-readable string.
+   * Example: 90061000 ms -> "1d 1h 1m 1s"
+   *
+   * @public
+   * @param {number} uptimeMs 
+   * @returns {string} 
+   */
+  formatDuration(uptimeMs) {
+    if (!Number.isFinite(uptimeMs) || uptimeMs < 0) {
+      return "0s";
+    }
+    const totalSeconds = Math.floor(uptimeMs / 1e3);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor(totalSeconds % 86400 / 3600);
+    const minutes = Math.floor(totalSeconds % 3600 / 60);
+    const seconds = totalSeconds % 60;
+    const parts = [];
+    if (days) parts.push(`${days}d`);
+    if (hours) parts.push(`${hours}h`);
+    if (minutes) parts.push(`${minutes}m`);
     parts.push(`${seconds}s`);
     return parts.join(" ");
   }
@@ -4303,19 +4368,77 @@ var Alerts2 = class {
     this.getUpdates();
     this.updateCache();
   }
+  /**
+   * buildSourceStructure constructs an array of CacheStructure objects from the provided sources.
+   *
+   * @private
+   * @param {*} sources 
+   * @returns {types.CacheStructure[]} 
+   */
+  buildSourceStructure(sources) {
+    var _a;
+    const structure = [];
+    for (const source in sources) {
+      for (const [key, value] of Object.entries(sources[source])) {
+        const source2 = value;
+        structure.push({
+          name: key,
+          url: source2.endpoint,
+          enabled: source2.enabled,
+          cache: source2.cache_time,
+          contradictions: (_a = source2.contradictions) != null ? _a : []
+        });
+      }
+    }
+    return structure;
+  }
+  /**
+   * resolveContradictions disables sources based on their defined contradictions.
+   *
+   * @private
+   * @param {types.CacheStructure[]} structure 
+   */
+  resolveContradictions(structure) {
+    for (const source of structure.filter((s) => s.enabled)) {
+      for (const contradiction of source.contradictions) {
+        const index = structure.findIndex((s) => s.name === contradiction);
+        if (index !== -1 && structure[index].enabled) {
+          submodules.utils.log(`Evoking contradiction: ${source.name} disables ${structure[index].name}`, { echoFile: true });
+          structure[index].enabled = false;
+        }
+      }
+    }
+  }
+  /**
+   * getDataFromSource retrieves data from the specified URL and handles errors.
+   *
+   * @private
+   * @async
+   * @param {string} url 
+   * @returns {Promise<{ error: boolean; message: any }>} 
+   */
   getDataFromSource(url) {
     return __async(this, null, function* () {
+      var _a, _b;
       try {
-        const resp = yield this.httpRequest(url);
-        if (resp.error) {
+        const response = yield this.httpRequest(url);
+        if (response == null ? void 0 : response.error) {
           return { error: true, message: `Error fetching data from ${url}` };
         }
-        return { error: false, message: resp.message };
-      } catch (e) {
-        return { error: true, message: `Exception fetching data from ${url}: ${e}` };
+        return { error: false, message: (_a = response == null ? void 0 : response.message) != null ? _a : response };
+      } catch (error) {
+        return { error: true, message: `Exception fetching data from ${url}: ${(_b = error.message) != null ? _b : error}` };
       }
     });
   }
+  /**
+   * httpRequest performs an HTTP GET request to the specified URL with optional settings.
+   *
+   * @public
+   * @param {string} url 
+   * @param {?types.HTTPOptions} [options] 
+   * @returns {Promise<any>} 
+   */
   httpRequest(url, options) {
     return new Promise((resolve) => __async(null, null, function* () {
       try {
@@ -4347,6 +4470,12 @@ var Alerts2 = class {
       }
     }));
   }
+  /**
+   * getUpdates checks for updates by comparing the online version with the local version.
+   *
+   * @public
+   * @returns {Promise<{error: boolean, message: string}>} 
+   */
   getUpdates() {
     return new Promise((resolve) => __async(this, null, function* () {
       const onlineVersion = yield this.httpRequest(`https://raw.githubusercontent.com/k3yomi/AtmosphericX/main/version`, void 0);
@@ -4372,83 +4501,65 @@ var Alerts2 = class {
       return { error: false, message: `Update check completed.` };
     }));
   }
-  updateCache(isAlertupdate) {
-    return new Promise((resolve) => __async(this, null, function* () {
+  /**
+   * updateCache refreshes the internal cache by fetching data from active sources.
+   *
+   * @public
+   * @async
+   * @param {?boolean} [isAlertUpdate] 
+   * @returns {Promise<void>} 
+   */
+  updateCache(isAlertUpdate) {
+    return __async(this, null, function* () {
       submodules.utils.configurations();
-      submodules.utils.filterInternals();
       submodules.alerts.instance(true);
       yield submodules.utils.sleep(200);
+      let data = {};
+      let stringText = ``;
+      const setTime = Date.now();
       const defConfig = cache.internal.configurations;
       const _a = defConfig.sources, { atmosx_parser_settings } = _a, sources = __objRest(_a, ["atmosx_parser_settings"]);
-      const setTime = (/* @__PURE__ */ new Date()).getTime();
-      const structure = [];
-      let data = {};
-      let results = ``;
-      if (isAlertupdate == void 0) {
-        for (const topic in sources) {
-          for (const [key, value] of Object.entries(sources[topic])) {
-            const source = value;
-            structure.push({
-              name: key,
-              url: source.endpoint,
-              enabled: source.enabled,
-              cache: source.cache_time,
-              contradictions: source.contradictions || []
-            });
-          }
-        }
-        for (const source of structure.filter((s) => s.enabled).sort((a, b) => a.cache - b.cache)) {
-          source.contradictions.forEach((contradiction) => {
-            let index = structure.findIndex((h) => h.name == contradiction);
-            if (index !== -1 && structure[index].enabled && source.enabled) {
-              submodules.utils.log(`Evoking contradiction: ${source.name} disables ${structure[index].name}`, { echoFile: true });
-              structure[index].enabled = false;
-            }
-          });
-        }
-        const active = structure.filter((s) => s.enabled);
-        yield Promise.all(active.map((source) => __async(this, null, function* () {
-          if (!cache.internal.http_timers[source.name] || setTime - cache.internal.http_timers[source.name] > source.cache * 1e3) {
+      if (!isAlertUpdate) {
+        const structure = this.buildSourceStructure(sources);
+        this.resolveContradictions(structure);
+        const activeSources = structure.filter((s) => s.enabled && s.url != null);
+        yield Promise.all(
+          activeSources.map((source) => __async(this, null, function* () {
+            var _a2;
+            const lastFetched = (_a2 = cache.internal.http_timers[source.name]) != null ? _a2 : 0;
+            if (setTime - lastFetched <= source.cache * 1e3) return;
             cache.internal.http_timers[source.name] = setTime;
-            for (let retries = 0; retries < 3; retries++) {
-              const resp = yield this.getDataFromSource(source.url);
-              if (resp.error) {
-                if (retries == 2) {
+            for (let attempt = 0; attempt < 3; attempt++) {
+              const response = yield this.getDataFromSource(source.url);
+              if (!response.error) {
+                data[source.name] = response.message;
+                stringText += `(OK) ${source.name.toUpperCase()}, `;
+                break;
+              } else {
+                submodules.utils.log(`Error fetching data from ${source.name.toUpperCase()} (${attempt + 1}/3)`, { echoFile: true });
+                if (attempt === 2) {
                   data[source.name] = void 0;
-                  results += `(ERR) ${source.name.toUpperCase()}, `;
+                  stringText += `(ERR) ${source.name.toUpperCase()}, `;
                 }
-                submodules.utils.log(`Error fetching data from ${source.name.toUpperCase()} (${retries + 1}/3)`, { echoFile: true });
-                continue;
               }
-              data[source.name] = resp.message;
-              results += `(OK) ${source.name.toUpperCase()}, `;
-              break;
             }
-          }
-        })));
-        if (!defConfig.sources.atmosx_parser_settings.noaa_weather_wire_service) {
-          const cacheTime = defConfig.sources.atmosx_parser_settings.national_weather_service_settings.interval;
-          if (!cache.internal.http_timers[`nws_alerts`] || setTime - cache.internal.http_timers[`nws_alerts`] > cacheTime * 1e3) {
-            cache.internal.http_timers[`nws_alerts`] = setTime;
-            results += `(OK) NWS_ALERTS, `;
-            data[`nws_alerts`] = {};
-          }
-        }
-      } else {
-        data = { alerts: cache.internal.events.features };
+          }))
+        );
       }
+      data["alerts"] = cache.internal.events.features;
       if (Object.keys(data).length > 0) {
-        if (results) submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${results.trim().replace(/,\s*$/, "")}`, { echoFile: true });
-        submodules.structure.create(data, isAlertupdate);
+        if (stringText.length > 0) {
+          submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${stringText.slice(0, -2)}`, { echoFile: true });
+        }
+        submodules.structure.create(data, isAlertUpdate);
       }
-      resolve();
-    }));
+    });
   }
 };
 var networking_default = Alerts2;
 
 // src/submodules/structure.ts
-var Calculations2 = class {
+var Structure = class {
   constructor() {
     this.NAME_SPACE = `submodule:structure`;
     this.initialize();
@@ -4456,246 +4567,97 @@ var Calculations2 = class {
   initialize() {
     submodules.utils.log(`${this.NAME_SPACE} initialized.`);
   }
+  /**
+  * Parses incoming data based on type 
+  * Anything that requires specific parsing should be handled here 
+  *
+  * @private
+  * @async
+  * @param {?unknown} [body] 
+  * @param {?string} [type] 
+  * @returns {Promise<any[]>} 
+  */
   parsing(body, type) {
-    return new Promise((resolve) => __async(null, null, function* () {
-      var _a, _b, _c, _d, _e, _f, _g, _h;
-      const defConfig = cache.internal.configurations;
-      let imports = [];
+    return __async(this, null, function* () {
       switch (type) {
         case "spotter_network_feed":
-          imports = { type: "FeatureCollection", features: [] };
-          const feedConfig = (_b = (_a = defConfig.sources) == null ? void 0 : _a.location_settings) == null ? void 0 : _b.spotter_network_feed;
-          packages.placefile.AtmosXPlacefileParser.parsePlacefile(body).then((parsed) => {
-            for (const feature of parsed) {
-              let distance = 99999999999;
-              const isActive = feature.icon.scale == 6 && feature.icon.type == "2" && feedConfig.pins.active;
-              const isStreaming = feature.icon.scale == 1 && feature.icon.type == "19" && feedConfig.pins.streaming;
-              const isIdle = feature.icon.scale == 6 && feature.icon.type == "6" && feedConfig.pins.idle;
-              if (!isActive && !isStreaming && (!isIdle || !feedConfig.pins.offline)) {
-                continue;
-              }
-              if (feedConfig.pin_by_name.length > 0) {
-                const isNameInPool = feedConfig.pin_by_name.findIndex((name) => feature.icon.label.includes(name));
-                if (isNameInPool !== -1) {
-                  const name = feedConfig.pin_by_name[isNameInPool];
-                  cache.external.locations.spotter_network = {
-                    lat: feature.object.coordinates[0],
-                    lon: feature.object.coordinates[1]
-                  };
-                  cache.internal.manager.setCurrentLocation(name, {
-                    lat: feature.object.coordinates[0],
-                    lon: feature.object.coordinates[1]
-                  });
-                }
-              }
-              if (Object.keys(cache.external.locations.spotter_network.lat != 0)) {
-                distance = submodules.calculations.getDistanceBetweenCoordinates({
-                  coords: { lat: feature.object.coordinates[1], lon: feature.object.coordinates[0] },
-                  coords2: { lat: cache.external.locations.spotter_network.lat, lon: cache.external.locations.spotter_network.lon }
-                });
-              }
-              imports.features.push({
-                type: "Feature",
-                geometry: { type: "Point", coordinates: [feature.object.coordinates[0], feature.object.coordinates[1]] },
-                properties: {
-                  description: feature.icon.label.replace(/\\n/g, `<br>`),
-                  distance,
-                  status: isActive ? `Active` : isStreaming ? `Streaming` : isIdle ? `Idle` : `Unknown`
-                }
-              });
-            }
-          });
-          break;
+          return submodules.parsing.getSpotterFeed(body);
         case "storm_prediction_center_mesoscale":
-          imports = { type: "FeatureCollection", features: [] };
-          packages.placefile.AtmosXPlacefileParser.parseGeoJSON(body).then((parsed) => {
-            for (const feature of parsed) {
-              if (feature.properties.expires_at_ms < Date.now()) {
-                continue;
-              }
-              const torProb = packages.manager.TextParser.textProductToString(feature.properties.text, `MOST PROBABLE PEAK TORNADO INTENSITY...`, []);
-              const winProb = packages.manager.TextParser.textProductToString(feature.properties.text, `MOST PROBABLE PEAK WIND GUST...`, []);
-              const hagProb = packages.manager.TextParser.textProductToString(feature.properties.text, `MOST PROBABLE PEAK HAIL SIZE...`, []);
-              imports.features.push({
-                type: "Feature",
-                geometry: { type: "Polygon", coordinates: feature.coordinates },
-                properties: {
-                  mesoscale_id: feature.properties.number,
-                  expires: new Date(feature.properties.expires_at_ms).toLocaleString(),
-                  issued: new Date(feature.properties.issued_at_ms).toLocaleString(),
-                  description: packages.manager.TextParser.textProductToDescription(feature.properties.text).replace(/\n/g, "<br>"),
-                  locations: feature.properties.tags.AREAS_AFFECTED.join(", "),
-                  outlook: feature.properties.tags.CONCERNING.join(", "),
-                  population: feature.properties.population.people.toLocaleString(),
-                  homes: feature.properties.population.homes.toLocaleString(),
-                  parameters: {
-                    tornado_probability: torProb,
-                    wind_probability: winProb,
-                    hail_probability: hagProb
-                  }
-                }
-              });
-            }
-          });
-          break;
+          return submodules.parsing.getSPCDiscussions(body);
         case "spotter_reports":
-          imports = { type: "FeatureCollection", features: [] };
-          packages.placefile.AtmosXPlacefileParser.parsePlacefile(body).then((parsed) => {
-            var _a2, _b2, _c2, _d2;
-            for (const feature of parsed) {
-              imports.features.push({
-                type: "Feature",
-                geometry: { type: "Point", coordinates: [parseFloat(feature.icon.x), parseFloat(feature.icon.y)] },
-                properties: {
-                  event: ((_a2 = feature.icon.label.split("\\n")[1]) == null ? void 0 : _a2.trim()) || "N/A",
-                  reporter: ((_b2 = feature.icon.label.split("\\n")[0]) == null ? void 0 : _b2.replace("Reported By:", "").trim()) || "N/A",
-                  size: ((_c2 = feature.icon.label.split("\\n")[2]) == null ? void 0 : _c2.replace("Size:", "").trim()) || "N/A",
-                  notes: ((_d2 = feature.icon.label.split("\\n")[3]) == null ? void 0 : _d2.replace("Notes:", "").trim()) || "N/A",
-                  sender: "Spotter Network",
-                  description: feature.icon.label.replace(/\\n/g, "<br>").trim() || "N/A"
-                }
-              });
-            }
-          });
-          break;
+          return submodules.parsing.getSpotterReportStructure(body);
         case "grlevelx_reports":
-          imports = { type: "FeatureCollection", features: [] };
-          packages.placefile.AtmosXPlacefileParser.parseTable(body).then((parsed) => {
-            for (const feature of parsed) {
-              imports.features.push({
-                type: "Feature",
-                geometry: { type: "Point", coordinates: [parseFloat(feature.lat), parseFloat(feature.lon)] },
-                properties: {
-                  location: `${feature.city}, ${feature.county}, ${feature.state}`,
-                  event: feature.event,
-                  sender: feature.source,
-                  description: `${feature.event} reported at ${feature.city}, ${feature.county}, ${feature.state}. ${feature.comment || "No additional details."}`,
-                  magnitude: feature.mag,
-                  office: feature.office,
-                  date: feature.date,
-                  time: feature.time
-                }
-              });
-            }
-          });
-          break;
+          return submodules.parsing.getGibsonReportStructure(body);
         case "tropical_storm_tracks":
-          for (const feature of body) {
-            imports.push({
-              type: "Feature",
-              properties: {
-                name: feature.name,
-                discussion: feature.forecast_discussion,
-                classification: feature.classification,
-                pressure: feature.pressure,
-                wind_speed: feature.wind_speed_mph,
-                last_updated: feature.last_update_at.toLocaleString()
-              }
-            });
-          }
-          break;
+          return submodules.parsing.getTropicalStormStructure(body);
         case "tornado":
-          const torThreshold = (_e = (_d = (_c = defConfig.sources) == null ? void 0 : _c.probability_settings) == null ? void 0 : _d.tornado) == null ? void 0 : _e.percentage_treshold;
-          packages.placefile.AtmosXPlacefileParser.parsePlacefile(body).then((parsed) => {
-            for (let feature of parsed) {
-              let probability = feature.line.text.match(/ProbTor: (\d+)%/) ? feature.line.text.match(/ProbTor: (\d+)%/)[1] : "0";
-              if (torThreshold > parseInt(probability)) continue;
-              imports.push({
-                type: "tornado",
-                probability,
-                shear: parseFloat(feature.line.text.match(/Max LLAzShear: ([\d.]+)/) ? feature.line.text.match(/Max LLAzShear: ([\d.]+)/)[1] : "0"),
-                description: feature.line.text.replace(/\\n/g, "<br>")
-              });
-            }
-          });
-          break;
+          return submodules.parsing.getProbabilityStructure(body, "tornado");
         case "severe":
-          const svrThreshold = (_h = (_g = (_f = defConfig.sources) == null ? void 0 : _f.probability_settings) == null ? void 0 : _g.severe) == null ? void 0 : _h.percentage_treshold;
-          packages.placefile.AtmosXPlacefileParser.parsePlacefile(body).then((parsed) => {
-            for (let feature of parsed) {
-              let probability = feature.line.text.match(/PSv3: (\d+)%/) ? feature.line.text.match(/PSv3: (\d+)%/)[1] : "0";
-              if (svrThreshold > parseInt(probability)) continue;
-              imports.push({
-                type: "severe",
-                probability,
-                shear: parseFloat(feature.line.text.match(/Max LLAzShear: ([\d.]+)/) ? feature.line.text.match(/Max LLAzShear: ([\d.]+)/)[1] : "0"),
-                description: feature.line.text.replace(/\\n/g, "<br>")
-              });
-            }
-          });
-          break;
+          return submodules.parsing.getProbabilityStructure(body, "severe");
         case "sonde_project_weather_eye":
-          for (const feature of body) {
-            imports.push(feature);
-          }
-          break;
+          return submodules.parsing.getWxEyeSondeStructure(body);
         case "wx_radio":
-          imports = { type: "FeatureCollection", features: [] };
-          for (const feature of body.sources) {
-            imports.features.push({
-              type: "Feature",
-              geometry: { type: "Point", coordinates: [parseFloat(feature.lon), parseFloat(feature.lat)] },
-              properties: {
-                location: feature == null ? void 0 : feature.location,
-                callsign: feature == null ? void 0 : feature.callsign,
-                frequency: feature == null ? void 0 : feature.frequency,
-                stream: feature == null ? void 0 : feature.listen_url
-              }
-            });
-          }
-          break;
+          return submodules.parsing.getWxRadioStructure(body);
         default:
-          return resolve([]);
+          return [];
       }
-      resolve(imports);
-    }));
+    });
   }
+  /**
+  * Retrieves event metadata such as SFX, scheme, and additional metadata 
+  *
+  * @private
+  * @param {types.EventType} event 
+  * @returns {{ sfx: string; scheme: Record<string, string>; metadata: Record<string, unknown>; }} 
+  */
   getEventMetadata(event) {
     const defConfig = cache.internal.configurations;
     const schemes = defConfig.alert_schemes[event.properties.event] || defConfig.alert_schemes[event.properties.parent] || defConfig.alert_schemes["Default"];
     const dictionary = defConfig.alert_dictionary[event.properties.event] || defConfig.alert_dictionary[event.properties.parent] || defConfig.alert_dictionary["Special Event"];
-    if (event.properties.is_cancelled) {
-      return { sfx: dictionary.sfx_cancel, scheme: schemes, metadata: dictionary.metadata };
-    }
-    if (event.properties.is_issued) {
-      return { sfx: dictionary.sfx_issued, scheme: schemes, metadata: dictionary.metadata };
-    }
-    if (event.properties.is_updated) {
-      return { sfx: dictionary.sfx_update, scheme: schemes, metadata: dictionary.metadata };
-    }
-    return { sfx: dictionary.sfx_cancel, scheme: schemes, metadata: dictionary.metadata };
+    let sfx = dictionary.sfx_cancel;
+    if (event.properties.is_issued) sfx = dictionary.sfx_issued;
+    else if (event.properties.is_updated) sfx = dictionary.sfx_update;
+    else if (event.properties.is_cancelled) sfx = dictionary.sfx_cancel;
+    return { sfx, scheme: schemes, metadata: dictionary.metadata };
   }
+  /**
+  * Registers an event with additional data such as sfx type, color scheme, and event metadata
+  *
+  * @private
+  * @param {types.EventType} event 
+  * @returns {{ event: types.EventType; metadata: any; scheme: any; sfx: any; ignored: boolean; beep: any; }} 
+  */
   register(event) {
     const defConfig = cache.internal.configurations;
+    const eventName = event.properties.event;
+    const isPriorityEvent = defConfig.filters.priority_events.includes(eventName);
     const isBeepAuthorizedOnly = defConfig.filters.sfx_beep_only;
-    const isPriorityEvent = defConfig.filters.priority_events;
     const isShowingUpdatesAllowed = defConfig.filters.show_updates;
-    let isIgnored = false;
-    let isBeepOnly = false;
-    let setDefaultAudio = defConfig.tones.sfx_beep;
-    let getEventDictionary = this.getEventMetadata(event);
-    let getDistanceAway = 99999999999;
-    if (isBeepAuthorizedOnly && isPriorityEvent.includes(event.properties.event)) {
-      isBeepOnly = true;
-    }
-    if (!isShowingUpdatesAllowed && !isPriorityEvent.includes(event.properties.event)) {
-      isIgnored = true;
-    }
+    const eventMetadata = this.getEventMetadata(event);
+    const isBeepOnly = isBeepAuthorizedOnly && isPriorityEvent;
+    const isIgnored = !isShowingUpdatesAllowed && !isPriorityEvent;
     return {
       event,
-      metadata: getEventDictionary.metadata,
-      scheme: getEventDictionary.scheme,
-      sfx: isBeepOnly ? setDefaultAudio : getEventDictionary.sfx,
+      metadata: eventMetadata.metadata,
+      scheme: eventMetadata.scheme,
+      sfx: isBeepOnly ? defConfig.tones.sfx_beep : eventMetadata.sfx,
       ignored: isIgnored,
       beep: isBeepOnly
     };
   }
+  /**
+  * Creates external cache entries and processes alert updates
+  *
+  * @public
+  * @async
+  * @param {unknown} data 
+  * @param {?boolean} [isAlertupdate] 
+  * @returns {Promise<void>} 
+  */
   create(data, isAlertupdate) {
-    return new Promise((resolve) => __async(this, null, function* () {
+    return __async(this, null, function* () {
+      var _a;
       const clean = submodules.utils.filterWebContent(data);
-      const defConfig = cache.internal.configurations;
-      const isWire = defConfig.sources.atmosx_parser_settings.noaa_weather_wire_service;
-      const isCap = defConfig.sources.atmosx_parser_settings.weather_wire_settings.alert_preferences.cap_only;
       const dataTypes = [
         { key: "spotter_network_feed", cache: "spotter_network_feed" },
         { key: "spotter_reports", cache: "spotter_reports" },
@@ -4712,29 +4674,22 @@ var Calculations2 = class {
           cache.external[cache2] = yield this.parsing(clean[key], key);
         }
       }
-      if (isAlertupdate) {
-        if (clean.alerts) {
-          for (const event of clean.alerts) {
-            if (!cache.internal.hashes.some((log) => log.id == event.hash)) {
-              cache.internal.hashes.push({ id: event.hash, expires: event.properties.expires });
-              const register = this.register(event);
-              if (register.ignored) {
-                continue;
-              }
-              if (!submodules.utils.isFancyDisplay()) {
-                const getSource = isWire ? `NWWS${isCap ? ` (CAP)` : ``}` : `NWS`;
-                submodules.utils.log(
-                  strings.new_event_legacy.replace(`{EVENT}`, register.event.properties.event).replace(`{STATUS}`, register.event.properties.action_type).replace(`{TRACKING}`, register.event.tracking.substring(0, 18)).replace(`{SOURCE}`, getSource)
-                );
-              }
-            }
+      if (isAlertupdate && ((_a = clean.alerts) == null ? void 0 : _a.length)) {
+        for (const event of clean.alerts) {
+          const isAlreadyLogged = cache.internal.hashes.some((log) => log.id === event.hash);
+          if (isAlreadyLogged) continue;
+          cache.internal.hashes.push({ id: event.hash, expires: event.properties.expires });
+          const registeredEvent = this.register(event);
+          if (registeredEvent.ignored) continue;
+          if (!submodules.utils.isFancyDisplay()) {
+            submodules.utils.log(submodules.alerts.displayAlert(event));
           }
         }
       }
-    }));
+    });
   }
 };
-var structure_default = Calculations2;
+var structure_default = Structure;
 
 // src/submodules/display.ts
 var Display = class {
@@ -4856,18 +4811,9 @@ var Display = class {
     this.manager.render();
   }
   update() {
-    this.modifyElement(`events`, cache.internal.events.features.sort((a, b) => {
-      const dateA = new Date(a.properties.issued).getTime();
-      const dateB = new Date(b.properties.issued).getTime();
-      return dateA - dateB;
-    }).map((event) => {
-      var _a;
-      return strings.new_event_fancy.replace(`{EVENT}`, event.properties.event).replace(`{ACTION_TYPE}`, event.properties.action_type).replace(`{TRACKING}`, event.tracking.substring(0, 18)).replace(`{SENDER}`, event.properties.sender_name).replace(`{ISSUED}`, event.properties.issued).replace(`{EXPIRES}`, submodules.calculations.getTimeRemaining(event.properties.expires)).replace(`{TAGS}`, event.properties.tags ? event.properties.tags.join(", ") : "N/A").replace(`{LOCATIONS}`, event.properties.locations.substring(0, 100)).replace(`{DISTANCE}`, ((_a = event.properties.distance) == null ? void 0 : _a.range) != null ? Object.entries(event.properties.distance.range).map(([key, value]) => {
-        return `${key}: ${value.distance} ${value.unit}`;
-      }).join(", ") : `No Distance Data Available`);
-    }).join("\n"), ` Active Events (X${cache.internal.events.features.length}) - ${cache.internal.getSource} `);
+    this.modifyElement(`events`, submodules.alerts.displayAlert(), ` Active Events (X${cache.internal.events.features.length}) - ${cache.internal.getSource} `);
     this.elements.system.setContent(
-      strings.system_info.replace(`{UPTIME}`, submodules.calculations.formatUptime(Date.now() - cache.internal.metrics.start_uptime)).replace(`{MEMORY}`, ((packages.os.totalmem() - packages.os.freemem()) / (1024 * 1024)).toFixed(2)).replace(`{HEAP}`, (process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(2)).replace(`{EVENTS_PROCESSED}`, cache.internal.metrics.events_processed.toString()),
+      strings.system_info.replace(`{UPTIME}`, submodules.calculations.formatDuration(Date.now() - cache.internal.metrics.start_uptime)).replace(`{MEMORY}`, ((packages.os.totalmem() - packages.os.freemem()) / (1024 * 1024)).toFixed(2)).replace(`{HEAP}`, (process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(2)).replace(`{EVENTS_PROCESSED}`, cache.internal.metrics.events_processed.toString()),
       ` System Info `
     );
     this.modifyElement(
@@ -4894,6 +4840,279 @@ var Display = class {
   }
 };
 var display_default = Display;
+
+// src/submodules/parsing.ts
+var Parsing = class {
+  constructor() {
+    this.NAME_SPACE = `submodule:parsing`;
+    this.initialize();
+  }
+  initialize() {
+    submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+  }
+  /**
+   * Converts WxRadio API response to GeoJSON FeatureCollection format
+   * This data can be used to listen to NWR stations or plot them on a 
+   * map directly. So far, only good use case it for the dashboard.
+   *
+   * @public
+   * @param {types.WxRadioTypes} body 
+   * @returns {types.GeoJSONFeatureCollection} 
+   */
+  getWxRadioStructure(body) {
+    var _a, _b, _c, _d;
+    let structure = { type: "FeatureCollection", features: [] };
+    for (const feature of body.sources) {
+      const lon = parseFloat(feature.lon);
+      const lat = parseFloat(feature.lat);
+      if (isNaN(lon) || isNaN(lat)) continue;
+      structure.features.push({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [lon, lat] },
+        properties: {
+          location: (_a = feature == null ? void 0 : feature.location) != null ? _a : "N/A",
+          callsign: (_b = feature == null ? void 0 : feature.callsign) != null ? _b : "N/A",
+          frequency: (_c = feature == null ? void 0 : feature.frequency) != null ? _c : "N/A",
+          stream: (_d = feature == null ? void 0 : feature.listen_url) != null ? _d : "N/A"
+        }
+      });
+    }
+    return structure;
+  }
+  /**
+   * Converts Tropical Storm API response to GeoJSON FeatureCollection format
+   *
+   * @public
+   * @param {types.TropicalStormTypes[]} body 
+   * @returns {types.GeoJSONFeatureCollection} 
+   */
+  getTropicalStormStructure(body) {
+    var _a, _b, _c, _d, _e;
+    const structure = { type: "FeatureCollection", features: [] };
+    for (const feature of body) {
+      structure.features.push({
+        type: "Feature",
+        properties: {
+          name: (_a = feature.name) != null ? _a : "N/A",
+          discussion: (_b = feature.forecast_discussion) != null ? _b : "N/A",
+          classification: (_c = feature.classification) != null ? _c : "N/A",
+          pressure: (_d = feature.pressure) != null ? _d : 0,
+          wind_speed: (_e = feature.wind_speed_mph) != null ? _e : 0,
+          last_updated: feature.last_update_at ? new Date(feature.last_update_at).toLocaleString() : "N/A"
+        }
+      });
+    }
+    return structure;
+  }
+  /**
+   * Converts Gibson Ridge Report Placefile response to GeoJSON FeatureCollection format
+   *
+   * @public
+   * @async
+   * @param {string} body 
+   * @returns {Promise<types.GeoJSONFeatureCollection>} 
+   */
+  getGibsonReportStructure(body) {
+    return __async(this, null, function* () {
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
+      const structure = { type: "FeatureCollection", features: [] };
+      const parsed = yield packages.placefile.AtmosXPlacefileParser.parseTable(body);
+      for (const feature of parsed) {
+        const lon = parseFloat(feature.lon);
+        const lat = parseFloat(feature.lat);
+        if (isNaN(lon) || isNaN(lat)) continue;
+        structure.features.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [lon, lat] },
+          properties: {
+            location: `${(_a = feature.city) != null ? _a : "N/A"}, ${(_b = feature.county) != null ? _b : "N/A"}, ${(_c = feature.state) != null ? _c : "N/A"}`,
+            event: (_d = feature.event) != null ? _d : "N/A",
+            sender: (_e = feature.source) != null ? _e : "N/A",
+            description: `${(_f = feature.event) != null ? _f : "Event"} reported at ${(_g = feature.city) != null ? _g : "Unknown"}, ${(_h = feature.county) != null ? _h : "Unknown"}, ${(_i = feature.state) != null ? _i : "Unknown"}. ${feature.comment || "No additional details."}`,
+            magnitude: (_j = feature.mag) != null ? _j : 0,
+            office: (_k = feature.office) != null ? _k : "N/A",
+            date: (_l = feature.date) != null ? _l : "N/A",
+            time: (_m = feature.time) != null ? _m : "N/A"
+          }
+        });
+      }
+      return structure;
+    });
+  }
+  /**
+   * Converts Spotter Network Placefile response to GeoJSON FeatureCollection format  
+   *
+   * @public
+   * @async
+   * @param {string} body 
+   * @returns {Promise<types.GeoJSONFeatureCollection>} 
+   */
+  getSpotterReportStructure(body) {
+    return __async(this, null, function* () {
+      var _a, _b, _c;
+      const structure = { type: "FeatureCollection", features: [] };
+      const parsed = yield packages.placefile.AtmosXPlacefileParser.parsePlacefile(body);
+      for (const feature of parsed) {
+        const lon = parseFloat(feature.icon.x);
+        const lat = parseFloat(feature.icon.y);
+        if (isNaN(lon) || isNaN(lat)) continue;
+        const lines = feature.icon.label.split("\n").map((l) => l.trim());
+        structure.features.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [lon, lat] },
+          properties: {
+            event: lines[1] || "N/A",
+            reporter: ((_a = lines[0]) == null ? void 0 : _a.replace("Reported By:", "").trim()) || "N/A",
+            size: ((_b = lines[2]) == null ? void 0 : _b.replace("Size:", "").trim()) || "N/A",
+            notes: ((_c = lines[3]) == null ? void 0 : _c.replace("Notes:", "").trim()) || "N/A",
+            sender: "Spotter Network",
+            description: feature.icon.label.replace(/\n/g, "<br>").trim() || "N/A"
+          }
+        });
+      }
+      return structure;
+    });
+  }
+  /**
+   * Converts SPC Discussion Placefile response to GeoJSON FeatureCollection format
+   *
+   * @public
+   * @async
+   * @param {string} body 
+   * @returns {Promise<types.GeoJSONFeatureCollection>} 
+   */
+  getSPCDiscussions(body) {
+    return __async(this, null, function* () {
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o;
+      const structure = { type: "FeatureCollection", features: [] };
+      const parsed = yield packages.placefile.AtmosXPlacefileParser.parseGeoJSON(body);
+      for (const feature of parsed) {
+        if (!feature.properties || !feature.coordinates) continue;
+        if (feature.properties.expires_at_ms < Date.now()) continue;
+        const torProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK TORNADO INTENSITY...", []);
+        const winProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK WIND GUST...", []);
+        const hagProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK HAIL SIZE...", []);
+        structure.features.push({
+          type: "Feature",
+          geometry: { type: "Polygon", coordinates: feature.coordinates },
+          properties: {
+            mesoscale_id: (_a = feature.properties.number) != null ? _a : "N/A",
+            expires: feature.properties.expires_at_ms ? new Date(feature.properties.expires_at_ms).toLocaleString() : "N/A",
+            issued: feature.properties.issued_at_ms ? new Date(feature.properties.issued_at_ms).toLocaleString() : "N/A",
+            description: (_c = (_b = packages.manager.TextParser.textProductToDescription(feature.properties.text)) == null ? void 0 : _b.replace(/\n/g, "<br>")) != null ? _c : "N/A",
+            locations: (_f = (_e = (_d = feature.properties.tags) == null ? void 0 : _d.AREAS_AFFECTED) == null ? void 0 : _e.join(", ")) != null ? _f : "N/A",
+            outlook: (_i = (_h = (_g = feature.properties.tags) == null ? void 0 : _g.CONCERNING) == null ? void 0 : _h.join(", ")) != null ? _i : "N/A",
+            population: (_l = (_k = (_j = feature.properties.population) == null ? void 0 : _j.people) == null ? void 0 : _k.toLocaleString()) != null ? _l : "0",
+            homes: (_o = (_n = (_m = feature.properties.population) == null ? void 0 : _m.homes) == null ? void 0 : _n.toLocaleString()) != null ? _o : "0",
+            parameters: {
+              tornado_probability: torProb,
+              wind_probability: winProb,
+              hail_probability: hagProb
+            }
+          }
+        });
+      }
+      return structure;
+    });
+  }
+  /**
+   * Converts Spotter Network Feed Placefile response to GeoJSON FeatureCollection format
+   *
+   * @public
+   * @async
+   * @param {string} body 
+   * @returns {Promise<types.GeoJSONFeatureCollection>} 
+   */
+  getSpotterFeed(body) {
+    return __async(this, null, function* () {
+      var _a, _b, _c, _d;
+      const defConfig = cache.internal.configurations;
+      const feedConfig = (_b = (_a = defConfig.sources) == null ? void 0 : _a.location_settings) == null ? void 0 : _b.spotter_network_feed;
+      const structure = { type: "FeatureCollection", features: [] };
+      const parsed = yield packages.placefile.AtmosXPlacefileParser.parsePlacefile(body);
+      for (const feature of parsed) {
+        const lon = parseFloat(feature.object.coordinates[0]);
+        const lat = parseFloat(feature.object.coordinates[1]);
+        if (isNaN(lon) || isNaN(lat)) continue;
+        const isActive = feature.icon.scale === 6 && feature.icon.type === "2" && feedConfig.pins.active;
+        const isStreaming = feature.icon.scale === 1 && feature.icon.type === "19" && feedConfig.pins.streaming;
+        const isIdle = feature.icon.scale === 6 && feature.icon.type === "6" && feedConfig.pins.idle;
+        if (!isActive && !isStreaming && (!isIdle || !feedConfig.pins.offline)) continue;
+        if (feedConfig.pin_by_name.length > 0) {
+          const idx = feedConfig.pin_by_name.findIndex((name) => feature.icon.label.includes(name));
+          if (idx !== -1) {
+            const name = feedConfig.pin_by_name[idx];
+            cache.external.locations.spotter_network = { lat, lon };
+            cache.internal.manager.setCurrentLocation(name, { lat, lon });
+          }
+        }
+        let distance = 0;
+        if (cache.external.locations.spotter_network) {
+          distance = submodules.calculations.calculateDistance(
+            { lat, lon },
+            { lat: cache.external.locations.spotter_network.lat, lon: cache.external.locations.spotter_network.lon }
+          );
+        }
+        structure.features.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [lon, lat] },
+          properties: {
+            description: (_d = (_c = feature.icon.label) == null ? void 0 : _c.replace(/\n/g, "<br>")) != null ? _d : "N/A",
+            distance,
+            status: isActive ? "Active" : isStreaming ? "Streaming" : isIdle ? "Idle" : "Unknown"
+          }
+        });
+      }
+      return structure;
+    });
+  }
+  /**
+   * Converts Probability Placefile response to structured format
+   *
+   * @public
+   * @async
+   * @param {string} body 
+   * @param {('tornado' | 'severe')} type 
+   * @returns {Promise<types.ProbabilityTypes[]>} 
+   */
+  getProbabilityStructure(body, type) {
+    return __async(this, null, function* () {
+      var _a, _b, _c, _d;
+      const structure = [];
+      const defConfig = cache.internal.configurations;
+      const threshold = (_b = (_a = defConfig.sources.probability_settings[type]) == null ? void 0 : _a.percentage_threshold) != null ? _b : 50;
+      const typeRegexp = type === "tornado" ? /ProbTor: (\d+)%\// : /PSv3: (\d+)%\//;
+      const parsed = yield packages.placefile.AtmosXPlacefileParser.parsePlacefile(body);
+      for (const feature of parsed) {
+        if (!((_c = feature.line) == null ? void 0 : _c.text)) continue;
+        const probMatch = feature.line.text.match(typeRegexp);
+        const probability = probMatch ? parseInt(probMatch[1]) : 0;
+        const shearMatch = feature.line.text.match(/Max LLAzShear: ([\d.]+)/);
+        const shear = shearMatch ? parseFloat(shearMatch[1]) : 0;
+        if (probability >= threshold) {
+          structure.push({
+            type,
+            probability,
+            shear,
+            description: (_d = feature.line.text.replace(/\n/g, "<br>")) != null ? _d : "N/A"
+          });
+        }
+      }
+      return structure;
+    });
+  }
+  /**
+   * Converts WxEye Sonde API response to structured format
+   *
+   * @public
+   * @param {unknown[]} body 
+   * @returns {Record<string, string>[]} 
+   */
+  getWxEyeSondeStructure(body) {
+    return body.map((feature) => feature);
+  }
+};
+var parsing_default = Parsing;
 
 // src/bootstrap.ts
 var cache = {
@@ -4998,7 +5217,8 @@ var submoduleClasses = {
   calculations: calculations_default,
   networking: networking_default,
   structure: structure_default,
-  display: display_default
+  display: display_default,
+  parsing: parsing_default
 };
 var submodules = {};
 Object.entries(submoduleClasses).forEach(([key, Class]) => {

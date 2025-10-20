@@ -125,7 +125,8 @@
         "ignored_icoa": ["KWNS"],
         "eas_settings": {
             "eas_directory": "../storage/nwws/scenarios",
-            "eas_intro": "../storage/nwws/scenarios/intro.wav" // .WAV FILES ONLY
+            "eas_intro": "../storage/nwws/scenarios/intro.wav", // .WAV FILES ONLY
+            "festival_voice": "slt" // Festival TTS Voice (Linux / WSL) Only
         },
         "location_settings": {
             "enabled": false,
@@ -142,7 +143,7 @@
                 "endpoint": "https://api.weather.gov/alerts/active"
             },
             "weather_wire_settings": {
-                "database": "../storage/WireDB.db",
+                "database": "../storage/NoaaWeatherWireService.db",
                 "client_credentials": {
                     "username": "username_here",
                     "password": "password_here",
@@ -154,7 +155,7 @@
                 },
                 "client_cache": {
                     "read_cache": true,
-                    "max_size_mb": 5,
+                    "max_size_mb": 15,
                     "max_db_history": 15000,
                     "directory": "../storage/nwws/cache"
                 },
@@ -220,14 +221,14 @@
             "tornado": {
                 "enabled": true,
                 "cache_time": 119,
-                "percentage_treshold": 2,
+                "percentage_threshold": 2,
                 "endpoint": "https://cimss.ssec.wisc.edu/severe_conv/NOAACIMSS_PTv3_LOOP",
                 "contradictions": []
             },
             "severe": {
                 "enabled": true,
                 "cache_time": 119,
-                "percentage_treshold": 50,
+                "percentage_threshold": 50,
                 "endpoint": "https://cimss.ssec.wisc.edu/severe_conv/NOAACIMSS_PSv3_LOOP",
                 "contradictions": []
             }

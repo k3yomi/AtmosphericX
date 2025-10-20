@@ -9,16 +9,17 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx      
-                          
+    Last Updated: 2025-10-20
+    Changelogs: 
+        - Added type definitions for better clarity and maintainability.
+        - Refactored configuration and logging methods for improved structure.
+        - Implemented JSONC parsing for configurations with error handling.
+        - Enhanced logging functionality with options for raw console output and file echoing.
+        - Created a web content filtering method for sanitization.            
 */
 
-
-import { config } from 'process';
 import * as loader from '../bootstrap';
 import * as types from '../types';
-
-
-
 
 export class Utils { 
     NAME_SPACE: string
@@ -76,7 +77,7 @@ export class Utils {
      * @returns {boolean} 
      */
     public isFancyDisplay(): boolean {
-        return (loader.cache.internal.configurations as types.defConfigurations).internal_settings.fancy_interface || false;
+        return (loader.cache.internal.configurations as types.ConfigurationsType).internal_settings.fancy_interface || false;
     }
 
     /**
@@ -88,7 +89,7 @@ export class Utils {
      */
     public logo(): string | void{
         const path = this.isFancyDisplay() ? this.LOGO_PATH : this.LOGO_LEGACY_PATH;
-        const defConfig = loader.cache.internal.configurations as types.defConfigurations;
+        const defConfig = loader.cache.internal.configurations as types.ConfigurationsType;
         const logo = loader.packages.fs.existsSync(path) 
             ? loader.packages.fs.readFileSync(path, `utf-8`).replace(`{VERSION}`, this.version()) 
             : `AtmosphericX {VERSION}`;
@@ -117,7 +118,7 @@ export class Utils {
         }
         if (rawConsole || !this.isFancyDisplay()) { console.log(`${title}\x1b[0m [${new Date().toLocaleString()}] ${msg}`); }
         if (echoFile) { 
-            loader.packages.fs.appendFileSync(this.LOGS_PATH, `[${title}] [${new Date().toLocaleString()}] ${msg}\n`);
+            loader.packages.fs.appendFileSync(this.LOGS_PATH, `[${title.replace(/\x1b\[[0-9;]*m/g, '')}] [${new Date().toLocaleString()}] ${msg}\n`);
         }
     }
 
@@ -187,18 +188,6 @@ export class Utils {
         }
         return content;
     }
-
-    /**
-     * Filters internal cache with events and event hashes. 
-     *
-     * @public
-     */
-    public filterInternals(): void {
-        const defInternal = loader.cache.internal as types.defInternal;
-        defInternal.events = { features: defInternal.events?.features.filter(f => f !== undefined && new Date(f.properties.expires).getTime() > new Date().getTime())}
-        defInternal.hashes = defInternal.hashes.filter(e => e !== undefined && new Date(e.expires).getTime() > new Date().getTime())
-    }
-
 }
 
 export default Utils;

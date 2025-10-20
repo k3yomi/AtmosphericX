@@ -49,6 +49,7 @@ import calculations from './submodules/calculations';
 import networking from './submodules/networking';
 import structure from './submodules/structure';
 import display from './submodules/display';
+import parsing from './submodules/parsing';
 
 /* [ Global Cache ] */
 export const cache = {
@@ -124,7 +125,7 @@ export const packages = {
 /* [ Submodule Initialization ] */
 const submoduleClasses = {
     utils, alerts, calculations, networking,
-    structure, display,
+    structure, display, parsing
 };
 
 export const submodules: any = {};
