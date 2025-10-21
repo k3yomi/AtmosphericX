@@ -132,24 +132,24 @@ export class Alerts {
         if (alerts.noaa_weather_wire_service == true) { loader.cache.internal.getSource = `NWWS`; } 
         const settings = {
             database: nwws.database,
-            isNWWS: alerts.noaa_weather_wire_service,
+            is_wire: alerts.noaa_weather_wire_service,
             journal: alerts.journal,
-            NoaaWeatherWireService: {
-                clientReconnections: { canReconnect: nwws.client_reconnections.attempt_reconnections, currentInterval: nwws.client_reconnections.reconnection_attempt_interval, },
-                clientCredentials: { username: nwws.client_credentials.username, password: nwws.client_credentials.password, nickname: `AtmosphericX v${loader.submodules.utils.version()} -> ${displayName} (${displayTimestamp})`, },   
-                cache: { read: nwws.client_cache.read_cache, maxSizeMB: nwws.client_cache.max_size_mb, maxHistory: nwws.client_cache.max_db_history, directory: nwws.client_cache.directory, },
-                alertPreferences: { isCapOnly: nwws.alert_preferences.cap_only, isShapefileUGC: nwws.alert_preferences.implement_db_ugc, }
+            noaa_weather_wire_service_settings: {
+                reconnection_settings: { enabled: nwws.client_reconnections.attempt_reconnections, interval: nwws.client_reconnections.reconnection_attempt_interval, },
+                credentials: { username: nwws.client_credentials.username, password: nwws.client_credentials.password, nickname: `AtmosphericX v${loader.submodules.utils.version()} -> ${displayName} (${displayTimestamp})`, },   
+                cache: { enabled: nwws.client_cache.read_cache, max_file_size: nwws.client_cache.max_size_mb, max_db_history: nwws.client_cache.max_db_history, directory: nwws.client_cache.directory, },
+                preferences: { cap_only: nwws.alert_preferences.cap_only, shapefile_coordinates: nwws.alert_preferences.implement_db_ugc, }
             },
-            NationalWeatherService: { checkInterval: nws.interval, endpoint: nws.endpoint, },
-            global: {
-                useParentEvents: alerts.global_settings.parent_events,
-                betterEventParsing: alerts.global_settings.better_parsing,
-                alertFiltering: { 
-                    ignoreTestProducts: filter.ignore_tests,
-                    locationFiltering: { maxDistance: filter.location_settings.max_distance, unit: filter.location_settings.unit, filter: filter.location_settings.enabled },
-                    filteredEvents: filter.all_events == true ? [] : filter.listening_events, ignoredEvents: filter.ignored_events, filteredICOAs: filter.listening_icoa, ignoredICOAs: filter.ignored_icoa, ugcFilter: filter.listening_ugcs, stateFilter: filter.listening_states, checkExpired: false,
+            national_weather_service_settings: { interval: nws.interval, endpoint: nws.endpoint, },
+            global_settings: {
+                parent_events_only: alerts.global_settings.parent_events,
+                better_event_parsing: alerts.global_settings.better_parsing,
+                filtering: { 
+                    location: { max_distance: filter.location_settings.max_distance, unit: filter.location_settings.unit, filter: filter.location_settings.enabled },
+                    ignore_text_products: filter.ignore_tests,
+                    events: filter.all_events == true ? [] : filter.listening_events, ignored_events: filter.ignored_events, filtered_icoa: filter.listening_icoa, ignored_icoa: filter.ignored_icoa, ugc_filter: filter.listening_ugcs, state_filter: filter.listening_states, check_expired: false,
                 },
-                easSettings: { festivalVoice: filter.festival_voice, easDirectory: filter.eas_settings.eas_directory, easIntroWav: filter.eas_settings.eas_intro }
+                eas_settings: { festival_tts_voice: filter.festival_voice, directory: filter.eas_settings.eas_directory, intro_wav: filter.eas_settings.eas_intro }
             }
         }
 
