@@ -207,6 +207,14 @@ export class Alerts {
                 }})
             )
         }
+        if (isAlertUpdate) {
+            if (!atmosx_parser_settings.noaa_weather_wire_service) {
+                const lastFetched = loader.cache.internal.http_timers[`NWS`] ?? 0;
+                if (setTime - lastFetched <= atmosx_parser_settings.national_weather_service_settings.internal * 1000) return;
+                loader.cache.internal.http_timers[`NWS`] = setTime;
+                stringText += `(OK) NWS, `
+            }   
+        }
         data["alerts"] = loader.cache.internal.events.features;
         if (Object.keys(data).length > 0) {
             if (stringText.length > 0) {

@@ -4520,6 +4520,7 @@ var init_networking = __esm({
        */
       updateCache(isAlertUpdate) {
         return __async(this, null, function* () {
+          var _b;
           submodules.utils.configurations();
           submodules.alerts.instance(true);
           yield submodules.utils.sleep(200);
@@ -4554,6 +4555,14 @@ var init_networking = __esm({
                 }
               }))
             );
+          }
+          if (isAlertUpdate) {
+            if (!atmosx_parser_settings.noaa_weather_wire_service) {
+              const lastFetched = (_b = cache.internal.http_timers[`NWS`]) != null ? _b : 0;
+              if (setTime - lastFetched <= atmosx_parser_settings.national_weather_service_settings.internal * 1e3) return;
+              cache.internal.http_timers[`NWS`] = setTime;
+              stringText += `(OK) NWS, `;
+            }
           }
           data["alerts"] = cache.internal.events.features;
           if (Object.keys(data).length > 0) {
