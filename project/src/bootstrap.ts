@@ -50,6 +50,7 @@ import networking from './submodules/networking';
 import structure from './submodules/structure';
 import display from './submodules/display';
 import parsing from './submodules/parsing';
+import routes from './submodules/routes';
 
 /* [ Global Cache ] */
 export const cache = {
@@ -66,8 +67,8 @@ export const cache = {
         wx_radio: [],
         tornado: [],
         severe: [],
-        manual_alert: [],
-        active_alerts: [],
+        manual: [],
+        events: [],
         locations: {
             spotter_network: {
                 lat: 0,
@@ -108,6 +109,7 @@ export const strings = {
     new_event_legacy: `{SOURCE} | Alert {STATUS} >> {EVENT} [{TRACKING}]`,
     new_event_fancy: `├─ {bold}{EVENT} ({ACTION_TYPE}) [{TRACKING}]{/bold}\n` +`│  ├─ Issued: {ISSUED} ({EXPIRES})\n` +`│  ├─ Sender {SENDER}\n` + `│  ├─ Tags: {TAGS}\n` +`│  ├─ Locations: {LOCATIONS}\n` +`│  └─ Distance: {DISTANCE})`,
     system_info: `{bold}Uptime:{/bold} {UPTIME}\n{bold}Memory Usage:{/bold} {MEMORY} MB\n{bold}Heap Usage:{/bold} {HEAP} MB\n{bold}Events Processed:{/bold} {EVENTS_PROCESSED}\n`,
+    portal_disabled_warning: `\n\n[SECURITY] THE PORTAL LOGIN PAGE IS DISABLED,\n\t   THIS IS NOT RECOMMENDED FOR PRODUCTION USE AS EVERYONE CAN ACCESS THE DASHBOARD WITHOUT AUTHENTICATION.\n\t   YOU CAN SIMPLY DO IP WHITELISTING THROUGH A WEB SERVER OR FIREWALL IF YOU WISH TO KEEP THIS OFF.\n\t   IF YOU WISH TO ENABLE THE PORTAL LOGIN PAGE, PLEASE SET THE PORTAL CONFIG TO TRUE IN THE CONFIGURATION FILE.\n\n`,
 }
 
 /* [ Package Exports ] */
@@ -125,7 +127,7 @@ export const packages = {
 /* [ Submodule Initialization ] */
 const submoduleClasses = {
     utils, alerts, calculations, networking,
-    structure, display, parsing
+    structure, display, parsing, routes
 };
 
 export const submodules: any = {};

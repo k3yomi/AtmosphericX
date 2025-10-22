@@ -152,7 +152,7 @@ export class Alerts {
             const onlineVersionParsed = onlineVersion.message.replace(/\n/g, ``);
             const onlineChangelogsParsed = onlineChangelogs.message[onlineVersion] ? 
                 onlineChangelogs.message[onlineVersionParsed].changelogs.join(`\n\t`) : `No changelogs available.`;
-            loader.cache.external.version = onlineVersionParsed;
+            loader.cache.external.version = offlineVersion;
             loader.cache.external.changelogs = onlineChangelogsParsed;
             const isNewerVersionDiscovered = (a: string, b: string) => {
                 const [ma, mi, pa] = a.split(".").map(Number);
@@ -215,7 +215,7 @@ export class Alerts {
                 stringText += `(OK) NWS, `
             }   
         }
-        data["alerts"] = loader.cache.internal.events.features;
+        data["events"] = loader.cache.internal.events.features;
         if (Object.keys(data).length > 0) {
             if (stringText.length > 0) {
                 loader.submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${stringText.slice(0, -2)}`, { echoFile: true })

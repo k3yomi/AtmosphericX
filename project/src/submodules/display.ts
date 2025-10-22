@@ -28,6 +28,13 @@ export class Display {
         this.initialize();
     }
 
+    /**
+     * Initializes the display manager and sets up the terminal interface
+     *
+     * @private
+     * @async
+     * @returns {Promise<void>} 
+     */
     private async initialize(): Promise<void> {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`);
         if (!loader.submodules.utils.isFancyDisplay()) { return }
@@ -42,7 +49,14 @@ export class Display {
         this.update();
         setInterval(() => { this.update(); }, 1_000);
     }
-
+    
+    /**
+     * Displays an introductory screen with logo and logs for a specified delay
+     *
+     * @private
+     * @param {number} delay 
+     * @returns {Promise<void>} 
+     */
     private intro(delay: number): Promise<void> {
         return new Promise(async (resolve) => {
             this.manager.append(this.package.box({
@@ -68,7 +82,12 @@ export class Display {
             resolve();
         });
     }
-
+    
+    /**
+     * Creates the display elements for the terminal interface
+     *
+     * @private
+     */
     private create(): void {
         this.elements.logs = this.package.box({
             top: '50%', left: 0,
@@ -112,7 +131,12 @@ export class Display {
         this.manager.render();
 
     }
-
+    
+    /**
+     * Updates the display elements with current data
+     *
+     * @private
+     */
     private update(): void {
         this.modifyElement(`events`, loader.submodules.alerts.displayAlert(), ` Active Events (X${loader.cache.internal.events.features.length}) - ${loader.cache.internal.getSource} `);
         this.elements.system.setContent(loader.strings.system_info
@@ -127,7 +151,15 @@ export class Display {
         )
         this.manager.render();
     }
-
+    
+    /**
+     * Modifies a display element with new content and optional title
+     *
+     * @private
+     * @param {string} key 
+     * @param {string} content 
+     * @param {?string} [title] 
+     */
     private modifyElement(key: string, content: string, title?: string): void {
         if (this.elements[key]) {
             this.elements[key].setContent(content);
@@ -137,6 +169,12 @@ export class Display {
         }
     }
 
+    
+    /**
+     * Sets up keybindings for the display manager
+     *
+     * @private
+     */
     private keybindings(): void {
         this.manager.key(['escape', 'C-c'], (ch, key) => { return process.exit(0); });
     }

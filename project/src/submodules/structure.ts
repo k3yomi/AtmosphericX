@@ -138,16 +138,14 @@ export class Structure {
 				const isAlreadyLogged = loader.cache.internal.hashes.some(log => log.id === event.hash);
 				if (isAlreadyLogged) continue;
 				loader.cache.internal.hashes.push({ id: event.hash, expires: event.properties.expires });
-				const registeredEvent = this.register(event);
-				if (registeredEvent.ignored) continue;
+				if (event.ignored) continue;
 				if (!loader.submodules.utils.isFancyDisplay()) {
-					loader.submodules.utils.log(loader.submodules.alerts.displayAlert(event));
+					loader.submodules.utils.log(loader.submodules.alerts.displayAlert(event.event));
 				}
 			}
 		}
+		loader.cache.external.events = clean.events || [];
 	}
-
-    
 }
 
 export default Structure;

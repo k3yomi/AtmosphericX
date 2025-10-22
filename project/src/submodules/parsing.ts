@@ -206,8 +206,8 @@ export class Parsing {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
         const parsed = await loader.packages.placefile.AtmosXPlacefileParser.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
         for (const feature of parsed) {
-            const lon = parseFloat(feature.object.coordinates[0]);
-            const lat = parseFloat(feature.object.coordinates[1]);
+            const lon = parseFloat(feature.object.coordinates[1]);
+            const lat = parseFloat(feature.object.coordinates[0]);
             if (isNaN(lon) || isNaN(lat)) continue;
             const isActive = (feature.icon.scale === 6 && feature.icon.type === '2') && feedConfig.pins.active;
             const isStreaming = (feature.icon.scale === 1 && feature.icon.type === '19') && feedConfig.pins.streaming;
@@ -284,7 +284,6 @@ export class Parsing {
     public getWxEyeSondeStructure(body: unknown[]): Record<string, string>[] {
         return body.map(feature => feature as Record<string, string>);
     }
-
 }
 
 export default Parsing;

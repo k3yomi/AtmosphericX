@@ -4115,17 +4115,17 @@ var init_alerts = __esm({
        * @param {*} event 
        * @returns {string} 
        */
-      displayAlert(event) {
+      displayAlert(registry) {
         if (!submodules.utils.isFancyDisplay()) {
-          return strings.new_event_legacy.replace(`{EVENT}`, event.properties.event).replace(`{STATUS}`, event.properties.action_type).replace(`{TRACKING}`, event.tracking.substring(0, 18)).replace(`{SOURCE}`, cache.internal.getSource);
+          return strings.new_event_legacy.replace(`{EVENT}`, registry.event.properties.event).replace(`{STATUS}`, registry.event.properties.action_type).replace(`{TRACKING}`, registry.event.tracking.substring(0, 18)).replace(`{SOURCE}`, cache.internal.getSource);
         } else {
           return cache.internal.events.features.sort((a, b) => {
-            const dateA = new Date(a.properties.issued).getTime();
-            const dateB = new Date(b.properties.issued).getTime();
+            const dateA = new Date(a.event.properties.issued).getTime();
+            const dateB = new Date(b.event.properties.issued).getTime();
             return dateA - dateB;
-          }).map((event2) => {
+          }).map((registry2) => {
             var _a;
-            return strings.new_event_fancy.replace(`{EVENT}`, event2.properties.event).replace(`{ACTION_TYPE}`, event2.properties.action_type).replace(`{TRACKING}`, event2.tracking.substring(0, 18)).replace(`{SENDER}`, event2.properties.sender_name).replace(`{ISSUED}`, event2.properties.issued).replace(`{EXPIRES}`, submodules.calculations.timeRemaining(new Date(event2.properties.expires))).replace(`{TAGS}`, event2.properties.tags ? event2.properties.tags.join(", ") : "N/A").replace(`{LOCATIONS}`, event2.properties.locations.substring(0, 100)).replace(`{DISTANCE}`, ((_a = event2.properties.distance) == null ? void 0 : _a.range) != null ? Object.entries(event2.properties.distance.range).map(([key, value]) => {
+            return strings.new_event_fancy.replace(`{EVENT}`, registry2.event.properties.event).replace(`{ACTION_TYPE}`, registry2.event.properties.action_type).replace(`{TRACKING}`, registry2.event.tracking.substring(0, 18)).replace(`{SENDER}`, registry2.event.properties.sender_name).replace(`{ISSUED}`, registry2.event.properties.issued).replace(`{EXPIRES}`, submodules.calculations.timeRemaining(new Date(registry2.event.properties.expires))).replace(`{TAGS}`, registry2.event.properties.tags ? registry2.event.properties.tags.join(", ") : "N/A").replace(`{LOCATIONS}`, registry2.event.properties.locations.substring(0, 100)).replace(`{DISTANCE}`, ((_a = registry2.event.properties.distance) == null ? void 0 : _a.range) != null ? Object.entries(registry2.event.properties.distance.range).map(([key, value]) => {
               return `${key}: ${value.distance} ${value.unit}`;
             }).join(", ") : `No Distance Data Available`);
           }).join("\n");
@@ -4137,43 +4137,44 @@ var init_alerts = __esm({
        * @private
        * @param {*} alerts 
        */
-      handle(alerts) {
-        var _a, _b, _c, _d;
+      handle(events2) {
+        var _a, _b, _c;
         const InternalType = cache.internal;
         const features = cache.internal.events.features;
-        for (const alert of alerts) {
-          const { tracking, properties, history = [] } = alert;
-          const index = features.findIndex((feature) => feature && feature.tracking === tracking);
+        for (const event of events2) {
+          const registeredEvent = submodules.structure.register(event);
+          const { tracking, properties, history = [] } = registeredEvent.event;
+          const index = features.findIndex((feature) => feature && feature.event.tracking === tracking);
           if (properties.is_cancelled && index !== -1) {
             features[index] = void 0;
             continue;
           }
           if (properties.is_issued && index === -1) {
-            features.push(alert);
+            features.push(registeredEvent);
             continue;
           }
           if (properties.is_updated) {
             if (index !== -1 && features[index]) {
               const existing = features[index];
-              const mergedHistory = [...(_a = existing.history) != null ? _a : [], ...history].sort(
+              const existingLocations = (_a = existing.event.properties.locations) != null ? _a : "";
+              const mergedHistory = [...(_b = existing.event.history) != null ? _b : [], ...history].sort(
                 (a, b) => new Date(b.issued).getTime() - new Date(a.issued).getTime()
               );
-              const existingLocations = (_b = existing.properties.locations) != null ? _b : "";
-              const newLocations = (_c = alert.properties.locations) != null ? _c : "";
+              submodules.utils.log(mergedHistory.length);
+              existing.event.properties.event = properties.event;
+              existing.event.history = mergedHistory;
+              existing.event.properties = registeredEvent.event.properties;
               const combinedLocations = [
-                ...new Set((existingLocations + "; " + newLocations).split(";").map((loc) => loc.trim()).filter(Boolean))
+                ...new Set((existingLocations + "; " + registeredEvent.event.properties.locations).split(";").map((loc) => loc.trim()).filter(Boolean))
               ].join("; ");
-              features[index] = __spreadProps(__spreadValues({}, alert), {
-                history: mergedHistory,
-                properties: __spreadProps(__spreadValues({}, alert.properties), { locations: combinedLocations })
-              });
+              existing.event.properties.locations = combinedLocations;
             } else {
-              features.push(alert);
+              features.push(registeredEvent);
             }
           }
         }
-        cache.internal.metrics.events_processed += alerts.length;
-        InternalType.events = { features: (_d = InternalType.events) == null ? void 0 : _d.features.filter((f) => f !== void 0 && new Date(f.properties.expires).getTime() > (/* @__PURE__ */ new Date()).getTime()) };
+        cache.internal.metrics.events_processed += events2.length;
+        InternalType.events = { features: (_c = InternalType.events) == null ? void 0 : _c.features.filter((f) => f !== void 0 && new Date(f.event.properties.expires).getTime() > (/* @__PURE__ */ new Date()).getTime()) };
         InternalType.hashes = InternalType.hashes.filter((e) => e !== void 0 && new Date(e.expires).getTime() > (/* @__PURE__ */ new Date()).getTime());
         submodules.networking.updateCache(true);
       }
@@ -4497,7 +4498,7 @@ var init_networking = __esm({
           const onlineVersionParsed = onlineVersion.message.replace(/\n/g, ``);
           const onlineChangelogsParsed = onlineChangelogs.message[onlineVersion] ? onlineChangelogs.message[onlineVersionParsed].changelogs.join(`
 	`) : `No changelogs available.`;
-          cache.external.version = onlineVersionParsed;
+          cache.external.version = offlineVersion;
           cache.external.changelogs = onlineChangelogsParsed;
           const isNewerVersionDiscovered = (a, b) => {
             const [ma, mi, pa] = a.split(".").map(Number);
@@ -4564,7 +4565,7 @@ var init_networking = __esm({
               stringText += `(OK) NWS, `;
             }
           }
-          data["alerts"] = cache.internal.events.features;
+          data["events"] = cache.internal.events.features;
           if (Object.keys(data).length > 0) {
             if (stringText.length > 0) {
               submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${stringText.slice(0, -2)}`, { echoFile: true });
@@ -4703,13 +4704,13 @@ var init_structure = __esm({
               const isAlreadyLogged = cache.internal.hashes.some((log) => log.id === event.hash);
               if (isAlreadyLogged) continue;
               cache.internal.hashes.push({ id: event.hash, expires: event.properties.expires });
-              const registeredEvent = this.register(event);
-              if (registeredEvent.ignored) continue;
+              if (event.ignored) continue;
               if (!submodules.utils.isFancyDisplay()) {
-                submodules.utils.log(submodules.alerts.displayAlert(event));
+                submodules.utils.log(submodules.alerts.displayAlert(event.event));
               }
             }
           }
+          cache.external.events = clean.events || [];
         });
       }
     };
@@ -4728,6 +4729,13 @@ var init_display = __esm({
         this.elements = {};
         this.initialize();
       }
+      /**
+       * Initializes the display manager and sets up the terminal interface
+       *
+       * @private
+       * @async
+       * @returns {Promise<void>} 
+       */
       initialize() {
         return __async(this, null, function* () {
           submodules.utils.log(`${this.NAME_SPACE} initialized.`);
@@ -4748,6 +4756,13 @@ var init_display = __esm({
           }, 1e3);
         });
       }
+      /**
+       * Displays an introductory screen with logo and logs for a specified delay
+       *
+       * @private
+       * @param {number} delay 
+       * @returns {Promise<void>} 
+       */
       intro(delay) {
         return new Promise((resolve) => __async(this, null, function* () {
           this.manager.append(this.package.box({
@@ -4782,6 +4797,11 @@ var init_display = __esm({
           resolve();
         }));
       }
+      /**
+       * Creates the display elements for the terminal interface
+       *
+       * @private
+       */
       create() {
         this.elements.logs = this.package.box({
           top: "50%",
@@ -4840,6 +4860,11 @@ var init_display = __esm({
         }
         this.manager.render();
       }
+      /**
+       * Updates the display elements with current data
+       *
+       * @private
+       */
       update() {
         this.modifyElement(`events`, submodules.alerts.displayAlert(), ` Active Events (X${cache.internal.events.features.length}) - ${cache.internal.getSource} `);
         this.elements.system.setContent(
@@ -4855,6 +4880,14 @@ var init_display = __esm({
         );
         this.manager.render();
       }
+      /**
+       * Modifies a display element with new content and optional title
+       *
+       * @private
+       * @param {string} key 
+       * @param {string} content 
+       * @param {?string} [title] 
+       */
       modifyElement(key, content, title) {
         if (this.elements[key]) {
           this.elements[key].setContent(content);
@@ -4863,6 +4896,11 @@ var init_display = __esm({
           this.manager.render();
         }
       }
+      /**
+       * Sets up keybindings for the display manager
+       *
+       * @private
+       */
       keybindings() {
         this.manager.key(["escape", "C-c"], (ch, key) => {
           return process.exit(0);
@@ -5067,8 +5105,8 @@ var init_parsing = __esm({
           const structure = { type: "FeatureCollection", features: [] };
           const parsed = yield packages.placefile.AtmosXPlacefileParser.parsePlacefile(body);
           for (const feature of parsed) {
-            const lon = parseFloat(feature.object.coordinates[0]);
-            const lat = parseFloat(feature.object.coordinates[1]);
+            const lon = parseFloat(feature.object.coordinates[1]);
+            const lat = parseFloat(feature.object.coordinates[0]);
             if (isNaN(lon) || isNaN(lat)) continue;
             const isActive = feature.icon.scale === 6 && feature.icon.type === "2" && feedConfig.pins.active;
             const isStreaming = feature.icon.scale === 1 && feature.icon.type === "19" && feedConfig.pins.streaming;
@@ -5152,6 +5190,127 @@ var init_parsing = __esm({
   }
 });
 
+// src/submodules/routes.ts
+var Routes, routes_default;
+var init_routes = __esm({
+  "src/submodules/routes.ts"() {
+    init_bootstrap();
+    Routes = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:routes`;
+        this.initialize();
+      }
+      /**
+       * Initializes the display manager and sets up the terminal interface
+       *
+       * @private
+       * @async
+       * @returns {Promise<void>} 
+       */
+      initialize() {
+        return __async(this, null, function* () {
+          submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+          const defConfig = cache.internal.configurations;
+          const isHttps = defConfig.web_hosting_settings.settings.is_https;
+          const isPortal = defConfig.web_hosting_settings.is_login_required;
+          const getPort = defConfig.web_hosting_settings.settings.port_number;
+          const getCertificates = isHttps ? this.getCertificates() : null;
+          this.package = cache.internal.express = packages.express();
+          this.middleware();
+          this.routes();
+          if (isHttps) {
+            cache.internal.websocket = packages.https.createServer(getCertificates, this.package).listen(getPort, () => {
+              submodules.utils.log(`${this.NAME_SPACE} HTTPS Server running on port ${getPort}`);
+            }).on("error", (err) => {
+              submodules.utils.log(`${this.NAME_SPACE} ERROR: ${err.message}`);
+              process.exit(1);
+            });
+          } else {
+            cache.internal.websocket = packages.http.createServer(this.package).listen(getPort, () => {
+              submodules.utils.log(`${this.NAME_SPACE} HTTP Server running on port ${getPort}`);
+            }).on("error", (err) => {
+              submodules.utils.log(`${this.NAME_SPACE} ERROR: ${err.message}`);
+              process.exit(1);
+            });
+          }
+          if (!isPortal) {
+            submodules.utils.log(`${strings.portal_disabled_warning}`, { echoFile: true });
+          }
+        });
+      }
+      middleware() {
+        const parentDirectory = packages.path.resolve(`..`, `storage`);
+        console.log(this.package.use);
+        this.package.use((request, response, next) => {
+          response.setHeader("Access-Control-Allow-Origin", "*");
+          response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+          response.setHeader("Access-Control-Allow-Credentials", "true");
+          response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+          response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+          response.setHeader("Pragma", "no-cache");
+          response.setHeader("Expires", "0");
+          response.setHeader("Surrogate-Control", "no-store");
+          next();
+        });
+        this.package.use(packages.cookieParser());
+        this.package.use(`/assets`, packages.express.static(`${parentDirectory}/www`));
+        this.package.use(`/widgets`, packages.express.static(`${parentDirectory}/www/widgets`));
+        this.package.set(`trust proxy`, 1);
+      }
+      routes() {
+        const parentDirectory = packages.path.resolve(`..`, `storage`);
+        this.package.get(`/`, (request, response) => {
+          return response;
+        });
+        this.package.get(`/widgets/:endpoint`, (request, response) => {
+          return response;
+        });
+        this.package.get(`/placefiles/:endpoint`, (request, response) => {
+          return response;
+        });
+        this.package.get(`/data/:endpoint/:id?`, (request, response) => {
+          const endpoint = request.params.endpoint;
+          const id = request.params.id;
+          const isValid = Object.keys(cache.external).includes(endpoint);
+          if (!isValid) {
+            return this.redirect(response, `${parentDirectory}/www/sites/404/404.html`);
+          }
+          return response.json(id ? cache.external[endpoint][id] : cache.external[endpoint]);
+        });
+        this.package.get(`/api/:endpoint`, (request, response) => {
+          return response;
+        });
+      }
+      redirect(response, path2) {
+        response.sendFile(path2);
+        return;
+      }
+      getCertificates() {
+        const defConfig = cache.internal.configurations;
+        if (!defConfig.web_hosting_settings.settings.is_https) {
+          submodules.utils.log(`${this.NAME_SPACE} ERROR: Tried to get SSL certificates while HTTPS is disabled in the configuration file.`);
+          process.exit(1);
+        }
+        const keyPath = defConfig.web_hosting_settings.settings.certification_paths.private_key_path;
+        const certPath = defConfig.web_hosting_settings.settings.certification_paths.certificate_path;
+        if (!packages.fs.existsSync(keyPath)) {
+          submodules.utils.log(`${this.NAME_SPACE} ERROR: SSL key file not found at: ${keyPath}`);
+          process.exit(1);
+        }
+        if (!packages.fs.existsSync(certPath)) {
+          submodules.utils.log(`${this.NAME_SPACE} ERROR: SSL certificate file not found at: ${certPath}`);
+          process.exit(1);
+        }
+        return {
+          key: packages.fs.readFileSync(keyPath),
+          certificate: packages.fs.readFileSync(certPath)
+        };
+      }
+    };
+    routes_default = Routes;
+  }
+});
+
 // src/bootstrap.ts
 import * as manager from "atmosx-nwws-parser";
 import * as tempest from "atmosx-tempest-pulling";
@@ -5187,6 +5346,7 @@ var init_bootstrap = __esm({
     init_structure();
     init_display();
     init_parsing();
+    init_routes();
     cache = {
       external: {
         configurations: {},
@@ -5201,8 +5361,8 @@ var init_bootstrap = __esm({
         wx_radio: [],
         tornado: [],
         severe: [],
-        manual_alert: [],
-        active_alerts: [],
+        manual: [],
+        events: [],
         locations: {
           spotter_network: {
             lat: 0,
@@ -5255,6 +5415,14 @@ ${"	".repeat(5)} {ONLINE_CHANGELOGS}
 {bold}Memory Usage:{/bold} {MEMORY} MB
 {bold}Heap Usage:{/bold} {HEAP} MB
 {bold}Events Processed:{/bold} {EVENTS_PROCESSED}
+`,
+      portal_disabled_warning: `
+
+[SECURITY] THE PORTAL LOGIN PAGE IS DISABLED,
+	   THIS IS NOT RECOMMENDED FOR PRODUCTION USE AS EVERYONE CAN ACCESS THE DASHBOARD WITHOUT AUTHENTICATION.
+	   YOU CAN SIMPLY DO IP WHITELISTING THROUGH A WEB SERVER OR FIREWALL IF YOU WISH TO KEEP THIS OFF.
+	   IF YOU WISH TO ENABLE THE PORTAL LOGIN PAGE, PLEASE SET THE PORTAL CONFIG TO TRUE IN THE CONFIGURATION FILE.
+
 `
     };
     packages = {
@@ -5290,7 +5458,8 @@ ${"	".repeat(5)} {ONLINE_CHANGELOGS}
       networking: networking_default,
       structure: structure_default,
       display: display_default,
-      parsing: parsing_default
+      parsing: parsing_default,
+      routes: routes_default
     };
     submodules = {};
     Object.entries(submoduleClasses).forEach(([key, Class]) => {

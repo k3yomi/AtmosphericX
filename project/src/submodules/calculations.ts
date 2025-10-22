@@ -130,7 +130,6 @@ export class Calculations {
         parts.push(`${seconds}s`);
         return parts.join(" ");
     }
-    
 }
 
 export default Calculations;

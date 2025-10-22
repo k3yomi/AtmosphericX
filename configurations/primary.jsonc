@@ -34,7 +34,6 @@
     */
 {
     "web_hosting_settings": {
-        "is_https": false,
         "is_login_required": true,
         "is_guest_access_allowed": false,
         "settings" : {
@@ -124,8 +123,8 @@
         "listening_state": [],
         "ignored_icoa": ["KWNS"],
         "eas_settings": {
-            "eas_directory": "../storage/nwws/scenarios",
-            "eas_intro": "../storage/nwws/scenarios/intro.wav", // .WAV FILES ONLY
+            "eas_directory": "../storage/scenarios",
+            "eas_intro": "../storage/scenarios/intro.wav", // .WAV FILES ONLY
             "festival_voice": "slt" // Festival TTS Voice (Linux / WSL) Only
         },
         "location_settings": {
