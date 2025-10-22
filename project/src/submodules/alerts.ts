@@ -60,7 +60,7 @@ export class Alerts {
                 .replace(`{TRACKING}`, registry.event.tracking.substring(0, 18))
                 .replace(`{SENDER}`, registry.event.properties.sender_name)
                 .replace(`{ISSUED}`, registry.event.properties.issued)
-                .replace(`{EXPIRES}`, loader.submodules.calculations.timeRemaining(new Date(registry.event.properties.expires)))
+                .replace(`{EXPIRES}`, loader.submodules.calculations.timeRemaining(registry.event.properties.expires))
                 .replace(`{TAGS}`, registry.event.properties.tags ? registry.event.properties.tags.join(', ') : 'N/A')
                 .replace(`{LOCATIONS}`, registry.event.properties.locations.substring(0, 100))
                 .replace(`{DISTANCE}`, (registry.event.properties.distance?.range != null ? Object.entries(registry.event.properties.distance.range).map(([key, value]: [string, any]) => {return `${key}: ${value.distance} ${value.unit}`;}).join(', ') : `No Distance Data Available`));

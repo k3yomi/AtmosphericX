@@ -85,9 +85,9 @@ export class Calculations {
      * @param {Date} futureDate 
      * @returns {string} 
      */
-    public timeRemaining(futureDate: Date): string {
-        if (Number.isFinite(futureDate) || isNaN(futureDate.getTime())) {
-            return "Invalid Date";
+    public timeRemaining(futureDate: string): string | Date {
+        if (isNaN(new Date(futureDate).getTime())) {
+            return futureDate
         }
         const now = new Date();
         const target = new Date(futureDate);

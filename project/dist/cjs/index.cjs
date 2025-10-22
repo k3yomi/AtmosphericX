@@ -4128,7 +4128,7 @@ var Alerts = class {
         return dateA - dateB;
       }).map((registry2) => {
         var _a;
-        return strings.new_event_fancy.replace(`{EVENT}`, registry2.event.properties.event).replace(`{ACTION_TYPE}`, registry2.event.properties.action_type).replace(`{TRACKING}`, registry2.event.tracking.substring(0, 18)).replace(`{SENDER}`, registry2.event.properties.sender_name).replace(`{ISSUED}`, registry2.event.properties.issued).replace(`{EXPIRES}`, submodules.calculations.timeRemaining(new Date(registry2.event.properties.expires))).replace(`{TAGS}`, registry2.event.properties.tags ? registry2.event.properties.tags.join(", ") : "N/A").replace(`{LOCATIONS}`, registry2.event.properties.locations.substring(0, 100)).replace(`{DISTANCE}`, ((_a = registry2.event.properties.distance) == null ? void 0 : _a.range) != null ? Object.entries(registry2.event.properties.distance.range).map(([key, value]) => {
+        return strings.new_event_fancy.replace(`{EVENT}`, registry2.event.properties.event).replace(`{ACTION_TYPE}`, registry2.event.properties.action_type).replace(`{TRACKING}`, registry2.event.tracking.substring(0, 18)).replace(`{SENDER}`, registry2.event.properties.sender_name).replace(`{ISSUED}`, registry2.event.properties.issued).replace(`{EXPIRES}`, submodules.calculations.timeRemaining(registry2.event.properties.expires)).replace(`{TAGS}`, registry2.event.properties.tags ? registry2.event.properties.tags.join(", ") : "N/A").replace(`{LOCATIONS}`, registry2.event.properties.locations.substring(0, 100)).replace(`{DISTANCE}`, ((_a = registry2.event.properties.distance) == null ? void 0 : _a.range) != null ? Object.entries(registry2.event.properties.distance.range).map(([key, value]) => {
           return `${key}: ${value.distance} ${value.unit}`;
         }).join(", ") : `No Distance Data Available`);
       }).join("\n");
@@ -4309,8 +4309,8 @@ var Calculations = class {
    * @returns {string} 
    */
   timeRemaining(futureDate) {
-    if (Number.isFinite(futureDate) || isNaN(futureDate.getTime())) {
-      return "Invalid Date";
+    if (isNaN(new Date(futureDate).getTime())) {
+      return futureDate;
     }
     const now = /* @__PURE__ */ new Date();
     const target = new Date(futureDate);

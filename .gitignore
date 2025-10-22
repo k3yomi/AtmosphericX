@@ -1,7 +1,9 @@
 /storage/NoaaWeatherWireService.db
 /storage/nwws
+/storage/logs.txt
 /project/old-src
 /project/node_modules
 /project/package-lock.json
+
 
 
