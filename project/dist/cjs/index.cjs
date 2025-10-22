@@ -4163,7 +4163,6 @@ var Alerts = class {
           const mergedHistory = [...(_b = existing.event.history) != null ? _b : [], ...history].sort(
             (a, b) => new Date(b.issued).getTime() - new Date(a.issued).getTime()
           );
-          submodules.utils.log(mergedHistory.length);
           existing.event.properties.event = properties.event;
           existing.event.history = mergedHistory;
           existing.event.properties = registeredEvent.event.properties;

@@ -94,7 +94,6 @@ export class Alerts {
                     const mergedHistory = [ ...(existing.event.history ?? []), ...history ].sort(
                         (a, b) => new Date(b.issued).getTime() - new Date(a.issued).getTime()
                     );
-                    loader.submodules.utils.log(mergedHistory.length);
                     existing.event.properties.event = properties.event;
                     existing.event.history = mergedHistory;
                     existing.event.properties = registeredEvent.event.properties;

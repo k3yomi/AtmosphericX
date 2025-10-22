@@ -36,6 +36,8 @@ interface LocalEventProperties {
     parent?: string; event?: string; locations: string; 
     action_type: string; tags: string[],
     issued: string; expires: string; description: string,
+    metadata: Record<string, unknown>;
+    technical: { ugc?: string[]; pVtec?: string[]; hVtec?: string[];}
     sender_name: string; sender_icao: string; sent?: string; 
     attributes: LocalDefaultAttributes; parameters: LocalEventParameters; 
     geometry: { type?: string; coordinates?: [number, number][] } | null; 
@@ -66,7 +68,8 @@ export interface EventType {
     performance: number;
     tracking: string;
     header: string;
-    vtec: string;
+    pvtec?: string;
+    hvtec?: string;
     history: { description: string; issued: string; type: string }[];
     properties: LocalEventProperties;
     geometry: { type?: string; coordinates?: [number, number][] } | null;
