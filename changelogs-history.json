@@ -4,14 +4,15 @@
         "updated": "Monday, October, 27th",
         "headline": "<span style='color:green'>[FEED]</span>__BETA_BRANCH_DEVELOPER_USE_ONLY__ DO NOT USE",
         "changelogs": [
-            "DO_NOT_USE_DEV_BUILD -  Refactor calculations, display, networking, parsing, routes, structure, and utils modules",
-            "- Removed unnecessary comments and documentation from calculations, display, networking, parsing, and structure modules for cleaner code.",
-            "- Updated display module to improve log handling and rendering of console messages.",
-            "- Enhanced websocket handling in routes module, including rate limiting and connection management.",
-            "- Improved data handling in structure module, ensuring proper event registration and cache updates.",
-            "- Added a new utils.js script for client-side utility functions, including WebSocket management.",
-            "- Updated 404 error page to include client-side script for WebSocket connection.",
-            "- Adjusted type definitions in types.ts to accommodate new WebSocket client structure and configurations."
+            "note: DO_NOT_USE_DEV_BUILD",
+            "add: Enhanced websocket handling in routes module, including rate limiting and connection management.",
+            "add: Added a new utils.js script for client-side utility functions, including WebSocket management.",
+            "add: Updated 404 error page to include client-side script for WebSocket connection.",
+            "update: Refactor calculations, display, networking, parsing, routes, structure, and utils modules",
+            "update: Updated display module to improve log handling and rendering of console messages.",
+            "update: Improved data handling in structure module, ensuring proper event registration and cache updates.",
+            "update: Adjusted type definitions in types.ts to accommodate new WebSocket client structure and configurations.",
+            "remove: Removed unnecessary comments and documentation from calculations, display, networking, parsing, and structure modules for cleaner code."
         ],
         "rewrite": true
     },
