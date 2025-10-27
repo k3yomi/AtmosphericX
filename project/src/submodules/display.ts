@@ -18,6 +18,7 @@
 */
 
 import * as loader from '../bootstrap';
+import * as types from '../types';
 
 export class Display {
     NAME_SPACE = `submodule:display`;
@@ -28,13 +29,6 @@ export class Display {
         this.initialize();
     }
 
-    /**
-     * Initializes the display manager and sets up the terminal interface
-     *
-     * @private
-     * @async
-     * @returns {Promise<void>} 
-     */
     private async initialize(): Promise<void> {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`);
         if (!loader.submodules.utils.isFancyDisplay()) { return }
@@ -50,44 +44,36 @@ export class Display {
         setInterval(() => { this.update(); }, 1_000);
     }
     
-    /**
-     * Displays an introductory screen with logo and logs for a specified delay
-     *
-     * @private
-     * @param {number} delay 
-     * @returns {Promise<void>} 
-     */
     private intro(delay: number): Promise<void> {
         return new Promise(async (resolve) => {
-            this.manager.append(this.package.box({
+            const tempLogo = this.package.box({
                 width: 'shrink', height: 'shrink',
                 top: 'center', left: 'center',
                 content: loader.submodules.utils.logo(),
                 tags: true,
                 style: { align: 'center', fg: 'white' },
                 valign: 'middle', align: 'center'
-            }))
-            this.manager.append(this.package.box({
+            })
+            const tempConsole = this.package.box({
                 top: '65%', left: 'center',
                 width: '80%', height: '15%',
                 label: ` Preparing AtmosphericX v${loader.submodules.utils.version()} `,
                 tags: true, wrap: true,
-                content: loader.cache.internal.logs.map(log => {return `${log.title} [${log.timestamp}] ${log.message}`}).join('\n'),
+                content: loader.cache.internal.logs.__console__.map(log => {return `${log.title} [${log.timestamp}] ${log.message}`}).join('\n'),
                 border: { type: 'line' },
                 scrollable: true, alwaysScroll: true,
                 style: { border: { fg: 'white' } }
-            }))
+            })
+            this.manager.append(tempLogo);
+            this.manager.append(tempConsole);
             this.manager.render();
             await loader.submodules.utils.sleep(delay);
+            tempLogo.destroy();
+            tempConsole.destroy();
             resolve();
         });
     }
     
-    /**
-     * Creates the display elements for the terminal interface
-     *
-     * @private
-     */
     private create(): void {
         this.elements.logs = this.package.box({
             top: '50%', left: 0,
@@ -123,7 +109,6 @@ export class Display {
             tags: true, wrap: true,
             border: { type: 'line' },
             scrollable: true, alwaysScroll: true,
-            style: { border: { fg: 'white' } }
         });
         for (const key in this.elements) {
             this.manager.append(this.elements[key]);
@@ -132,13 +117,14 @@ export class Display {
 
     }
     
-    /**
-     * Updates the display elements with current data
-     *
-     * @private
-     */
     private update(): void {
-        this.modifyElement(`events`, loader.submodules.alerts.displayAlert(), ` Active Events (X${loader.cache.internal.events.features.length}) - ${loader.cache.internal.getSource} `);
+        const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
+        this.modifyElement(`events`, 
+            !ConfigType.internal_settings.fancy_interface_feed ? 
+                loader.cache.internal.logs.__events__.map(log => {return `[${log.timestamp}] ${log.message}`}).join('\n') : 
+                loader.submodules.alerts.displayAlert({}, true),
+            ` Active Events (X${loader.cache.external.events.features.length}) - ${loader.cache.internal.getSource} `
+        )        
         this.elements.system.setContent(loader.strings.system_info
             .replace(`{UPTIME}`, loader.submodules.calculations.formatDuration(Date.now() - loader.cache.internal.metrics.start_uptime))
             .replace(`{MEMORY}`, ((loader.packages.os.totalmem() - loader.packages.os.freemem()) / (1024 * 1024)).toFixed(2))
@@ -146,20 +132,12 @@ export class Display {
             .replace(`{EVENTS_PROCESSED}`, loader.cache.internal.metrics.events_processed.toString())
         , ` System Info `);
         this.modifyElement(`logs`, 
-            loader.cache.internal.logs.map(log => {return `${log.title} [${log.timestamp}] ${log.message}`}).join('\n'),
-            `AtmosphericX v${loader.submodules.utils.version()}`
+            loader.cache.internal.logs.__console__.map(log => {return `${log.title} [${log.timestamp}] ${log.message}`}).join('\n'),
+            ` AtmosphericX v${loader.submodules.utils.version()} `
         )
         this.manager.render();
     }
     
-    /**
-     * Modifies a display element with new content and optional title
-     *
-     * @private
-     * @param {string} key 
-     * @param {string} content 
-     * @param {?string} [title] 
-     */
     private modifyElement(key: string, content: string, title?: string): void {
         if (this.elements[key]) {
             this.elements[key].setContent(content);
@@ -169,12 +147,6 @@ export class Display {
         }
     }
 
-    
-    /**
-     * Sets up keybindings for the display manager
-     *
-     * @private
-     */
     private keybindings(): void {
         this.manager.key(['escape', 'C-c'], (ch, key) => { return process.exit(0); });
     }

@@ -33,14 +33,6 @@ export class Calculations {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
     }
 
-    /**
-     * Convert degrees to cardinal direction.
-     * Example: 0 -> N, 45 -> NE, 90 -> E, etc.
-     *
-     * @public
-     * @param {number} degrees 
-     * @returns {string} 
-     */
     public convertDegreesToCardinal(degrees: number): string { 
         if (!Number.isFinite(degrees) || degrees < 0 || degrees > 360) {
             return "Invalid";
@@ -51,16 +43,6 @@ export class Calculations {
         return directions[index];
     }
 
-    /**
-     * Calculate the distance between 2 given coordinates.
-     *
-     * @public
-     * @async
-     * @param {types.Coordinates} coord1 
-     * @param {types.Coordinates} coord2 
-     * @param {('miles' | 'kilometers')} [unit='miles'] 
-     * @returns {Promise<number>} 
-     */
     public calculateDistance(coord1: types.Coordinates, coord2: types.Coordinates, unit: 'miles' | 'kilometers' = 'miles'): number {
         if (!coord1 || !coord2) return 0;
         const { lat: lat1, lon: lon1 } = coord1;
@@ -77,14 +59,6 @@ export class Calculations {
         return Math.round(R * c * 100) / 100;
     }
 
-    /**
-     * Calculates the time remaining until a specified future date.
-     * Example: 124560000 ms -> "1d 10h 20m 0s"
-     *
-     * @public
-     * @param {Date} futureDate 
-     * @returns {string} 
-     */
     public timeRemaining(futureDate: string): string | Date {
         if (isNaN(new Date(futureDate).getTime())) {
             return futureDate
@@ -106,14 +80,6 @@ export class Calculations {
         return parts.join(" ");
     }
 
-    /**
-     * Formats a duration given in milliseconds into a human-readable string.
-     * Example: 90061000 ms -> "1d 1h 1m 1s"
-     *
-     * @public
-     * @param {number} uptimeMs 
-     * @returns {string} 
-     */
     public formatDuration(uptimeMs: number): string {
         if (!Number.isFinite(uptimeMs) || uptimeMs < 0) {
             return "0s";

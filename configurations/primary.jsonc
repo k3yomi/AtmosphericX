@@ -47,19 +47,33 @@
     },
     "internal_settings": {
         "fancy_interface": true,
+        "fancy_interface_feed": true,
         "global_update": "*/10 * * * * *", 
         "update_check": "0 */6 * * *",
         "request_timeout": 10,
         "random_alert_timeout": 30 
     },
     "websocket_settings": {
+        "maximum_connections_per_ip": 15,
         "priority_sockets": {
-            "timeout": 1,
-            "sockets": []
+            "timeout": 2,
+            "sockets": ["events", "placefiles", "manual", "locations"]
         },
         "secondary_sockets": {
             "timeout": 30,
-            "sockets": []
+            "sockets": [
+                "changelogs", 
+                "version", 
+                "configurations", 
+                "spotter_network_feed", 
+                "storm_reports", 
+                "storm_prediction_center_mesoscale",
+                "tropical_storm_tracks",
+                "wx_radio",
+                "sonde_project_weather_eye",
+                "tornado",
+                "severe"
+            ]
         }
     },
     "webhook_settings": {
@@ -117,7 +131,7 @@
         "sfx_beep_only": false,
         "show_updates": true,
         "ignore_tests": true,
-        "ignored_events": [],
+        "ignored_events": ["Xx"],
         "listening_icoa": [],
         "listening_ugcs": [],
         "listening_state": [],
@@ -125,7 +139,7 @@
         "eas_settings": {
             "eas_directory": "../storage/scenarios",
             "eas_intro": "../storage/scenarios/intro.wav", // .WAV FILES ONLY
-            "festival_voice": "slt" // Festival TTS Voice (Linux / WSL) Only
+            "festival_voice": "slt" // Festival TTS Voice (Linux / WSL) Only (Will be replaced with LLM Studio)
         },
         "location_settings": {
             "enabled": false,

@@ -34,49 +34,37 @@ export class Alerts {
         this.instance();
     }
 
-    /**
-     * displayAlert generates a formatted alert message based on the event data.
-     *
-     * @public
-     * @param {*} event 
-     * @returns {string} 
-     */
-    public displayAlert(registry: types.RegisterType): string {
-        if (!loader.submodules.utils.isFancyDisplay()) { 
+    public displayAlert(registry?: types.RegisterType, isLiveFeed?: boolean): string {
+        if (!loader.submodules.utils.isFancyDisplay() || !isLiveFeed) {
             return loader.strings.new_event_legacy
                 .replace(`{EVENT}`, registry.event.properties.event)
                 .replace(`{STATUS}`, registry.event.properties.action_type)
                 .replace(`{TRACKING}`, registry.event.tracking.substring(0, 18))
                 .replace(`{SOURCE}`, loader.cache.internal.getSource)
         } else {
-            return loader.cache.internal.events.features.sort((a: types.RegisterType, b: types.RegisterType) => {
-                const dateA = new Date(a.event.properties.issued).getTime();
-                const dateB = new Date(b.event.properties.issued).getTime();
-                return dateA - dateB
-            }).map((registry: types.RegisterType) => {
-                return loader.strings.new_event_fancy
-                .replace(`{EVENT}`, registry.event.properties.event)
-                .replace(`{ACTION_TYPE}`, registry.event.properties.action_type)
-                .replace(`{TRACKING}`, registry.event.tracking.substring(0, 18))
-                .replace(`{SENDER}`, registry.event.properties.sender_name)
-                .replace(`{ISSUED}`, registry.event.properties.issued)
-                .replace(`{EXPIRES}`, loader.submodules.calculations.timeRemaining(registry.event.properties.expires))
-                .replace(`{TAGS}`, registry.event.properties.tags ? registry.event.properties.tags.join(', ') : 'N/A')
-                .replace(`{LOCATIONS}`, registry.event.properties.locations.substring(0, 100))
-                .replace(`{DISTANCE}`, (registry.event.properties.distance?.range != null ? Object.entries(registry.event.properties.distance.range).map(([key, value]: [string, any]) => {return `${key}: ${value.distance} ${value.unit}`;}).join(', ') : `No Distance Data Available`));
-            }).join('\n')
+            if (isLiveFeed) { 
+                return loader.cache.external.events.features.sort((a: types.RegisterType, b: types.RegisterType) => {
+                    const dateA = new Date(a.event.properties.issued).getTime();
+                    const dateB = new Date(b.event.properties.issued).getTime();
+                    return dateA - dateB
+                }).map((registry: types.RegisterType) => {
+                    return loader.strings.new_event_fancy
+                    .replace(`{EVENT}`, registry.event.properties.event)
+                    .replace(`{ACTION_TYPE}`, registry.event.properties.action_type)
+                    .replace(`{TRACKING}`, registry.event.tracking.substring(0, 18))
+                    .replace(`{SENDER}`, registry.event.properties.sender_name)
+                    .replace(`{ISSUED}`, registry.event.properties.issued)
+                    .replace(`{EXPIRES}`, loader.submodules.calculations.timeRemaining(registry.event.properties.expires))
+                    .replace(`{TAGS}`, registry.event.properties.tags ? registry.event.properties.tags.join(', ') : 'N/A')
+                    .replace(`{LOCATIONS}`, registry.event.properties.locations.substring(0, 100))
+                    .replace(`{DISTANCE}`, (registry.event.properties.distance?.range != null ? Object.entries(registry.event.properties.distance.range).map(([key, value]: [string, any]) => {return `${key}: ${value.distance} ${value.unit}`;}).join(', ') : `No Distance Data Available`));
+                }).join('\n')
+            }
         }
     }
 
-    /**
-     * handle processes incoming alerts and updates the internal cache accordingly.
-     *
-     * @private
-     * @param {*} alerts 
-     */
     private handle(events:  types.EventType[]): void {
-        const InternalType = loader.cache.internal as types.InternalType;
-        const features = loader.cache.internal.events.features;
+        const features = loader.cache.external.events.features;
         for (const event of events) {
             const registeredEvent = loader.submodules.structure.register(event);
             const { tracking, properties, history = [] } = registeredEvent.event;
@@ -109,17 +97,9 @@ export class Alerts {
             }
         }
         loader.cache.internal.metrics.events_processed += events.length;
-        InternalType.events = { features: InternalType.events?.features.filter(f => f !== undefined && new Date(f.event.properties.expires).getTime() > new Date().getTime())}
-        InternalType.hashes = InternalType.hashes.filter(e => e !== undefined && new Date(e.expires).getTime() > new Date().getTime())
         loader.submodules.networking.updateCache(true);
     }
 
-    /**
-     * instance creates or refreshes the AlertManager instance with the current configurations.
-     *
-     * @private
-     * @param {?boolean} [isRefreshing] 
-     */
     private instance(isRefreshing?: boolean) {
         if (isRefreshing && !this.manager) return;
         const configurations = loader.cache.internal.configurations as types.ConfigurationsType
@@ -153,7 +133,6 @@ export class Alerts {
                 eas_settings: { festival_tts_voice: filter.festival_voice, directory: filter.eas_settings.eas_directory, intro_wav: filter.eas_settings.eas_intro }
             }
         }
-
         if (isRefreshing) { this.manager.setSettings(settings); return; }
         this.manager = new this.package(settings);
         this.manager.on(`onAlerts`, (alerts) => { this.handle(alerts); });

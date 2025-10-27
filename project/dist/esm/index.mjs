@@ -3942,72 +3942,35 @@ var init_utils = __esm({
         this.logo();
         this.log(`${this.NAME_SPACE} initialized.`);
       }
-      /**
-       * A simple sleep function that returns a promise that resolves after a specified number of milliseconds.
-       *
-       * @public
-       * @param {number} ms 
-       * @returns {Promise<void>} 
-       */
       sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
       }
-      /**
-       * Reads the version from a file, this will updated per update depending how big it is. This will also help us 
-       * keep tracking of changelogs from the past and future. Each version is x.xx.xxx or similar.
-       * If the version file isn't found, it will default to v0.0.0
-       *
-       * @public
-       * @returns {string} 
-       */
       version() {
         const version = packages.fs.existsSync(this.VERSION_PATH) ? packages.fs.readFileSync(this.VERSION_PATH, `utf-8`).replace(/\n/g, ``) : `v0.0.0`;
         return version;
       }
-      /**
-       * Checks if the fancy display is enabled in the configurations.
-       *
-       * @public
-       * @returns {boolean} 
-       */
       isFancyDisplay() {
         return cache.internal.configurations.internal_settings.fancy_interface || false;
       }
-      /**
-       * This prints out the logo while clearing the console and retrieves the version
-       * by using version(). If no version found, it will simply by v0.0.0 as an undefined placeholder
-       * If you have any ideas for the future use of the logo, please feel free to let StartflightWx know.
-       *
-       * @public
-       */
       logo() {
         const path2 = this.isFancyDisplay() ? this.LOGO_PATH : this.LOGO_LEGACY_PATH;
-        const defConfig = cache.internal.configurations;
+        const ConfigType = cache.internal.configurations;
         const logo = packages.fs.existsSync(path2) ? packages.fs.readFileSync(path2, `utf-8`).replace(`{VERSION}`, this.version()) : `AtmosphericX {VERSION}`;
-        if (defConfig.internal_settings.fancy_interface) {
+        if (ConfigType.internal_settings.fancy_interface) {
           return logo;
         }
         console.clear();
         console.log(logo);
       }
-      /**
-       * The log function allows the backend to log messages in the console or send it off to the logs.txt file
-       * for debugging purposes. This should really only be used for backend purposes and nothing else.
-       * Basically, no different from console.log
-       *
-       * @public
-       * @param {?string} [message] 
-       * @param {?types.LogOptions} [options] 
-       */
-      log(message, options) {
+      log(message, options, logType = `__console__`) {
         const title = (options == null ? void 0 : options.title) || `\x1B[32m[ATMOSX-UTILS]\x1B[0m`;
         const msg = message || `No message provided.`;
         const rawConsole = (options == null ? void 0 : options.rawConsole) || false;
         const echoFile = (options == null ? void 0 : options.echoFile) || false;
         if (!rawConsole) {
-          cache.internal.logs.push({ title, message: msg, timestamp: (/* @__PURE__ */ new Date()).toLocaleString() });
-          if (cache.internal.logs.length > 25) {
-            cache.internal.logs.shift();
+          cache.internal.logs[logType].push({ title, message: msg, timestamp: (/* @__PURE__ */ new Date()).toLocaleString() });
+          if (cache.internal.logs[logType].length > 25) {
+            cache.internal.logs[logType].shift();
           }
         }
         if (rawConsole || !this.isFancyDisplay()) {
@@ -4018,23 +3981,6 @@ var init_utils = __esm({
 `);
         }
       }
-      /**
-       * This grabs the latest configurations and stores it into the internal and external cache.
-       * External cache is used for the client side (frontend) hence the limited data provided.
-       * The internal is strictly for the use of the server (backend).
-       * 
-       * Each JSON file is merged into one object for easier access.
-       * You may have also noticed that all the configurations are seperate and encoded in JSONC which
-       * allows for comments. This is to make it easier for you all to understand what each
-       * configuration does and how to use it. 
-       * 
-       * Also, if a JSONC parse fails or there is a malformed JSONC file, it will still technically work
-       * thanks to the package for fixing any mistakes automatically. However, if you want to be safe,
-       * it will log the error and terminate the program to prevent any issues.
-       * 
-       *
-       * @public
-       */
       configurations() {
         var _a;
         let configurations = packages.fs.existsSync(this.CONFIGURATIONS_PATH) ? packages.fs.readdirSync(this.CONFIGURATIONS_PATH).reduce((acc, file) => {
@@ -4061,17 +4007,6 @@ var init_utils = __esm({
           forecasting_services: configurations.forecasting_services
         };
       }
-      /**
-       * This filters web content based such as HTML tags. Mostly for sanitization to prevent XSS attacks 
-       * from client->server->client interactions. Even though the admins are trusted, wanted to implement this
-       * in case of future updates that may allow user requests.
-       * 
-       * @example: this.filterWebContent("<div>Hello <b>World</b></div>") // returns "Hello World"
-       *
-       * @public
-       * @param {string} content 
-       * @returns {(string | unknown)} 
-       */
       filterWebContent(content) {
         if (typeof content == "string") try {
           content = JSON.parse(content);
@@ -4108,39 +4043,27 @@ var init_alerts = __esm({
         submodules.utils.log(`${this.name} initialized.`);
         this.instance();
       }
-      /**
-       * displayAlert generates a formatted alert message based on the event data.
-       *
-       * @public
-       * @param {*} event 
-       * @returns {string} 
-       */
-      displayAlert(registry) {
-        if (!submodules.utils.isFancyDisplay()) {
+      displayAlert(registry, isLiveFeed) {
+        if (!submodules.utils.isFancyDisplay() || !isLiveFeed) {
           return strings.new_event_legacy.replace(`{EVENT}`, registry.event.properties.event).replace(`{STATUS}`, registry.event.properties.action_type).replace(`{TRACKING}`, registry.event.tracking.substring(0, 18)).replace(`{SOURCE}`, cache.internal.getSource);
         } else {
-          return cache.internal.events.features.sort((a, b) => {
-            const dateA = new Date(a.event.properties.issued).getTime();
-            const dateB = new Date(b.event.properties.issued).getTime();
-            return dateA - dateB;
-          }).map((registry2) => {
-            var _a;
-            return strings.new_event_fancy.replace(`{EVENT}`, registry2.event.properties.event).replace(`{ACTION_TYPE}`, registry2.event.properties.action_type).replace(`{TRACKING}`, registry2.event.tracking.substring(0, 18)).replace(`{SENDER}`, registry2.event.properties.sender_name).replace(`{ISSUED}`, registry2.event.properties.issued).replace(`{EXPIRES}`, submodules.calculations.timeRemaining(registry2.event.properties.expires)).replace(`{TAGS}`, registry2.event.properties.tags ? registry2.event.properties.tags.join(", ") : "N/A").replace(`{LOCATIONS}`, registry2.event.properties.locations.substring(0, 100)).replace(`{DISTANCE}`, ((_a = registry2.event.properties.distance) == null ? void 0 : _a.range) != null ? Object.entries(registry2.event.properties.distance.range).map(([key, value]) => {
-              return `${key}: ${value.distance} ${value.unit}`;
-            }).join(", ") : `No Distance Data Available`);
-          }).join("\n");
+          if (isLiveFeed) {
+            return cache.external.events.features.sort((a, b) => {
+              const dateA = new Date(a.event.properties.issued).getTime();
+              const dateB = new Date(b.event.properties.issued).getTime();
+              return dateA - dateB;
+            }).map((registry2) => {
+              var _a;
+              return strings.new_event_fancy.replace(`{EVENT}`, registry2.event.properties.event).replace(`{ACTION_TYPE}`, registry2.event.properties.action_type).replace(`{TRACKING}`, registry2.event.tracking.substring(0, 18)).replace(`{SENDER}`, registry2.event.properties.sender_name).replace(`{ISSUED}`, registry2.event.properties.issued).replace(`{EXPIRES}`, submodules.calculations.timeRemaining(registry2.event.properties.expires)).replace(`{TAGS}`, registry2.event.properties.tags ? registry2.event.properties.tags.join(", ") : "N/A").replace(`{LOCATIONS}`, registry2.event.properties.locations.substring(0, 100)).replace(`{DISTANCE}`, ((_a = registry2.event.properties.distance) == null ? void 0 : _a.range) != null ? Object.entries(registry2.event.properties.distance.range).map(([key, value]) => {
+                return `${key}: ${value.distance} ${value.unit}`;
+              }).join(", ") : `No Distance Data Available`);
+            }).join("\n");
+          }
         }
       }
-      /**
-       * handle processes incoming alerts and updates the internal cache accordingly.
-       *
-       * @private
-       * @param {*} alerts 
-       */
       handle(events2) {
-        var _a, _b, _c;
-        const InternalType = cache.internal;
-        const features = cache.internal.events.features;
+        var _a, _b;
+        const features = cache.external.events.features;
         for (const event of events2) {
           const registeredEvent = submodules.structure.register(event);
           const { tracking, properties, history = [] } = registeredEvent.event;
@@ -4173,16 +4096,8 @@ var init_alerts = __esm({
           }
         }
         cache.internal.metrics.events_processed += events2.length;
-        InternalType.events = { features: (_c = InternalType.events) == null ? void 0 : _c.features.filter((f) => f !== void 0 && new Date(f.event.properties.expires).getTime() > (/* @__PURE__ */ new Date()).getTime()) };
-        InternalType.hashes = InternalType.hashes.filter((e) => e !== void 0 && new Date(e.expires).getTime() > (/* @__PURE__ */ new Date()).getTime());
         submodules.networking.updateCache(true);
       }
-      /**
-       * instance creates or refreshes the AlertManager instance with the current configurations.
-       *
-       * @private
-       * @param {?boolean} [isRefreshing] 
-       */
       instance(isRefreshing) {
         if (isRefreshing && !this.manager) return;
         const configurations = cache.internal.configurations;
@@ -4263,14 +4178,6 @@ var init_calculations = __esm({
       initialize() {
         submodules.utils.log(`${this.NAME_SPACE} initialized.`);
       }
-      /**
-       * Convert degrees to cardinal direction.
-       * Example: 0 -> N, 45 -> NE, 90 -> E, etc.
-       *
-       * @public
-       * @param {number} degrees 
-       * @returns {string} 
-       */
       convertDegreesToCardinal(degrees) {
         if (!Number.isFinite(degrees) || degrees < 0 || degrees > 360) {
           return "Invalid";
@@ -4280,16 +4187,6 @@ var init_calculations = __esm({
         const index = Math.round(normalized / 45) % 8;
         return directions[index];
       }
-      /**
-       * Calculate the distance between 2 given coordinates.
-       *
-       * @public
-       * @async
-       * @param {types.Coordinates} coord1 
-       * @param {types.Coordinates} coord2 
-       * @param {('miles' | 'kilometers')} [unit='miles'] 
-       * @returns {Promise<number>} 
-       */
       calculateDistance(coord1, coord2, unit = "miles") {
         if (!coord1 || !coord2) return 0;
         const { lat: lat1, lon: lon1 } = coord1;
@@ -4303,14 +4200,6 @@ var init_calculations = __esm({
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return Math.round(R * c * 100) / 100;
       }
-      /**
-       * Calculates the time remaining until a specified future date.
-       * Example: 124560000 ms -> "1d 10h 20m 0s"
-       *
-       * @public
-       * @param {Date} futureDate 
-       * @returns {string} 
-       */
       timeRemaining(futureDate) {
         if (isNaN(new Date(futureDate).getTime())) {
           return futureDate;
@@ -4333,14 +4222,6 @@ var init_calculations = __esm({
         parts.push(`${seconds}s`);
         return parts.join(" ");
       }
-      /**
-       * Formats a duration given in milliseconds into a human-readable string.
-       * Example: 90061000 ms -> "1d 1h 1m 1s"
-       *
-       * @public
-       * @param {number} uptimeMs 
-       * @returns {string} 
-       */
       formatDuration(uptimeMs) {
         if (!Number.isFinite(uptimeMs) || uptimeMs < 0) {
           return "0s";
@@ -4377,13 +4258,6 @@ var init_networking = __esm({
         this.getUpdates();
         this.updateCache();
       }
-      /**
-       * buildSourceStructure constructs an array of CacheStructure objects from the provided sources.
-       *
-       * @private
-       * @param {*} sources 
-       * @returns {types.CacheStructure[]} 
-       */
       buildSourceStructure(sources) {
         var _a;
         const structure = [];
@@ -4401,12 +4275,6 @@ var init_networking = __esm({
         }
         return structure;
       }
-      /**
-       * resolveContradictions disables sources based on their defined contradictions.
-       *
-       * @private
-       * @param {types.CacheStructure[]} structure 
-       */
       resolveContradictions(structure) {
         for (const source of structure.filter((s) => s.enabled)) {
           for (const contradiction of source.contradictions) {
@@ -4418,14 +4286,6 @@ var init_networking = __esm({
           }
         }
       }
-      /**
-       * getDataFromSource retrieves data from the specified URL and handles errors.
-       *
-       * @private
-       * @async
-       * @param {string} url 
-       * @returns {Promise<{ error: boolean; message: any }>} 
-       */
       getDataFromSource(url) {
         return __async(this, null, function* () {
           var _a, _b;
@@ -4440,14 +4300,6 @@ var init_networking = __esm({
           }
         });
       }
-      /**
-       * httpRequest performs an HTTP GET request to the specified URL with optional settings.
-       *
-       * @public
-       * @param {string} url 
-       * @param {?types.HTTPOptions} [options] 
-       * @returns {Promise<any>} 
-       */
       httpRequest(url, options) {
         return new Promise((resolve) => __async(null, null, function* () {
           try {
@@ -4479,12 +4331,6 @@ var init_networking = __esm({
           }
         }));
       }
-      /**
-       * getUpdates checks for updates by comparing the online version with the local version.
-       *
-       * @public
-       * @returns {Promise<{error: boolean, message: string}>} 
-       */
       getUpdates() {
         return new Promise((resolve) => __async(this, null, function* () {
           const onlineVersion = yield this.httpRequest(`https://raw.githubusercontent.com/k3yomi/AtmosphericX/main/version`, void 0);
@@ -4510,25 +4356,25 @@ var init_networking = __esm({
           return { error: false, message: `Update check completed.` };
         }));
       }
-      /**
-       * updateCache refreshes the internal cache by fetching data from active sources.
-       *
-       * @public
-       * @async
-       * @param {?boolean} [isAlertUpdate] 
-       * @returns {Promise<void>} 
-       */
       updateCache(isAlertUpdate) {
         return __async(this, null, function* () {
-          var _b;
+          var _a, _c;
           submodules.utils.configurations();
+          const ConfigType = cache.internal.configurations;
+          const ExternalType = cache.external;
+          ExternalType.hashes = ExternalType.hashes.filter((e) => e !== void 0 && new Date(e.expires).getTime() > (/* @__PURE__ */ new Date()).getTime());
+          ExternalType.events = {
+            features: (_a = ExternalType.events) == null ? void 0 : _a.features.filter((f) => f !== void 0 && new Date(f.event.properties.expires).getTime() > (/* @__PURE__ */ new Date()).getTime()).filter((f) => {
+              if (ConfigType.filters.all_events) return true;
+              return ConfigType.filters.listening_events.includes(f.event.properties.event);
+            })
+          };
           submodules.alerts.instance(true);
           yield submodules.utils.sleep(200);
           let data = {};
           let stringText = ``;
           const setTime = Date.now();
-          const defConfig = cache.internal.configurations;
-          const _a = defConfig.sources, { atmosx_parser_settings } = _a, sources = __objRest(_a, ["atmosx_parser_settings"]);
+          const _b = ConfigType.sources, { atmosx_parser_settings } = _b, sources = __objRest(_b, ["atmosx_parser_settings"]);
           if (!isAlertUpdate) {
             const structure = this.buildSourceStructure(sources);
             this.resolveContradictions(structure);
@@ -4558,19 +4404,17 @@ var init_networking = __esm({
           }
           if (isAlertUpdate) {
             if (!atmosx_parser_settings.noaa_weather_wire_service) {
-              const lastFetched = (_b = cache.internal.http_timers[`NWS`]) != null ? _b : 0;
+              const lastFetched = (_c = cache.internal.http_timers[`NWS`]) != null ? _c : 0;
               if (setTime - lastFetched <= atmosx_parser_settings.national_weather_service_settings.internal * 1e3) return;
               cache.internal.http_timers[`NWS`] = setTime;
               stringText += `(OK) NWS, `;
             }
           }
-          data["events"] = cache.internal.events.features;
-          if (Object.keys(data).length > 0) {
-            if (stringText.length > 0) {
-              submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${stringText.slice(0, -2)}`, { echoFile: true });
-            }
-            submodules.structure.create(data, isAlertUpdate);
+          data["events"] = cache.external.events.features;
+          if (stringText.length > 0) {
+            submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${stringText.slice(0, -2)}`, { echoFile: true });
           }
+          submodules.structure.create(data, isAlertUpdate);
         });
       }
     };
@@ -4591,16 +4435,6 @@ var init_structure = __esm({
       initialize() {
         submodules.utils.log(`${this.NAME_SPACE} initialized.`);
       }
-      /**
-      * Parses incoming data based on type 
-      * Anything that requires specific parsing should be handled here 
-      *
-      * @private
-      * @async
-      * @param {?unknown} [body] 
-      * @param {?string} [type] 
-      * @returns {Promise<any[]>} 
-      */
       parsing(body, type) {
         return __async(this, null, function* () {
           switch (type) {
@@ -4627,36 +4461,22 @@ var init_structure = __esm({
           }
         });
       }
-      /**
-      * Retrieves event metadata such as SFX, scheme, and additional metadata 
-      *
-      * @private
-      * @param {types.EventType} event 
-      * @returns {{ sfx: string; scheme: Record<string, string>; metadata: Record<string, unknown>; }} 
-      */
       getEventMetadata(event) {
-        const defConfig = cache.internal.configurations;
-        const schemes = defConfig.alert_schemes[event.properties.event] || defConfig.alert_schemes[event.properties.parent] || defConfig.alert_schemes["Default"];
-        const dictionary = defConfig.alert_dictionary[event.properties.event] || defConfig.alert_dictionary[event.properties.parent] || defConfig.alert_dictionary["Special Event"];
+        const ConfigType = cache.internal.configurations;
+        const schemes = ConfigType.alert_schemes[event.properties.event] || ConfigType.alert_schemes[event.properties.parent] || ConfigType.alert_schemes["Default"];
+        const dictionary = ConfigType.alert_dictionary[event.properties.event] || ConfigType.alert_dictionary[event.properties.parent] || ConfigType.alert_dictionary["Special Event"];
         let sfx = dictionary.sfx_cancel;
         if (event.properties.is_issued) sfx = dictionary.sfx_issued;
         else if (event.properties.is_updated) sfx = dictionary.sfx_update;
         else if (event.properties.is_cancelled) sfx = dictionary.sfx_cancel;
         return { sfx, scheme: schemes, metadata: dictionary.metadata };
       }
-      /**
-      * Registers an event with additional data such as sfx type, color scheme, and event metadata
-      *
-      * @private
-      * @param {types.EventType} event 
-      * @returns {{ event: types.EventType; metadata: any; scheme: any; sfx: any; ignored: boolean; beep: any; }} 
-      */
       register(event) {
-        const defConfig = cache.internal.configurations;
+        const ConfigType = cache.internal.configurations;
         const eventName = event.properties.event;
-        const isPriorityEvent = defConfig.filters.priority_events.includes(eventName);
-        const isBeepAuthorizedOnly = defConfig.filters.sfx_beep_only;
-        const isShowingUpdatesAllowed = defConfig.filters.show_updates;
+        const isPriorityEvent = ConfigType.filters.priority_events.includes(eventName);
+        const isBeepAuthorizedOnly = ConfigType.filters.sfx_beep_only;
+        const isShowingUpdatesAllowed = ConfigType.filters.show_updates;
         const eventMetadata = this.getEventMetadata(event);
         const isBeepOnly = isBeepAuthorizedOnly && isPriorityEvent;
         const isIgnored = !isShowingUpdatesAllowed && !isPriorityEvent;
@@ -4664,28 +4484,19 @@ var init_structure = __esm({
           event,
           metadata: eventMetadata.metadata,
           scheme: eventMetadata.scheme,
-          sfx: isBeepOnly ? defConfig.tones.sfx_beep : eventMetadata.sfx,
+          sfx: isBeepOnly ? ConfigType.tones.sfx_beep : eventMetadata.sfx,
           ignored: isIgnored,
           beep: isBeepOnly
         };
       }
-      /**
-      * Creates external cache entries and processes alert updates
-      *
-      * @public
-      * @async
-      * @param {unknown} data 
-      * @param {?boolean} [isAlertupdate] 
-      * @returns {Promise<void>} 
-      */
       create(data, isAlertupdate) {
         return __async(this, null, function* () {
           var _a;
           const clean = submodules.utils.filterWebContent(data);
           const dataTypes = [
             { key: "spotter_network_feed", cache: "spotter_network_feed" },
-            { key: "spotter_reports", cache: "spotter_reports" },
-            { key: "grlevelx_reports", cache: "grlevelx_reports" },
+            { key: "spotter_reports", cache: "storm_reports" },
+            { key: "grlevelx_reports", cache: "storm_reports" },
             { key: "storm_prediction_center_mesoscale", cache: "storm_prediction_center_mesoscale" },
             { key: "tropical_storm_tracks", cache: "tropical_storm_tracks" },
             { key: "tornado", cache: "tornado" },
@@ -4698,18 +4509,21 @@ var init_structure = __esm({
               cache.external[cache2] = yield this.parsing(clean[key], key);
             }
           }
-          if (isAlertupdate && ((_a = clean.alerts) == null ? void 0 : _a.length)) {
-            for (const event of clean.alerts) {
-              const isAlreadyLogged = cache.internal.hashes.some((log) => log.id === event.hash);
+          if (isAlertupdate && ((_a = clean.events) == null ? void 0 : _a.length)) {
+            for (const ev of clean.events) {
+              const isAlreadyLogged = cache.external.hashes.some((log) => log.id === ev.event.hash);
               if (isAlreadyLogged) continue;
-              cache.internal.hashes.push({ id: event.hash, expires: event.properties.expires });
-              if (event.ignored) continue;
+              if (ev.ignored) continue;
+              cache.external.hashes.push({ id: ev.event.hash, expires: ev.event.properties.expires });
               if (!submodules.utils.isFancyDisplay()) {
-                submodules.utils.log(submodules.alerts.displayAlert(event.event));
+                submodules.utils.log(submodules.alerts.displayAlert(ev));
+              } else {
+                submodules.utils.log(submodules.alerts.displayAlert(ev), {}, `__events__`);
               }
             }
           }
-          cache.external.events = clean.events || [];
+          cache.external.events.features = clean.events || [];
+          submodules.routes.onUpdateRequest();
         });
       }
     };
@@ -4728,13 +4542,6 @@ var init_display = __esm({
         this.elements = {};
         this.initialize();
       }
-      /**
-       * Initializes the display manager and sets up the terminal interface
-       *
-       * @private
-       * @async
-       * @returns {Promise<void>} 
-       */
       initialize() {
         return __async(this, null, function* () {
           submodules.utils.log(`${this.NAME_SPACE} initialized.`);
@@ -4755,16 +4562,9 @@ var init_display = __esm({
           }, 1e3);
         });
       }
-      /**
-       * Displays an introductory screen with logo and logs for a specified delay
-       *
-       * @private
-       * @param {number} delay 
-       * @returns {Promise<void>} 
-       */
       intro(delay) {
         return new Promise((resolve) => __async(this, null, function* () {
-          this.manager.append(this.package.box({
+          const tempLogo = this.package.box({
             width: "shrink",
             height: "shrink",
             top: "center",
@@ -4774,8 +4574,8 @@ var init_display = __esm({
             style: { align: "center", fg: "white" },
             valign: "middle",
             align: "center"
-          }));
-          this.manager.append(this.package.box({
+          });
+          const tempConsole = this.package.box({
             top: "65%",
             left: "center",
             width: "80%",
@@ -4783,24 +4583,23 @@ var init_display = __esm({
             label: ` Preparing AtmosphericX v${submodules.utils.version()} `,
             tags: true,
             wrap: true,
-            content: cache.internal.logs.map((log) => {
+            content: cache.internal.logs.__console__.map((log) => {
               return `${log.title} [${log.timestamp}] ${log.message}`;
             }).join("\n"),
             border: { type: "line" },
             scrollable: true,
             alwaysScroll: true,
             style: { border: { fg: "white" } }
-          }));
+          });
+          this.manager.append(tempLogo);
+          this.manager.append(tempConsole);
           this.manager.render();
           yield submodules.utils.sleep(delay);
+          tempLogo.destroy();
+          tempConsole.destroy();
           resolve();
         }));
       }
-      /**
-       * Creates the display elements for the terminal interface
-       *
-       * @private
-       */
       create() {
         this.elements.logs = this.package.box({
           top: "50%",
@@ -4851,42 +4650,35 @@ var init_display = __esm({
           wrap: true,
           border: { type: "line" },
           scrollable: true,
-          alwaysScroll: true,
-          style: { border: { fg: "white" } }
+          alwaysScroll: true
         });
         for (const key in this.elements) {
           this.manager.append(this.elements[key]);
         }
         this.manager.render();
       }
-      /**
-       * Updates the display elements with current data
-       *
-       * @private
-       */
       update() {
-        this.modifyElement(`events`, submodules.alerts.displayAlert(), ` Active Events (X${cache.internal.events.features.length}) - ${cache.internal.getSource} `);
+        const ConfigType = cache.internal.configurations;
+        this.modifyElement(
+          `events`,
+          !ConfigType.internal_settings.fancy_interface_feed ? cache.internal.logs.__events__.map((log) => {
+            return `[${log.timestamp}] ${log.message}`;
+          }).join("\n") : submodules.alerts.displayAlert({}, true),
+          ` Active Events (X${cache.external.events.features.length}) - ${cache.internal.getSource} `
+        );
         this.elements.system.setContent(
           strings.system_info.replace(`{UPTIME}`, submodules.calculations.formatDuration(Date.now() - cache.internal.metrics.start_uptime)).replace(`{MEMORY}`, ((packages.os.totalmem() - packages.os.freemem()) / (1024 * 1024)).toFixed(2)).replace(`{HEAP}`, (process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(2)).replace(`{EVENTS_PROCESSED}`, cache.internal.metrics.events_processed.toString()),
           ` System Info `
         );
         this.modifyElement(
           `logs`,
-          cache.internal.logs.map((log) => {
+          cache.internal.logs.__console__.map((log) => {
             return `${log.title} [${log.timestamp}] ${log.message}`;
           }).join("\n"),
-          `AtmosphericX v${submodules.utils.version()}`
+          ` AtmosphericX v${submodules.utils.version()} `
         );
         this.manager.render();
       }
-      /**
-       * Modifies a display element with new content and optional title
-       *
-       * @private
-       * @param {string} key 
-       * @param {string} content 
-       * @param {?string} [title] 
-       */
       modifyElement(key, content, title) {
         if (this.elements[key]) {
           this.elements[key].setContent(content);
@@ -4895,11 +4687,6 @@ var init_display = __esm({
           this.manager.render();
         }
       }
-      /**
-       * Sets up keybindings for the display manager
-       *
-       * @private
-       */
       keybindings() {
         this.manager.key(["escape", "C-c"], (ch, key) => {
           return process.exit(0);
@@ -4923,15 +4710,6 @@ var init_parsing = __esm({
       initialize() {
         submodules.utils.log(`${this.NAME_SPACE} initialized.`);
       }
-      /**
-       * Converts WxRadio API response to GeoJSON FeatureCollection format
-       * This data can be used to listen to NWR stations or plot them on a 
-       * map directly. So far, only good use case it for the dashboard.
-       *
-       * @public
-       * @param {types.WxRadioTypes} body 
-       * @returns {types.GeoJSONFeatureCollection} 
-       */
       getWxRadioStructure(body) {
         var _a, _b, _c, _d;
         let structure = { type: "FeatureCollection", features: [] };
@@ -4952,13 +4730,6 @@ var init_parsing = __esm({
         }
         return structure;
       }
-      /**
-       * Converts Tropical Storm API response to GeoJSON FeatureCollection format
-       *
-       * @public
-       * @param {types.TropicalStormTypes[]} body 
-       * @returns {types.GeoJSONFeatureCollection} 
-       */
       getTropicalStormStructure(body) {
         var _a, _b, _c, _d, _e;
         const structure = { type: "FeatureCollection", features: [] };
@@ -4977,14 +4748,6 @@ var init_parsing = __esm({
         }
         return structure;
       }
-      /**
-       * Converts Gibson Ridge Report Placefile response to GeoJSON FeatureCollection format
-       *
-       * @public
-       * @async
-       * @param {string} body 
-       * @returns {Promise<types.GeoJSONFeatureCollection>} 
-       */
       getGibsonReportStructure(body) {
         return __async(this, null, function* () {
           var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
@@ -5012,14 +4775,6 @@ var init_parsing = __esm({
           return structure;
         });
       }
-      /**
-       * Converts Spotter Network Placefile response to GeoJSON FeatureCollection format  
-       *
-       * @public
-       * @async
-       * @param {string} body 
-       * @returns {Promise<types.GeoJSONFeatureCollection>} 
-       */
       getSpotterReportStructure(body) {
         return __async(this, null, function* () {
           var _a, _b, _c;
@@ -5046,14 +4801,6 @@ var init_parsing = __esm({
           return structure;
         });
       }
-      /**
-       * Converts SPC Discussion Placefile response to GeoJSON FeatureCollection format
-       *
-       * @public
-       * @async
-       * @param {string} body 
-       * @returns {Promise<types.GeoJSONFeatureCollection>} 
-       */
       getSPCDiscussions(body) {
         return __async(this, null, function* () {
           var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o;
@@ -5088,19 +4835,11 @@ var init_parsing = __esm({
           return structure;
         });
       }
-      /**
-       * Converts Spotter Network Feed Placefile response to GeoJSON FeatureCollection format
-       *
-       * @public
-       * @async
-       * @param {string} body 
-       * @returns {Promise<types.GeoJSONFeatureCollection>} 
-       */
       getSpotterFeed(body) {
         return __async(this, null, function* () {
           var _a, _b, _c, _d;
-          const defConfig = cache.internal.configurations;
-          const feedConfig = (_b = (_a = defConfig.sources) == null ? void 0 : _a.location_settings) == null ? void 0 : _b.spotter_network_feed;
+          const ConfigType = cache.internal.configurations;
+          const feedConfig = (_b = (_a = ConfigType.sources) == null ? void 0 : _a.location_settings) == null ? void 0 : _b.spotter_network_feed;
           const structure = { type: "FeatureCollection", features: [] };
           const parsed = yield packages.placefile.AtmosXPlacefileParser.parsePlacefile(body);
           for (const feature of parsed) {
@@ -5139,21 +4878,12 @@ var init_parsing = __esm({
           return structure;
         });
       }
-      /**
-       * Converts Probability Placefile response to structured format
-       *
-       * @public
-       * @async
-       * @param {string} body 
-       * @param {('tornado' | 'severe')} type 
-       * @returns {Promise<types.ProbabilityTypes[]>} 
-       */
       getProbabilityStructure(body, type) {
         return __async(this, null, function* () {
           var _a, _b, _c, _d;
           const structure = [];
-          const defConfig = cache.internal.configurations;
-          const threshold = (_b = (_a = defConfig.sources.probability_settings[type]) == null ? void 0 : _a.percentage_threshold) != null ? _b : 50;
+          const ConfigType = cache.internal.configurations;
+          const threshold = (_b = (_a = ConfigType.sources.probability_settings[type]) == null ? void 0 : _a.percentage_threshold) != null ? _b : 50;
           const typeRegexp = type === "tornado" ? /ProbTor: (\d+)%\// : /PSv3: (\d+)%\//;
           const parsed = yield packages.placefile.AtmosXPlacefileParser.parsePlacefile(body);
           for (const feature of parsed) {
@@ -5174,13 +4904,6 @@ var init_parsing = __esm({
           return structure;
         });
       }
-      /**
-       * Converts WxEye Sonde API response to structured format
-       *
-       * @public
-       * @param {unknown[]} body 
-       * @returns {Record<string, string>[]} 
-       */
       getWxEyeSondeStructure(body) {
         return body.map((feature) => feature);
       }
@@ -5197,49 +4920,41 @@ var init_routes = __esm({
     Routes = class {
       constructor() {
         this.NAME_SPACE = `submodule:routes`;
+        this.clients = [];
         this.initialize();
       }
-      /**
-       * Initializes the display manager and sets up the terminal interface
-       *
-       * @private
-       * @async
-       * @returns {Promise<void>} 
-       */
       initialize() {
         return __async(this, null, function* () {
           submodules.utils.log(`${this.NAME_SPACE} initialized.`);
-          const defConfig = cache.internal.configurations;
-          const isHttps = defConfig.web_hosting_settings.settings.is_https;
-          const isPortal = defConfig.web_hosting_settings.is_login_required;
-          const getPort = defConfig.web_hosting_settings.settings.port_number;
+          const ConfigType = cache.internal.configurations;
+          const isHttps = ConfigType.web_hosting_settings.settings.is_https;
+          const isPortal = ConfigType.web_hosting_settings.is_login_required;
+          const getPort = ConfigType.web_hosting_settings.settings.port_number;
           const getCertificates = isHttps ? this.getCertificates() : null;
           this.package = cache.internal.express = packages.express();
           this.middleware();
-          this.routes();
           if (isHttps) {
             cache.internal.websocket = packages.https.createServer(getCertificates, this.package).listen(getPort, () => {
               submodules.utils.log(`${this.NAME_SPACE} HTTPS Server running on port ${getPort}`);
             }).on("error", (err) => {
               submodules.utils.log(`${this.NAME_SPACE} ERROR: ${err.message}`);
-              process.exit(1);
             });
           } else {
             cache.internal.websocket = packages.http.createServer(this.package).listen(getPort, () => {
               submodules.utils.log(`${this.NAME_SPACE} HTTP Server running on port ${getPort}`);
             }).on("error", (err) => {
               submodules.utils.log(`${this.NAME_SPACE} ERROR: ${err.message}`);
-              process.exit(1);
             });
           }
           if (!isPortal) {
             submodules.utils.log(`${strings.portal_disabled_warning}`, { echoFile: true });
           }
+          this.routes();
+          this.websocket();
         });
       }
       middleware() {
         const parentDirectory = packages.path.resolve(`..`, `storage`);
-        console.log(this.package.use);
         this.package.use((request, response, next) => {
           response.setHeader("Access-Control-Allow-Origin", "*");
           response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -5261,12 +4976,6 @@ var init_routes = __esm({
         this.package.get(`/`, (request, response) => {
           return response;
         });
-        this.package.get(`/widgets/:endpoint`, (request, response) => {
-          return response;
-        });
-        this.package.get(`/placefiles/:endpoint`, (request, response) => {
-          return response;
-        });
         this.package.get(`/data/:endpoint/:id?`, (request, response) => {
           const endpoint = request.params.endpoint;
           const id = request.params.id;
@@ -5276,34 +4985,135 @@ var init_routes = __esm({
           }
           return response.json(id ? cache.external[endpoint][id] : cache.external[endpoint]);
         });
-        this.package.get(`/api/:endpoint`, (request, response) => {
-          return response;
-        });
       }
       redirect(response, path2) {
         response.sendFile(path2);
         return;
       }
       getCertificates() {
-        const defConfig = cache.internal.configurations;
-        if (!defConfig.web_hosting_settings.settings.is_https) {
+        const ConfigType = cache.internal.configurations;
+        if (!ConfigType.web_hosting_settings.settings.is_https) {
           submodules.utils.log(`${this.NAME_SPACE} ERROR: Tried to get SSL certificates while HTTPS is disabled in the configuration file.`);
-          process.exit(1);
         }
-        const keyPath = defConfig.web_hosting_settings.settings.certification_paths.private_key_path;
-        const certPath = defConfig.web_hosting_settings.settings.certification_paths.certificate_path;
+        const keyPath = ConfigType.web_hosting_settings.settings.certification_paths.private_key_path;
+        const certPath = ConfigType.web_hosting_settings.settings.certification_paths.certificate_path;
         if (!packages.fs.existsSync(keyPath)) {
           submodules.utils.log(`${this.NAME_SPACE} ERROR: SSL key file not found at: ${keyPath}`);
-          process.exit(1);
         }
         if (!packages.fs.existsSync(certPath)) {
           submodules.utils.log(`${this.NAME_SPACE} ERROR: SSL certificate file not found at: ${certPath}`);
-          process.exit(1);
         }
         return {
           key: packages.fs.readFileSync(keyPath),
           certificate: packages.fs.readFileSync(certPath)
         };
+      }
+      websocket() {
+        var _a;
+        const cfg = cache.internal.configurations;
+        const max = (_a = cfg.websocket_settings.maximum_connections_per_ip) != null ? _a : 3;
+        const wss = cache.internal.socket = new packages.ws.WebSocketServer({
+          server: cache.internal.websocket,
+          path: "/stream"
+        });
+        wss.on("connection", (client, req) => {
+          var _a2;
+          const ip = ((_a2 = req == null ? void 0 : req.socket) == null ? void 0 : _a2.remoteAddress) || "unknown";
+          if (ip === "unknown") return client.close(4e3, "Invalid IP");
+          const count = this.clients.filter((c) => c.address === ip).length;
+          if (count >= max) {
+            try {
+              if (client.readyState === packages.ws.OPEN) client.send(JSON.stringify({ type: "eventConnection", message: `Connection limit reached (${max}).` }));
+            } catch (e) {
+            }
+            return client.close(4001, "Connection limit reached");
+          }
+          this.clients.push({ client, unix: Date.now() - 1e3, address: ip, requests: {}, hasSentInitialData: false });
+          try {
+            if (client.readyState === packages.ws.OPEN) client.send(JSON.stringify({ type: "eventConnection", message: "WebSocket connection established." }));
+          } catch (e) {
+          }
+          client.on("message", (msg) => this.onWebsocketClientMessage(client, msg));
+          client.on("close", () => {
+            this.clients = this.clients.filter((c) => c.client !== client);
+          });
+        });
+        submodules.utils.log(`${this.NAME_SPACE} WebSocket server listening on /stream`);
+      }
+      onWebsocketClientMessage(socket, message) {
+        const index = this.clients.findIndex((c) => c.client === socket);
+        if (index === -1) return;
+        const clientData = this.clients[index];
+        if (!clientData) return;
+        if (clientData.hasSentInitialData) {
+          socket.send(JSON.stringify({ type: "eventMessage", message: "Initial data already sent - Closing connection." }));
+          return socket.close(4002, "Initial data already sent");
+        }
+        clientData.hasSentInitialData = true;
+        const data = (() => {
+          try {
+            return JSON.parse(message);
+          } catch (e) {
+            return null;
+          }
+        })();
+        if (!data) {
+          socket.send(JSON.stringify({ type: "eventMessage", message: "Invalid JSON format" }));
+          return socket.close(4002, "Invalid JSON");
+        }
+        if (!(data == null ? void 0 : data.type) || !(data == null ? void 0 : data.message)) {
+          socket.send(JSON.stringify({ type: "eventMessage", message: "Missing type or message" }));
+          return socket.close(4002, "Missing Data");
+        }
+        if (data.type === "eventRequest") {
+          let requestData;
+          try {
+            requestData = typeof data.message === "string" ? JSON.parse(data.message) : data.message;
+          } catch (e) {
+            requestData = null;
+          }
+          if (!requestData) {
+            socket.send(JSON.stringify({ type: "eventMessage", message: "Invalid request payload" }));
+            return socket.close(4002, "Invalid Payload");
+          }
+          return this.onWebsocketClientUpdate(socket, clientData, requestData);
+        }
+        socket.send(JSON.stringify({ type: "eventMessage", message: "Unknown type" }));
+        socket.close(4002, "Unknown type");
+      }
+      onWebsocketClientUpdate(socket, clientData, data) {
+        const InternalConfig = cache.internal.configurations;
+        if (!Array.isArray(data)) return;
+        const now = Date.now();
+        let isQueued = false;
+        if (data[0] === "*") {
+          data = Object.keys(cache.external);
+        }
+        data.forEach((request) => {
+          if (!clientData.requests[request]) clientData.requests[request] = { unix: 0 };
+          const isPriority = InternalConfig.websocket_settings.priority_sockets.sockets.includes(request);
+          const isSecondary = InternalConfig.websocket_settings.secondary_sockets.sockets.includes(request);
+          const timeout = isPriority ? InternalConfig.websocket_settings.priority_sockets.timeout : isSecondary ? InternalConfig.websocket_settings.secondary_sockets.timeout : 0;
+          const timeoutMs = timeout < 1e3 ? timeout * 1e3 : timeout;
+          if (now - clientData.requests[request].unix < timeoutMs) {
+            return;
+          }
+          clientData.requests[request].unix = now;
+          const cache2 = cache.external[request] || null;
+          try {
+            socket.send(JSON.stringify({ type: "eventUpdate", message: cache2, value: request }));
+          } catch (e) {
+          }
+          isQueued = true;
+        });
+        if (isQueued) {
+          socket.send(JSON.stringify({ type: "eventUpdateFinished", message: "Update complete" }));
+        }
+      }
+      onUpdateRequest() {
+        for (const clientData of this.clients) {
+          this.onWebsocketClientUpdate(clientData.client, clientData, Object.keys(clientData.requests));
+        }
       }
     };
     routes_default = Routes;
@@ -5352,8 +5162,7 @@ var init_bootstrap = __esm({
         changelogs: void 0,
         version: void 0,
         spotter_network_feed: [],
-        spotter_reports: [],
-        grlevelx_reports: [],
+        storm_reports: [],
         storm_prediction_center_mesoscale: [],
         tropical_storm_tracks: [],
         sonde_project_weather_eye: [],
@@ -5361,39 +5170,33 @@ var init_bootstrap = __esm({
         tornado: [],
         severe: [],
         manual: [],
-        events: [],
+        events: { features: [] },
+        hashes: [],
+        placefiles: {},
         locations: {
-          spotter_network: {
-            lat: 0,
-            lon: 0
-          },
-          realtime_irl: {
-            lat: 0,
-            lon: 0
-          }
+          spotter_network: { lat: 0, lon: 0 },
+          realtime_irl: { lat: 0, lon: 0 }
         }
       },
       internal: {
         getSource: `NWS`,
         configurations: {},
-        random_alert_ms: void 0,
-        random_alert_index: void 0,
-        webhook_queue: [],
-        events: { features: [] },
-        hashes: [],
-        logs: [],
+        logs: {
+          __console__: [],
+          __events__: []
+        },
         http_timers: {},
         express: void 0,
         manager: void 0,
         websocket: void 0,
-        sessions: [],
+        socket: void 0,
+        last_cache_update: 0,
         metrics: {
           start_uptime: Date.now(),
           memory_usage: 0,
           events_processed: 0
         }
-      },
-      placefiles: {}
+      }
     };
     strings = {
       updated_requied: `New version available: {ONLINE_PARSED} (Current version: {OFFLINE_VERSION})
@@ -5472,11 +5275,11 @@ var require_index = __commonJS({
   "src/index.ts"(exports) {
     init_bootstrap();
     new Promise((resolve) => __async(null, null, function* () {
-      const defConfig = cache.internal.configurations;
-      new packages.jobs.Cron(defConfig.internal_settings.global_update, () => {
+      const ConfigType = cache.internal.configurations;
+      new packages.jobs.Cron(ConfigType.internal_settings.global_update, () => {
         submodules.networking.updateCache();
       });
-      new packages.jobs.Cron(defConfig.internal_settings.update_check, () => {
+      new packages.jobs.Cron(ConfigType.internal_settings.update_check, () => {
         submodules.networking.getUpdates();
       });
     }));

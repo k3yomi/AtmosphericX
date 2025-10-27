@@ -35,15 +35,6 @@ export class Parsing {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
     }
   
-    /**
-     * Converts WxRadio API response to GeoJSON FeatureCollection format
-     * This data can be used to listen to NWR stations or plot them on a 
-     * map directly. So far, only good use case it for the dashboard.
-     *
-     * @public
-     * @param {types.WxRadioTypes} body 
-     * @returns {types.GeoJSONFeatureCollection} 
-     */
     public getWxRadioStructure(body: types.WxRadioTypes): types.GeoJSONFeatureCollection {
         let structure = { type: 'FeatureCollection', features: [] }
         for (const feature of body.sources) {
@@ -62,13 +53,6 @@ export class Parsing {
         return structure;
     }
 
-    /**
-     * Converts Tropical Storm API response to GeoJSON FeatureCollection format
-     *
-     * @public
-     * @param {types.TropicalStormTypes[]} body 
-     * @returns {types.GeoJSONFeatureCollection} 
-     */
     public getTropicalStormStructure(body: types.TropicalStormTypes[]): types.GeoJSONFeatureCollection {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
         for (const feature of body) {
@@ -87,14 +71,6 @@ export class Parsing {
         return structure;
     }
 
-    /**
-     * Converts Gibson Ridge Report Placefile response to GeoJSON FeatureCollection format
-     *
-     * @public
-     * @async
-     * @param {string} body 
-     * @returns {Promise<types.GeoJSONFeatureCollection>} 
-     */
     public async getGibsonReportStructure(body: string): Promise<types.GeoJSONFeatureCollection> {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
         const parsed = await loader.packages.placefile.AtmosXPlacefileParser.parseTable(body) as types.GibsonRidgeReportTypes[];
@@ -120,14 +96,6 @@ export class Parsing {
         return structure;
     }
 
-    /**
-     * Converts Spotter Network Placefile response to GeoJSON FeatureCollection format  
-     *
-     * @public
-     * @async
-     * @param {string} body 
-     * @returns {Promise<types.GeoJSONFeatureCollection>} 
-     */
     public async getSpotterReportStructure(body: string): Promise<types.GeoJSONFeatureCollection> {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
         const parsed = await loader.packages.placefile.AtmosXPlacefileParser.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
@@ -152,14 +120,6 @@ export class Parsing {
         return structure;
     }
     
-    /**
-     * Converts SPC Discussion Placefile response to GeoJSON FeatureCollection format
-     *
-     * @public
-     * @async
-     * @param {string} body 
-     * @returns {Promise<types.GeoJSONFeatureCollection>} 
-     */
     public async getSPCDiscussions(body: string): Promise<types.GeoJSONFeatureCollection> {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
         const parsed = await loader.packages.placefile.AtmosXPlacefileParser.parseGeoJSON(body) as types.SPCDiscussionTypes[];
@@ -192,17 +152,9 @@ export class Parsing {
         return structure;
     }
 
-    /**
-     * Converts Spotter Network Feed Placefile response to GeoJSON FeatureCollection format
-     *
-     * @public
-     * @async
-     * @param {string} body 
-     * @returns {Promise<types.GeoJSONFeatureCollection>} 
-     */
     public async getSpotterFeed(body: string): Promise<types.GeoJSONFeatureCollection> {
-        const defConfig = loader.cache.internal.configurations as types.ConfigurationsType;
-        const feedConfig = defConfig.sources?.location_settings?.spotter_network_feed;
+        const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
+        const feedConfig = ConfigType.sources?.location_settings?.spotter_network_feed;
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
         const parsed = await loader.packages.placefile.AtmosXPlacefileParser.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
         for (const feature of parsed) {
@@ -241,19 +193,10 @@ export class Parsing {
         return structure;
     }
 
-    /**
-     * Converts Probability Placefile response to structured format
-     *
-     * @public
-     * @async
-     * @param {string} body 
-     * @param {('tornado' | 'severe')} type 
-     * @returns {Promise<types.ProbabilityTypes[]>} 
-     */
     public async getProbabilityStructure(body: string, type: 'tornado' | 'severe'): Promise<types.ProbabilityTypes[]> {
         const structure: types.ProbabilityTypes[] = [];
-        const defConfig = loader.cache.internal.configurations as types.ConfigurationsType;
-        const threshold = defConfig.sources.probability_settings[type]?.percentage_threshold ?? 50;
+        const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
+        const threshold = ConfigType.sources.probability_settings[type]?.percentage_threshold ?? 50;
         const typeRegexp = type === 'tornado' ? /ProbTor: (\d+)%\// : /PSv3: (\d+)%\//;
         const parsed = await loader.packages.placefile.AtmosXPlacefileParser.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
         for (const feature of parsed) {
@@ -274,13 +217,6 @@ export class Parsing {
         return structure;
     }
 
-    /**
-     * Converts WxEye Sonde API response to structured format
-     *
-     * @public
-     * @param {unknown[]} body 
-     * @returns {Record<string, string>[]} 
-     */
     public getWxEyeSondeStructure(body: unknown[]): Record<string, string>[] {
         return body.map(feature => feature as Record<string, string>);
     }

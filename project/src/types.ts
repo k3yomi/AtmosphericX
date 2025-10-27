@@ -51,9 +51,11 @@ export interface GeoJSONFeatureCollection  { type: string; features?: LocalGeoJS
 export interface CacheStructure  { name: string;  url: string;  enabled: boolean;  cache: number;  contradictions: string[]; }
 export interface LatitudeAndLongitude { coords: {lat?: number; lon?: number}; coords2?: {lat?: number; lon?: number}}
 export interface LogOptions { title?: string; echoFile?: boolean; rawConsole?: boolean}
-export interface ExternalType { manual_alert?: any; active_alerts?: any; configurations?: any; changelogs?: any; version?: HTTPType }
-export interface InternalType { webhook_queue?: any[]; events?: any; hashes?: any[]; }
+export interface ExternalType { manual_alert?: any; events?: any; hashes?: any; configurations?: any; changelogs?: any; version?: HTTPType }
+export interface InternalType {  }
 export interface HTTPType { error?: boolean; message?: string }
+export interface WebSocketClient {  client: any; unix: number; address: string; requests: Record<string, any>; hasSentInitialData: boolean; }
+export interface CertificateCollection { key: Buffer;certificate: Buffer;}
 
 
 export interface RegisterType { 
@@ -78,6 +80,7 @@ export interface EventType {
 export interface ConfigurationsType { 
     project_settings?: any; 
     internal_settings?: any;
+    websocket_settings?: any;
     sources?: any; 
     hosting?: any;
     tones?: any;

@@ -16,9 +16,9 @@ import * as loader from './bootstrap';
 import * as types from './types';
 
 new Promise(async (resolve) => {
-    const defConfig = loader.cache.internal.configurations as types.ConfigurationsType;
-    new loader.packages.jobs.Cron(defConfig.internal_settings.global_update, () => { loader.submodules.networking.updateCache();  });
-    new loader.packages.jobs.Cron(defConfig.internal_settings.update_check, () => { loader.submodules.networking.getUpdates(); });
+    const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
+    new loader.packages.jobs.Cron(ConfigType.internal_settings.global_update, () => { loader.submodules.networking.updateCache();  });
+    new loader.packages.jobs.Cron(ConfigType.internal_settings.update_check, () => { loader.submodules.networking.getUpdates(); });
 })
 
  

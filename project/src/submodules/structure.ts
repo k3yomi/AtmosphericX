@@ -32,16 +32,6 @@ export class Structure {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
     }
 
-    /**
-	 * Parses incoming data based on type 
-	 * Anything that requires specific parsing should be handled here 
-	 *
-	 * @private
-	 * @async
-	 * @param {?unknown} [body] 
-	 * @param {?string} [type] 
-	 * @returns {Promise<any[]>} 
-	 */
 	private async parsing(body?: unknown, type?: string): Promise<any[]> {
         switch (type) {
             case 'spotter_network_feed': return loader.submodules.parsing.getSpotterFeed(body);
@@ -57,21 +47,14 @@ export class Structure {
         }
     }
 
-    /**
-	 * Retrieves event metadata such as SFX, scheme, and additional metadata 
-	 *
-	 * @private
-	 * @param {types.EventType} event 
-	 * @returns {{ sfx: string; scheme: Record<string, string>; metadata: Record<string, unknown>; }} 
-	 */
 	private getEventMetadata(event: types.EventType) {
-    	const defConfig = loader.cache.internal.configurations as types.ConfigurationsType;
-		const schemes = defConfig.alert_schemes[event.properties.event]
-			|| defConfig.alert_schemes[event.properties.parent]
-			|| defConfig.alert_schemes['Default'];
-		const dictionary = defConfig.alert_dictionary[event.properties.event]
-			|| defConfig.alert_dictionary[event.properties.parent]
-			|| defConfig.alert_dictionary['Special Event'];
+    	const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
+		const schemes = ConfigType.alert_schemes[event.properties.event]
+			|| ConfigType.alert_schemes[event.properties.parent]
+			|| ConfigType.alert_schemes['Default'];
+		const dictionary = ConfigType.alert_dictionary[event.properties.event]
+			|| ConfigType.alert_dictionary[event.properties.parent]
+			|| ConfigType.alert_dictionary['Special Event'];
 		// Determine SFX based on event status
 		let sfx = dictionary.sfx_cancel;
 		if (event.properties.is_issued) sfx = dictionary.sfx_issued;
@@ -80,19 +63,12 @@ export class Structure {
 		return { sfx, scheme: schemes, metadata: dictionary.metadata };
 	}
 
-    /**
-	 * Registers an event with additional data such as sfx type, color scheme, and event metadata
-	 *
-	 * @private
-	 * @param {types.EventType} event 
-	 * @returns {{ event: types.EventType; metadata: any; scheme: any; sfx: any; ignored: boolean; beep: any; }} 
-	 */
-	private register(event: types.EventType) {
-		const defConfig = loader.cache.internal.configurations as types.ConfigurationsType;
+	public register(event: types.EventType) {
+		const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
 		const eventName = event.properties.event;
-		const isPriorityEvent = defConfig.filters.priority_events.includes(eventName);
-		const isBeepAuthorizedOnly = defConfig.filters.sfx_beep_only;
-		const isShowingUpdatesAllowed = defConfig.filters.show_updates;
+		const isPriorityEvent = ConfigType.filters.priority_events.includes(eventName);
+		const isBeepAuthorizedOnly = ConfigType.filters.sfx_beep_only;
+		const isShowingUpdatesAllowed = ConfigType.filters.show_updates;
 		const eventMetadata = this.getEventMetadata(event);
 		const isBeepOnly = isBeepAuthorizedOnly && isPriorityEvent;
 		const isIgnored = !isShowingUpdatesAllowed && !isPriorityEvent;
@@ -100,27 +76,18 @@ export class Structure {
 			event,
 			metadata: eventMetadata.metadata,
 			scheme: eventMetadata.scheme,
-			sfx: isBeepOnly ? defConfig.tones.sfx_beep : eventMetadata.sfx,
+			sfx: isBeepOnly ? ConfigType.tones.sfx_beep : eventMetadata.sfx,
 			ignored: isIgnored,
 			beep: isBeepOnly,
 		};
 	}
 
-    /**
-	 * Creates external cache entries and processes alert updates
-	 *
-	 * @public
-	 * @async
-	 * @param {unknown} data 
-	 * @param {?boolean} [isAlertupdate] 
-	 * @returns {Promise<void>} 
-	 */
 	public async create(data: unknown, isAlertupdate?: boolean): Promise<void> {
 		const clean = loader.submodules.utils.filterWebContent(data);
 		const dataTypes = [
 			{ key: 'spotter_network_feed', cache: 'spotter_network_feed' },
-			{ key: 'spotter_reports', cache: 'spotter_reports' },
-			{ key: 'grlevelx_reports', cache: 'grlevelx_reports' },
+			{ key: 'spotter_reports', cache: 'storm_reports' },
+			{ key: 'grlevelx_reports', cache: 'storm_reports' },
 			{ key: 'storm_prediction_center_mesoscale', cache: 'storm_prediction_center_mesoscale' },
 			{ key: 'tropical_storm_tracks', cache: 'tropical_storm_tracks' },
 			{ key: 'tornado', cache: 'tornado' },
@@ -133,18 +100,21 @@ export class Structure {
 				loader.cache.external[cache] = await this.parsing(clean[key], key);
 			}
 		}
-		if (isAlertupdate && clean.alerts?.length) {
-			for (const event of clean.alerts) {
-				const isAlreadyLogged = loader.cache.internal.hashes.some(log => log.id === event.hash);
+		if (isAlertupdate && clean.events?.length) {
+			for (const ev of clean.events) {
+				const isAlreadyLogged = loader.cache.external.hashes.some(log => log.id === ev.event.hash);
 				if (isAlreadyLogged) continue;
-				loader.cache.internal.hashes.push({ id: event.hash, expires: event.properties.expires });
-				if (event.ignored) continue;
+				if (ev.ignored) continue;
+				loader.cache.external.hashes.push({ id: ev.event.hash, expires: ev.event.properties.expires });
 				if (!loader.submodules.utils.isFancyDisplay()) {
-					loader.submodules.utils.log(loader.submodules.alerts.displayAlert(event.event));
+					loader.submodules.utils.log(loader.submodules.alerts.displayAlert(ev));
+				} else { 
+					loader.submodules.utils.log(loader.submodules.alerts.displayAlert(ev), {}, `__events__`);
 				}
 			}
 		}
-		loader.cache.external.events = clean.events || [];
+		loader.cache.external.events.features = clean.events || [];
+		loader.submodules.routes.onUpdateRequest();
 	}
 }
 

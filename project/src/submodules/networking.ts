@@ -35,13 +35,6 @@ export class Alerts {
         this.updateCache();
     }
 
-    /**
-     * buildSourceStructure constructs an array of CacheStructure objects from the provided sources.
-     *
-     * @private
-     * @param {*} sources 
-     * @returns {types.CacheStructure[]} 
-     */
     private buildSourceStructure(sources: any): types.CacheStructure[] {
         const structure: types.CacheStructure[] = [];
         for (const source in sources) {
@@ -59,12 +52,6 @@ export class Alerts {
         return structure;
     }
 
-    /**
-     * resolveContradictions disables sources based on their defined contradictions.
-     *
-     * @private
-     * @param {types.CacheStructure[]} structure 
-     */
     private resolveContradictions(structure: types.CacheStructure[]): void {
         for (const source of structure.filter(s => s.enabled)) {
             for (const contradiction of source.contradictions) {
@@ -77,14 +64,6 @@ export class Alerts {
         }
     }
 
-    /**
-     * getDataFromSource retrieves data from the specified URL and handles errors.
-     *
-     * @private
-     * @async
-     * @param {string} url 
-     * @returns {Promise<{ error: boolean; message: any }>} 
-     */
     private async getDataFromSource(url: string): Promise<{ error: boolean; message: any }> {
         try {
             const response = await this.httpRequest(url);
@@ -97,14 +76,6 @@ export class Alerts {
         }
     }
 
-    /**
-     * httpRequest performs an HTTP GET request to the specified URL with optional settings.
-     *
-     * @public
-     * @param {string} url 
-     * @param {?types.HTTPOptions} [options] 
-     * @returns {Promise<any>} 
-     */
     public httpRequest(url: string, options?: types.HTTPOptions): Promise<any> {
         return new Promise(async (resolve) => {
             try { 
@@ -137,12 +108,6 @@ export class Alerts {
         });
     }
 
-    /**
-     * getUpdates checks for updates by comparing the online version with the local version.
-     *
-     * @public
-     * @returns {Promise<{error: boolean, message: string}>} 
-     */
     public getUpdates(): Promise<{error: boolean, message: string}> {
         return new Promise(async (resolve) => {
             const onlineVersion = await this.httpRequest(`https://raw.githubusercontent.com/k3yomi/AtmosphericX/main/version`, undefined)
@@ -166,23 +131,24 @@ export class Alerts {
         });
     }
 
-    /**
-     * updateCache refreshes the internal cache by fetching data from active sources.
-     *
-     * @public
-     * @async
-     * @param {?boolean} [isAlertUpdate] 
-     * @returns {Promise<void>} 
-     */
     public async updateCache(isAlertUpdate?: boolean): Promise<void> {
         loader.submodules.utils.configurations();
+        const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
+        const ExternalType = loader.cache.external as types.ExternalType;
+        ExternalType.hashes = ExternalType.hashes.filter(e => e !== undefined && new Date(e.expires).getTime() > new Date().getTime())
+        ExternalType.events = { features: ExternalType.events?.features
+            .filter(f => f !== undefined && new Date(f.event.properties.expires).getTime() > new Date().getTime())
+            .filter(f => {
+                if (ConfigType.filters.all_events) return true;
+                return ConfigType.filters.listening_events.includes(f.event.properties.event);
+            })
+        };
         loader.submodules.alerts.instance(true);
         await loader.submodules.utils.sleep(200);
         let data = {}
         let stringText = ``
         const setTime = Date.now();
-        const defConfig = loader.cache.internal.configurations as types.ConfigurationsType;
-        const { atmosx_parser_settings, ...sources } = defConfig.sources;
+        const { atmosx_parser_settings, ...sources } = ConfigType.sources;
         if (!isAlertUpdate) { 
             const structure = this.buildSourceStructure(sources);
             this.resolveContradictions(structure);
@@ -215,13 +181,11 @@ export class Alerts {
                 stringText += `(OK) NWS, `
             }   
         }
-        data["events"] = loader.cache.internal.events.features;
-        if (Object.keys(data).length > 0) {
-            if (stringText.length > 0) {
-                loader.submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${stringText.slice(0, -2)}`, { echoFile: true })
-            }
-            loader.submodules.structure.create(data, isAlertUpdate);
+        data["events"] = loader.cache.external.events.features;
+        if (stringText.length > 0) {
+            loader.submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${stringText.slice(0, -2)}`, { echoFile: true })
         }
+        loader.submodules.structure.create(data, isAlertUpdate);
     }
 }
 

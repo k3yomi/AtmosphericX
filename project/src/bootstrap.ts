@@ -59,8 +59,7 @@ export const cache = {
         changelogs: undefined, 
         version: undefined,
         spotter_network_feed: [],
-        spotter_reports: [],
-        grlevelx_reports: [],
+        storm_reports: [],
         storm_prediction_center_mesoscale: [],
         tropical_storm_tracks: [],
         sonde_project_weather_eye: [],
@@ -68,39 +67,33 @@ export const cache = {
         tornado: [],
         severe: [],
         manual: [],
-        events: [],
+        events: {features: []},
+        hashes: [],
+        placefiles: {},
         locations: {
-            spotter_network: {
-                lat: 0,
-                lon: 0
-            },
-            realtime_irl: {
-                lat: 0,
-                lon: 0
-            },
+            spotter_network: {lat: 0, lon: 0},
+            realtime_irl: {lat: 0, lon: 0},
         },
     }, 
     internal: {
         getSource: `NWS`,
         configurations: {}, 
-        random_alert_ms: undefined,
-        random_alert_index: undefined,
-        webhook_queue: [],
-        events: {features: []},
-        hashes: [],
-        logs: [],
+        logs: {
+            __console__: [],
+            __events__: []
+        },
         http_timers: {},
         express: undefined,
         manager: undefined,
         websocket: undefined,
-        sessions: [],
+        socket: undefined,
+        last_cache_update: 0,
         metrics: {
             start_uptime: Date.now(),
             memory_usage: 0,
             events_processed: 0,
         }
     },
-    placefiles: {},
 };
 
 export const strings = {

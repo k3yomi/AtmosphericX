@@ -44,25 +44,10 @@ export class Utils {
         this.log(`${this.NAME_SPACE} initialized.`)
     }
 
-    /**
-     * A simple sleep function that returns a promise that resolves after a specified number of milliseconds.
-     *
-     * @public
-     * @param {number} ms 
-     * @returns {Promise<void>} 
-     */
     public sleep(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    /**
-     * Reads the version from a file, this will updated per update depending how big it is. This will also help us 
-     * keep tracking of changelogs from the past and future. Each version is x.xx.xxx or similar.
-     * If the version file isn't found, it will default to v0.0.0
-     *
-     * @public
-     * @returns {string} 
-     */
     public version(): string {
         const version = loader.packages.fs.existsSync(this.VERSION_PATH) 
             ? loader.packages.fs.readFileSync(this.VERSION_PATH, `utf-8`).replace(/\n/g, ``) 
@@ -70,51 +55,29 @@ export class Utils {
         return version
     }
 
-    /**
-     * Checks if the fancy display is enabled in the configurations.
-     *
-     * @public
-     * @returns {boolean} 
-     */
     public isFancyDisplay(): boolean {
         return (loader.cache.internal.configurations as types.ConfigurationsType).internal_settings.fancy_interface || false;
     }
 
-    /**
-     * This prints out the logo while clearing the console and retrieves the version
-     * by using version(). If no version found, it will simply by v0.0.0 as an undefined placeholder
-     * If you have any ideas for the future use of the logo, please feel free to let StartflightWx know.
-     *
-     * @public
-     */
     public logo(): string | void{
         const path = this.isFancyDisplay() ? this.LOGO_PATH : this.LOGO_LEGACY_PATH;
-        const defConfig = loader.cache.internal.configurations as types.ConfigurationsType;
+        const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
         const logo = loader.packages.fs.existsSync(path) 
             ? loader.packages.fs.readFileSync(path, `utf-8`).replace(`{VERSION}`, this.version()) 
             : `AtmosphericX {VERSION}`;
-        if (defConfig.internal_settings.fancy_interface) { return logo } 
+        if (ConfigType.internal_settings.fancy_interface) { return logo } 
         console.clear();
         console.log(logo);
     }
   
-    /**
-     * The log function allows the backend to log messages in the console or send it off to the logs.txt file
-     * for debugging purposes. This should really only be used for backend purposes and nothing else.
-     * Basically, no different from console.log
-     *
-     * @public
-     * @param {?string} [message] 
-     * @param {?types.LogOptions} [options] 
-     */
-    public log(message?: string, options?: types.LogOptions): void {
+    public log(message?: string, options?: types.LogOptions, logType: string = `__console__`): void {
         const title = options?.title || `\x1b[32m[ATMOSX-UTILS]\x1b[0m`;
         const msg = message || `No message provided.`;
         const rawConsole = options?.rawConsole || false;
         const echoFile = options?.echoFile || false;
         if (!rawConsole) {
-            loader.cache.internal.logs.push({title: title, message: msg, timestamp: new Date().toLocaleString()}); 
-            if (loader.cache.internal.logs.length > 25) { loader.cache.internal.logs.shift(); }
+            loader.cache.internal.logs[logType].push({title: title, message: msg, timestamp: new Date().toLocaleString()}); 
+            if (loader.cache.internal.logs[logType].length > 25) { loader.cache.internal.logs[logType].shift(); }
         }
         if (rawConsole || !this.isFancyDisplay()) { console.log(`${title}\x1b[0m [${new Date().toLocaleString()}] ${msg}`); }
         if (echoFile) { 
@@ -122,23 +85,6 @@ export class Utils {
         }
     }
 
-    /**
-     * This grabs the latest configurations and stores it into the internal and external cache.
-     * External cache is used for the client side (frontend) hence the limited data provided.
-     * The internal is strictly for the use of the server (backend).
-     * 
-     * Each JSON file is merged into one object for easier access.
-     * You may have also noticed that all the configurations are seperate and encoded in JSONC which
-     * allows for comments. This is to make it easier for you all to understand what each
-     * configuration does and how to use it. 
-     * 
-     * Also, if a JSONC parse fails or there is a malformed JSONC file, it will still technically work
-     * thanks to the package for fixing any mistakes automatically. However, if you want to be safe,
-     * it will log the error and terminate the program to prevent any issues.
-     * 
-     *
-     * @public
-     */
     public configurations(): void {
         let configurations = loader.packages.fs.existsSync(this.CONFIGURATIONS_PATH)
             ? loader.packages.fs.readdirSync(this.CONFIGURATIONS_PATH).reduce((acc: Record<string, any>, file: string) => {
@@ -165,17 +111,6 @@ export class Utils {
         };
     }
     
-    /**
-     * This filters web content based such as HTML tags. Mostly for sanitization to prevent XSS attacks 
-     * from client->server->client interactions. Even though the admins are trusted, wanted to implement this
-     * in case of future updates that may allow user requests.
-     * 
-     * @example: this.filterWebContent("<div>Hello <b>World</b></div>") // returns "Hello World"
-     *
-     * @public
-     * @param {string} content 
-     * @returns {(string | unknown)} 
-     */
     public filterWebContent(content: string): string | unknown {
         if (typeof content == 'string') try { content = JSON.parse(content); } catch (e) { return content.replace(/<[^>]*>/g, ''); }
         if (Array.isArray(content)) return content.map(item => this.filterWebContent(item));
