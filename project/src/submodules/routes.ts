@@ -115,7 +115,7 @@ export class Routes {
             path: '/stream'
         });
         wss.on('connection', (client: any, req: any) => {
-            const ip = req?.socket?.remoteAddress || 'unknown';
+            const ip = req?.socket?.remoteAddress ?? 'unknown';
             if (ip === 'unknown') return client.close(4000, 'Invalid IP');
             const count = this.clients.filter(c => c.address === ip).length;
             if (count >= max) {
@@ -185,8 +185,6 @@ export class Routes {
             this.onWebsocketClientUpdate(clientData.client, clientData, Object.keys(clientData.requests));
         }
     }
-
-
 
 }
 export default Routes;

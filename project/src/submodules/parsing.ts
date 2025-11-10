@@ -34,46 +34,10 @@ export class Parsing {
     private initialize() {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
     }
-  
-    public getWxRadioStructure(body: types.WxRadioTypes): types.GeoJSONFeatureCollection {
-        let structure = { type: 'FeatureCollection', features: [] }
-        for (const feature of body.sources) {
-            const lon = parseFloat(feature.lon as string);
-            const lat = parseFloat(feature.lat as string);
-            if (isNaN(lon) || isNaN(lat)) continue;
-            structure.features.push({
-                type: 'Feature',
-                geometry: {type: 'Point', coordinates: [lon, lat]},
-                properties: {
-                    location: feature?.location ?? 'N/A', callsign: feature?.callsign ?? 'N/A',
-                    frequency: feature?.frequency ?? 'N/A', stream: feature?.listen_url ?? 'N/A',
-                }
-            })
-        }
-        return structure;
-    }
-
-    public getTropicalStormStructure(body: types.TropicalStormTypes[]): types.GeoJSONFeatureCollection {
-        const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
-        for (const feature of body) {
-            structure.features.push({
-                type: 'Feature',
-                properties: {
-                    name: feature.name ?? 'N/A',
-                    discussion: feature.forecast_discussion ?? 'N/A',
-                    classification: feature.classification ?? 'N/A',
-                    pressure: feature.pressure ?? 0,
-                    wind_speed: feature.wind_speed_mph ?? 0,
-                    last_updated: feature.last_update_at ? new Date(feature.last_update_at).toLocaleString() : 'N/A'
-                }
-            });
-        }
-        return structure;
-    }
 
     public async getGibsonReportStructure(body: string): Promise<types.GeoJSONFeatureCollection> {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
-        const parsed = await loader.packages.placefile.AtmosXPlacefileParser.parseTable(body) as types.GibsonRidgeReportTypes[];
+        const parsed = await loader.packages.placefile.PlacefileManager.parseTable(body) as types.GibsonRidgeReportTypes[];
         for (const feature of parsed) {
             const lon = parseFloat(feature.lon);
             const lat = parseFloat(feature.lat);
@@ -85,7 +49,7 @@ export class Parsing {
                     location: `${feature.city ?? 'N/A'}, ${feature.county ?? 'N/A'}, ${feature.state ?? 'N/A'}`,
                     event: feature.event ?? 'N/A',
                     sender: feature.source ?? 'N/A',
-                    description: `${feature.event ?? 'Event'} reported at ${feature.city ?? 'Unknown'}, ${feature.county ?? 'Unknown'}, ${feature.state ?? 'Unknown'}. ${feature.comment || 'No additional details.'}`,
+                    description: `${feature.event ?? 'Event'} reported at ${feature.city ?? 'Unknown'}, ${feature.county ?? 'Unknown'}, ${feature.state ?? 'Unknown'}. ${feature.comment ?? 'No additional details.'}`,
                     magnitude: feature.mag ?? 0,
                     office: feature.office ?? 'N/A',
                     date: feature.date ?? 'N/A',
@@ -98,7 +62,7 @@ export class Parsing {
 
     public async getSpotterReportStructure(body: string): Promise<types.GeoJSONFeatureCollection> {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
-        const parsed = await loader.packages.placefile.AtmosXPlacefileParser.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
+        const parsed = await loader.packages.placefile.PlacefileManager.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
         for (const feature of parsed) {
             const lon = parseFloat(feature.icon.x);
             const lat = parseFloat(feature.icon.y);
@@ -108,12 +72,12 @@ export class Parsing {
                 type: 'Feature',
                 geometry: { type: 'Point', coordinates: [lon, lat] },
                 properties: {
-                    event: lines[1] || 'N/A',
-                    reporter: lines[0]?.replace('Reported By:', '').trim() || 'N/A',
-                    size: lines[2]?.replace('Size:', '').trim() || 'N/A',
-                    notes: lines[3]?.replace('Notes:', '').trim() || 'N/A',
+                    event: lines[1] ?? 'N/A',
+                    reporter: lines[0]?.replace('Reported By:', '').trim() ?? 'N/A',
+                    size: lines[2]?.replace('Size:', '').trim() ?? 'N/A',
+                    notes: lines[3]?.replace('Notes:', '').trim() ?? 'N/A',
                     sender: "Spotter Network",
-                    description: feature.icon.label.replace(/\n/g, '<br>').trim() || 'N/A'
+                    description: feature.icon.label.replace(/\n/g, '<br>').trim() ?? 'N/A'
                 }
             });
         }
@@ -122,7 +86,7 @@ export class Parsing {
     
     public async getSPCDiscussions(body: string): Promise<types.GeoJSONFeatureCollection> {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
-        const parsed = await loader.packages.placefile.AtmosXPlacefileParser.parseGeoJSON(body) as types.SPCDiscussionTypes[];
+        const parsed = await loader.packages.placefile.PlacefileManager.parseGeoJSON(body) as types.SPCDiscussionTypes[];
         for (const feature of parsed) {
             if (!feature.properties || !feature.coordinates) continue;
             if (feature.properties.expires_at_ms < Date.now()) continue;
@@ -156,7 +120,7 @@ export class Parsing {
         const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
         const feedConfig = ConfigType.sources?.location_settings?.spotter_network_feed;
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
-        const parsed = await loader.packages.placefile.AtmosXPlacefileParser.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
+        const parsed = await loader.packages.placefile.PlacefileManager.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
         for (const feature of parsed) {
             const lon = parseFloat(feature.object.coordinates[1]);
             const lat = parseFloat(feature.object.coordinates[0]);
@@ -198,7 +162,7 @@ export class Parsing {
         const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
         const threshold = ConfigType.sources.probability_settings[type]?.percentage_threshold ?? 50;
         const typeRegexp = type === 'tornado' ? /ProbTor: (\d+)%\// : /PSv3: (\d+)%\//;
-        const parsed = await loader.packages.placefile.AtmosXPlacefileParser.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
+        const parsed = await loader.packages.placefile.PlacefileManager.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
         for (const feature of parsed) {
             if (!feature.line?.text) continue;
             const probMatch = feature.line.text.match(typeRegexp);
@@ -213,6 +177,42 @@ export class Parsing {
                     description: feature.line.text.replace(/\n/g, '<br>') ?? 'N/A'
                 });
             }
+        }
+        return structure;
+    }
+  
+    public getWxRadioStructure(body: types.WxRadioTypes): types.GeoJSONFeatureCollection {
+        let structure = { type: 'FeatureCollection', features: [] }
+        for (const feature of body.sources) {
+            const lon = parseFloat(feature.lon as string);
+            const lat = parseFloat(feature.lat as string);
+            if (isNaN(lon) || isNaN(lat)) continue;
+            structure.features.push({
+                type: 'Feature',
+                geometry: {type: 'Point', coordinates: [lon, lat]},
+                properties: {
+                    location: feature?.location ?? 'N/A', callsign: feature?.callsign ?? 'N/A',
+                    frequency: feature?.frequency ?? 'N/A', stream: feature?.listen_url ?? 'N/A',
+                }
+            })
+        }
+        return structure;
+    }
+
+    public getTropicalStormStructure(body: types.TropicalStormTypes[]): types.GeoJSONFeatureCollection {
+        const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
+        for (const feature of body) {
+            structure.features.push({
+                type: 'Feature',
+                properties: {
+                    name: feature.name ?? 'N/A',
+                    discussion: feature.forecast_discussion ?? 'N/A',
+                    classification: feature.classification ?? 'N/A',
+                    pressure: feature.pressure ?? 0,
+                    wind_speed: feature.wind_speed_mph ?? 0,
+                    last_updated: feature.last_update_at ? new Date(feature.last_update_at).toLocaleString() : 'N/A'
+                }
+            });
         }
         return structure;
     }

@@ -4710,49 +4710,11 @@ var init_parsing = __esm({
       initialize() {
         submodules.utils.log(`${this.NAME_SPACE} initialized.`);
       }
-      getWxRadioStructure(body) {
-        var _a, _b, _c, _d;
-        let structure = { type: "FeatureCollection", features: [] };
-        for (const feature of body.sources) {
-          const lon = parseFloat(feature.lon);
-          const lat = parseFloat(feature.lat);
-          if (isNaN(lon) || isNaN(lat)) continue;
-          structure.features.push({
-            type: "Feature",
-            geometry: { type: "Point", coordinates: [lon, lat] },
-            properties: {
-              location: (_a = feature == null ? void 0 : feature.location) != null ? _a : "N/A",
-              callsign: (_b = feature == null ? void 0 : feature.callsign) != null ? _b : "N/A",
-              frequency: (_c = feature == null ? void 0 : feature.frequency) != null ? _c : "N/A",
-              stream: (_d = feature == null ? void 0 : feature.listen_url) != null ? _d : "N/A"
-            }
-          });
-        }
-        return structure;
-      }
-      getTropicalStormStructure(body) {
-        var _a, _b, _c, _d, _e;
-        const structure = { type: "FeatureCollection", features: [] };
-        for (const feature of body) {
-          structure.features.push({
-            type: "Feature",
-            properties: {
-              name: (_a = feature.name) != null ? _a : "N/A",
-              discussion: (_b = feature.forecast_discussion) != null ? _b : "N/A",
-              classification: (_c = feature.classification) != null ? _c : "N/A",
-              pressure: (_d = feature.pressure) != null ? _d : 0,
-              wind_speed: (_e = feature.wind_speed_mph) != null ? _e : 0,
-              last_updated: feature.last_update_at ? new Date(feature.last_update_at).toLocaleString() : "N/A"
-            }
-          });
-        }
-        return structure;
-      }
       getGibsonReportStructure(body) {
         return __async(this, null, function* () {
-          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
+          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
           const structure = { type: "FeatureCollection", features: [] };
-          const parsed = yield packages.placefile.AtmosXPlacefileParser.parseTable(body);
+          const parsed = yield packages.placefile.PlacefileManager.parseTable(body);
           for (const feature of parsed) {
             const lon = parseFloat(feature.lon);
             const lat = parseFloat(feature.lat);
@@ -4764,11 +4726,11 @@ var init_parsing = __esm({
                 location: `${(_a = feature.city) != null ? _a : "N/A"}, ${(_b = feature.county) != null ? _b : "N/A"}, ${(_c = feature.state) != null ? _c : "N/A"}`,
                 event: (_d = feature.event) != null ? _d : "N/A",
                 sender: (_e = feature.source) != null ? _e : "N/A",
-                description: `${(_f = feature.event) != null ? _f : "Event"} reported at ${(_g = feature.city) != null ? _g : "Unknown"}, ${(_h = feature.county) != null ? _h : "Unknown"}, ${(_i = feature.state) != null ? _i : "Unknown"}. ${feature.comment || "No additional details."}`,
-                magnitude: (_j = feature.mag) != null ? _j : 0,
-                office: (_k = feature.office) != null ? _k : "N/A",
-                date: (_l = feature.date) != null ? _l : "N/A",
-                time: (_m = feature.time) != null ? _m : "N/A"
+                description: `${(_f = feature.event) != null ? _f : "Event"} reported at ${(_g = feature.city) != null ? _g : "Unknown"}, ${(_h = feature.county) != null ? _h : "Unknown"}, ${(_i = feature.state) != null ? _i : "Unknown"}. ${(_j = feature.comment) != null ? _j : "No additional details."}`,
+                magnitude: (_k = feature.mag) != null ? _k : 0,
+                office: (_l = feature.office) != null ? _l : "N/A",
+                date: (_m = feature.date) != null ? _m : "N/A",
+                time: (_n = feature.time) != null ? _n : "N/A"
               }
             });
           }
@@ -4777,9 +4739,9 @@ var init_parsing = __esm({
       }
       getSpotterReportStructure(body) {
         return __async(this, null, function* () {
-          var _a, _b, _c;
+          var _a, _b, _c, _d, _e, _f, _g, _h;
           const structure = { type: "FeatureCollection", features: [] };
-          const parsed = yield packages.placefile.AtmosXPlacefileParser.parsePlacefile(body);
+          const parsed = yield packages.placefile.PlacefileManager.parsePlacefile(body);
           for (const feature of parsed) {
             const lon = parseFloat(feature.icon.x);
             const lat = parseFloat(feature.icon.y);
@@ -4789,12 +4751,12 @@ var init_parsing = __esm({
               type: "Feature",
               geometry: { type: "Point", coordinates: [lon, lat] },
               properties: {
-                event: lines[1] || "N/A",
-                reporter: ((_a = lines[0]) == null ? void 0 : _a.replace("Reported By:", "").trim()) || "N/A",
-                size: ((_b = lines[2]) == null ? void 0 : _b.replace("Size:", "").trim()) || "N/A",
-                notes: ((_c = lines[3]) == null ? void 0 : _c.replace("Notes:", "").trim()) || "N/A",
+                event: (_a = lines[1]) != null ? _a : "N/A",
+                reporter: (_c = (_b = lines[0]) == null ? void 0 : _b.replace("Reported By:", "").trim()) != null ? _c : "N/A",
+                size: (_e = (_d = lines[2]) == null ? void 0 : _d.replace("Size:", "").trim()) != null ? _e : "N/A",
+                notes: (_g = (_f = lines[3]) == null ? void 0 : _f.replace("Notes:", "").trim()) != null ? _g : "N/A",
                 sender: "Spotter Network",
-                description: feature.icon.label.replace(/\n/g, "<br>").trim() || "N/A"
+                description: (_h = feature.icon.label.replace(/\n/g, "<br>").trim()) != null ? _h : "N/A"
               }
             });
           }
@@ -4805,7 +4767,7 @@ var init_parsing = __esm({
         return __async(this, null, function* () {
           var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o;
           const structure = { type: "FeatureCollection", features: [] };
-          const parsed = yield packages.placefile.AtmosXPlacefileParser.parseGeoJSON(body);
+          const parsed = yield packages.placefile.PlacefileManager.parseGeoJSON(body);
           for (const feature of parsed) {
             if (!feature.properties || !feature.coordinates) continue;
             if (feature.properties.expires_at_ms < Date.now()) continue;
@@ -4841,7 +4803,7 @@ var init_parsing = __esm({
           const ConfigType = cache.internal.configurations;
           const feedConfig = (_b = (_a = ConfigType.sources) == null ? void 0 : _a.location_settings) == null ? void 0 : _b.spotter_network_feed;
           const structure = { type: "FeatureCollection", features: [] };
-          const parsed = yield packages.placefile.AtmosXPlacefileParser.parsePlacefile(body);
+          const parsed = yield packages.placefile.PlacefileManager.parsePlacefile(body);
           for (const feature of parsed) {
             const lon = parseFloat(feature.object.coordinates[1]);
             const lat = parseFloat(feature.object.coordinates[0]);
@@ -4885,7 +4847,7 @@ var init_parsing = __esm({
           const ConfigType = cache.internal.configurations;
           const threshold = (_b = (_a = ConfigType.sources.probability_settings[type]) == null ? void 0 : _a.percentage_threshold) != null ? _b : 50;
           const typeRegexp = type === "tornado" ? /ProbTor: (\d+)%\// : /PSv3: (\d+)%\//;
-          const parsed = yield packages.placefile.AtmosXPlacefileParser.parsePlacefile(body);
+          const parsed = yield packages.placefile.PlacefileManager.parsePlacefile(body);
           for (const feature of parsed) {
             if (!((_c = feature.line) == null ? void 0 : _c.text)) continue;
             const probMatch = feature.line.text.match(typeRegexp);
@@ -4903,6 +4865,44 @@ var init_parsing = __esm({
           }
           return structure;
         });
+      }
+      getWxRadioStructure(body) {
+        var _a, _b, _c, _d;
+        let structure = { type: "FeatureCollection", features: [] };
+        for (const feature of body.sources) {
+          const lon = parseFloat(feature.lon);
+          const lat = parseFloat(feature.lat);
+          if (isNaN(lon) || isNaN(lat)) continue;
+          structure.features.push({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [lon, lat] },
+            properties: {
+              location: (_a = feature == null ? void 0 : feature.location) != null ? _a : "N/A",
+              callsign: (_b = feature == null ? void 0 : feature.callsign) != null ? _b : "N/A",
+              frequency: (_c = feature == null ? void 0 : feature.frequency) != null ? _c : "N/A",
+              stream: (_d = feature == null ? void 0 : feature.listen_url) != null ? _d : "N/A"
+            }
+          });
+        }
+        return structure;
+      }
+      getTropicalStormStructure(body) {
+        var _a, _b, _c, _d, _e;
+        const structure = { type: "FeatureCollection", features: [] };
+        for (const feature of body) {
+          structure.features.push({
+            type: "Feature",
+            properties: {
+              name: (_a = feature.name) != null ? _a : "N/A",
+              discussion: (_b = feature.forecast_discussion) != null ? _b : "N/A",
+              classification: (_c = feature.classification) != null ? _c : "N/A",
+              pressure: (_d = feature.pressure) != null ? _d : 0,
+              wind_speed: (_e = feature.wind_speed_mph) != null ? _e : 0,
+              last_updated: feature.last_update_at ? new Date(feature.last_update_at).toLocaleString() : "N/A"
+            }
+          });
+        }
+        return structure;
       }
       getWxEyeSondeStructure(body) {
         return body.map((feature) => feature);
@@ -5017,8 +5017,8 @@ var init_routes = __esm({
           path: "/stream"
         });
         wss.on("connection", (client, req) => {
-          var _a2;
-          const ip = ((_a2 = req == null ? void 0 : req.socket) == null ? void 0 : _a2.remoteAddress) || "unknown";
+          var _a2, _b;
+          const ip = (_b = (_a2 = req == null ? void 0 : req.socket) == null ? void 0 : _a2.remoteAddress) != null ? _b : "unknown";
           if (ip === "unknown") return client.close(4e3, "Invalid IP");
           const count = this.clients.filter((c) => c.address === ip).length;
           if (count >= max) {
