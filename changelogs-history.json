@@ -1,4 +1,16 @@
 {
+    "8.0.003": {
+        "version": "8.0.003",
+        "updated": "Monday, November 10th",
+        "headline": "<span style='color:green'>[FEED]</span>__BETA_BRANCH_DEVELOPER_USE_ONLY__ DO NOT USE",
+        "changelogs": [
+            "note: DO_NOT_USE_DEV_BUILD",
+            "add: Implemented periodic update checks to ensure the application stays current with the latest features and fixes.",
+            "add: Introduced random alert cycles to enhance user engagement and provide dynamic alert experiences.",
+            "add: Webhook integration for alert dispatching, allowing real-time notifications to external services."
+        ],
+        "rewrite": true
+    },
     "8.0.002": {
         "version": "8.0.002",
         "updated": "Monday, October, 27th",

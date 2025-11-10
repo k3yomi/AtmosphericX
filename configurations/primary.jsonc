@@ -34,8 +34,8 @@
     */
 {
     "web_hosting_settings": {
-        "is_login_required": true,
-        "is_guest_access_allowed": false,
+        "is_login_required": true, // TODO (Semi)
+        "is_guest_access_allowed": false, // TODO
         "settings" : {
             "is_https": false,
             "port_number": 80,
@@ -49,9 +49,9 @@
         "fancy_interface": true,
         "fancy_interface_feed": true,
         "global_update": "*/10 * * * * *", 
+        "random_update": "*/30 * * * * *", 
         "update_check": "0 */6 * * *",
-        "request_timeout": 10,
-        "random_alert_timeout": 30 
+        "request_timeout": 10
     },
     "websocket_settings": {
         "maximum_connections_per_ip": 15,
@@ -89,8 +89,7 @@
             "discord_webhook": "DISCORD_WEBHOOK_HERE",
             "webhook_display": "AtmosphericX (Webhook Integration)",
             "content": "<@&ROLE_ID_HERE>",
-            "webhook_cooldown": 1,
-            "events": []
+            "webhook_cooldown": 1
         },
         "misc_alerts": {
             "enabled": false,
@@ -115,7 +114,8 @@
             "Tsunami Watch", "Tsunami Advisory",
             "Earthquake Warning", "Hurricane Warning",
             "Hurricane Watch", "Special Weather Statement",
-            "Tropical Storm Warning"
+            "Tropical Storm Warning", "Winter Storm Warning", "Blizzard Warning",
+            "Winter Weather Advisory", "Wind Chill Warning", "Wind Chill Advisory"
         ],
         "priority_events": [
             "Tornado Emergency", "PDS Tornado Warning", "PDS Tornado Watch",

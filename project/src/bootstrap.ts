@@ -66,8 +66,9 @@ export const cache = {
         wx_radio: [],
         tornado: [],
         severe: [],
-        manual: [],
+        manual: {features: []},
         events: {features: []},
+        rng: {index: 0, alert: null},
         hashes: [],
         placefiles: {},
         locations: {
@@ -86,6 +87,7 @@ export const cache = {
         express: undefined,
         manager: undefined,
         websocket: undefined,
+        webhooks: [],
         socket: undefined,
         last_cache_update: 0,
         metrics: {

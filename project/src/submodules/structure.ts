@@ -9,13 +9,9 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx      
-	Last Updated: 2025-10-20
+	Last Updated: 2025-11-10
     Changelogs: 
-        - Added type definitions for better clarity and maintainability.
-		- Refactored parsing and event registration methods for improved structure.
-		- Enhanced event metadata retrieval for flexibility.
-		- Implemented event registration with filtering options.
-		- Created a comprehensive create method for handling various data types and alert updates.
+        - Webhook integration for alert dispatching.
 */
 
 import * as loader from '../bootstrap';
@@ -84,6 +80,7 @@ export class Structure {
 
 	public async create(data: unknown, isAlertupdate?: boolean): Promise<void> {
 		const clean = loader.submodules.utils.filterWebContent(data);
+		const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
 		const dataTypes = [
 			{ key: 'spotter_network_feed', cache: 'spotter_network_feed' },
 			{ key: 'spotter_reports', cache: 'storm_reports' },
@@ -110,6 +107,29 @@ export class Structure {
 					loader.submodules.utils.log(loader.submodules.alerts.displayAlert(ev));
 				} else { 
 					loader.submodules.utils.log(loader.submodules.alerts.displayAlert(ev), {}, `__events__`);
+				}
+				const webhooks = ConfigType.webhook_settings;
+				const pSet = new Set((ConfigType.filters.priority_events || []).map(p => String(p).toLowerCase()));
+				const title = `${ev.event.properties.event} (${ev.event.properties.action_type})`;
+				const body = [
+					`**Locations:** ${ev.event.properties.locations.slice(0, 259)}`,
+					`**Issued:** ${ev.event.properties.issued}`,
+					`**Expires:** ${ev.event.properties.expires}`,
+					`**Wind Gusts:** ${ev.event.properties.parameters.max_wind_gust}`,
+					`**Hail Size:** ${ev.event.properties.parameters.max_hail_size}`,
+					`**Damage Threat:** ${ev.event.properties.parameters.damage_threat}`,
+					`**Tornado Threat:** ${ev.event.properties.parameters.tornado_detection}`,
+					`**Flood Threat:** ${ev.event.properties.parameters.flood_detection}`,
+					`**Tags:** ${ev.event.properties.tags ? ev.event.properties.tags.join(', ') : 'N/A'}`,
+					`**Sender:** ${ev.event.properties.sender_name}`,
+					`**Tracking ID:** ${ev.event.tracking}`,
+					'```',
+					ev.event.properties.description.split('\n').map(line => line.trim()).filter(line => line.length > 0).join('\n'),
+					'```'
+				].join('\n');
+				await loader.submodules.networking.sendWebhook(title,body, webhooks.general_alerts);
+				if (pSet.has(ev.event.properties.event.toLowerCase())) {
+					await loader.submodules.networking.sendWebhook(title, body, webhooks.critical_alerts);
 				}
 			}
 		}

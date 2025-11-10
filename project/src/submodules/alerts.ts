@@ -9,9 +9,9 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx      
-    Last Updated: 2025-10-20
+    Last Updated: 2025-11-10
     Changelogs: 
-        - Added type definitions for better clarity and maintainability.
+        - randomize method for random alert cycles.
 
 */
 
@@ -61,6 +61,23 @@ export class Alerts {
                 }).join('\n')
             }
         }
+    }
+
+    public randomize(): types.EventType | null {
+        const manual = Array.isArray(loader.cache.external.manual?.features) ? loader.cache.external.manual.features : [];
+        const active = Array.isArray(loader.cache.external.events?.features) ? loader.cache.external.events.features : [];
+        const alerts = [...manual, ...active].filter(alert => alert && Object.keys(alert).length > 0);
+        if (alerts.length === 0) {
+            loader.cache.external.rng = { alert: null, index: null };
+            return null;
+        }
+        const currentIndex = loader.cache.external.rng?.index ?? 0;
+        const nextIndex = (currentIndex + 1) % alerts.length;
+        loader.cache.external.rng = {
+            alert: alerts[currentIndex],
+            index: nextIndex
+        };
+        return loader.cache.external.rng.alert;
     }
 
     private handle(events:  types.EventType[]): void {
@@ -136,6 +153,11 @@ export class Alerts {
         if (isRefreshing) { this.manager.setSettings(settings); return; }
         this.manager = new this.package(settings);
         this.manager.on(`onAlerts`, (alerts) => { this.handle(alerts); });
+        this.manager.on(`onMessage`, async (message) => { 
+            const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
+            const webhooks = ConfigType.webhook_settings;
+            await loader.submodules.networking.sendWebhook(`New Stanza - ${message.awipsType.type}`, `\`\`\`${message.message}\`\`\``, webhooks.misc_alerts);
+        });
         this.manager.on(`onConnection`, async (displayName) => {loader.submodules.utils.log(`Connected to NOAA Weather Wire Service as ${displayName}.`);});
         this.manager.on(`onReconnection`, (service) => { now = new Date(); displayTimestamp = `${String(now.getUTCMonth() + 1).padStart(2, '0')}/${String(now.getUTCDate()).padStart(2, '0')} ${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`; this.manager.setDisplayName(`AtmosphericX v${loader.submodules.utils.version()} -> ${displayName} (${displayTimestamp}) (x${service.reconnects})`) })
         this.manager.on(`log`, (message) => { loader.submodules.utils.log(message, { title: `\x1b[33m[ATMOSX-PARSER]\x1b[0m` }); });

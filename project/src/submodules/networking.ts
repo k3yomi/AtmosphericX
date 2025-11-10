@@ -9,13 +9,9 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx  
-    Last Updated: 2025-10-20
+    Last Updated: 2025-11-10
     Changelogs: 
-        - Added type definitions for better clarity and maintainability.
-        - Implemented caching and contradiction resolution for data sources.
-        - Enhanced error handling and retry logic for data fetching.
-        - Created methods for update checking and cache refreshing.
-        - Developed a comprehensive HTTP request handler with customizable options.                             
+        - Webhook definition and sending method added.                        
 */
 
 
@@ -129,6 +125,29 @@ export class Alerts {
             }
             return {error: false, message: `Update check completed.`};
         });
+    }
+
+    public async sendWebhook(title: string, body: string, settings: types.WebhookSettings): Promise<void> {
+        if (!settings.enabled) { return }
+        const time = Date.now();
+        loader.cache.internal.webhooks = loader.cache.internal.webhooks.filter(ts => ts.time > time - settings.webhook_cooldown * 1000);
+        if (loader.cache.internal.webhooks.filter(ts => ts.type == title).length >= 3) {
+            return;
+        }
+        if (body.length > 1900) {
+            body = body.substring(0, 1900) + "\n\n[Message truncated due to length]";
+            if (body.split("```").length % 2 == 0) { body += "```"; }
+        }
+        const embed = { title, description: body, color: 16711680, timestamp: new Date().toISOString(), footer: { text: title } };
+        try { 
+            await loader.packages.axios.post(settings.discord_webhook || ``, {
+                username: settings.webhook_display || `AtmosphericX Alerts`,
+                content: settings.content || ``,
+                embeds: [embed],
+            });
+            loader.cache.internal.webhooks.push({ type: title, timestamp: time });
+            return
+        } catch (error) {}
     }
 
     public async updateCache(isAlertUpdate?: boolean): Promise<void> {

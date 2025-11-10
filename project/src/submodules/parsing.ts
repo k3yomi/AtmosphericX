@@ -9,15 +9,9 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx
-    Last Updated: 2025-10-20
+    Last Updated: 2025-11-10
     Changelogs: 
-        - Improved type safety and method accessibility
-        - Refactored parsing methods for that better clarity so I'm not left wondering what the
-          hell I was thinking when I wrote this in the future.  
-        - Added Sonde Project Weather Eye data (https://sonde.projectweathereye.org/map) parsing support.
-          Credits: Vince Waelti (https://www.youtube.com/@stormchaservince)  
-        - Added Tropical Storm Tracking + SPC Mesoscale Discussions parsing support from 
-          WeatherWise API (https://weatherwise.app)             
+        - Change placefile parsing and structure methods.           
 */
 
 

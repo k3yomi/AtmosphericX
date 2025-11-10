@@ -9,9 +9,9 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx  
-    Last Updated: 2025-10-20
+    Last Updated: 2025-11-10
     Changelogs: 
-        - Improved type definitions for better clarity and maintainability. (Local vs Exported)    
+        - Added type definitions for websockets
                           
 */
 
@@ -57,6 +57,14 @@ export interface HTTPType { error?: boolean; message?: string }
 export interface WebSocketClient {  client: any; unix: number; address: string; requests: Record<string, any>; hasSentInitialData: boolean; }
 export interface CertificateCollection { key: Buffer;certificate: Buffer;}
 
+export interface WebhookSettings {
+    enabled?: boolean;
+    discord_webhook?: string;
+    webhook_display?: string;
+    content?: string;
+    webhook_cooldown?: number;
+    events?: string[];
+}
 
 export interface RegisterType { 
     event: EventType;
@@ -81,6 +89,7 @@ export interface ConfigurationsType {
     project_settings?: any; 
     internal_settings?: any;
     websocket_settings?: any;
+    webhook_settings?: any;
     sources?: any; 
     hosting?: any;
     tones?: any;

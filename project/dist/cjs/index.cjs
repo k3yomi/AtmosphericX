@@ -4064,6 +4064,23 @@ var Alerts = class {
       }
     }
   }
+  randomize() {
+    var _a, _b, _c, _d;
+    const manual = Array.isArray((_a = cache.external.manual) == null ? void 0 : _a.features) ? cache.external.manual.features : [];
+    const active = Array.isArray((_b = cache.external.events) == null ? void 0 : _b.features) ? cache.external.events.features : [];
+    const alerts = [...manual, ...active].filter((alert) => alert && Object.keys(alert).length > 0);
+    if (alerts.length === 0) {
+      cache.external.rng = { alert: null, index: null };
+      return null;
+    }
+    const currentIndex = (_d = (_c = cache.external.rng) == null ? void 0 : _c.index) != null ? _d : 0;
+    const nextIndex = (currentIndex + 1) % alerts.length;
+    cache.external.rng = {
+      alert: alerts[currentIndex],
+      index: nextIndex
+    };
+    return cache.external.rng.alert;
+  }
   handle(events2) {
     var _a, _b;
     const features = cache.external.events.features;
@@ -4150,6 +4167,11 @@ var Alerts = class {
     this.manager.on(`onAlerts`, (alerts2) => {
       this.handle(alerts2);
     });
+    this.manager.on(`onMessage`, (message) => __async(this, null, function* () {
+      const ConfigType = cache.internal.configurations;
+      const webhooks = ConfigType.webhook_settings;
+      yield submodules.networking.sendWebhook(`New Stanza - ${message.awipsType.type}`, `\`\`\`${message.message}\`\`\``, webhooks.misc_alerts);
+    }));
     this.manager.on(`onConnection`, (displayName2) => __async(this, null, function* () {
       submodules.utils.log(`Connected to NOAA Weather Wire Service as ${displayName2}.`);
     }));
@@ -4347,6 +4369,35 @@ var Alerts2 = class {
       return { error: false, message: `Update check completed.` };
     }));
   }
+  sendWebhook(title, body, settings) {
+    return __async(this, null, function* () {
+      if (!settings.enabled) {
+        return;
+      }
+      const time = Date.now();
+      cache.internal.webhooks = cache.internal.webhooks.filter((ts) => ts.time > time - settings.webhook_cooldown * 1e3);
+      if (cache.internal.webhooks.filter((ts) => ts.type == title).length >= 3) {
+        return;
+      }
+      if (body.length > 1900) {
+        body = body.substring(0, 1900) + "\n\n[Message truncated due to length]";
+        if (body.split("```").length % 2 == 0) {
+          body += "```";
+        }
+      }
+      const embed = { title, description: body, color: 16711680, timestamp: (/* @__PURE__ */ new Date()).toISOString(), footer: { text: title } };
+      try {
+        yield packages.axios.post(settings.discord_webhook || ``, {
+          username: settings.webhook_display || `AtmosphericX Alerts`,
+          content: settings.content || ``,
+          embeds: [embed]
+        });
+        cache.internal.webhooks.push({ type: title, timestamp: time });
+        return;
+      } catch (error) {
+      }
+    });
+  }
   updateCache(isAlertUpdate) {
     return __async(this, null, function* () {
       var _a, _c;
@@ -4478,6 +4529,7 @@ var Structure = class {
     return __async(this, null, function* () {
       var _a;
       const clean = submodules.utils.filterWebContent(data);
+      const ConfigType = cache.internal.configurations;
       const dataTypes = [
         { key: "spotter_network_feed", cache: "spotter_network_feed" },
         { key: "spotter_reports", cache: "storm_reports" },
@@ -4504,6 +4556,29 @@ var Structure = class {
             submodules.utils.log(submodules.alerts.displayAlert(ev));
           } else {
             submodules.utils.log(submodules.alerts.displayAlert(ev), {}, `__events__`);
+          }
+          const webhooks = ConfigType.webhook_settings;
+          const pSet = new Set((ConfigType.filters.priority_events || []).map((p) => String(p).toLowerCase()));
+          const title = `${ev.event.properties.event} (${ev.event.properties.action_type})`;
+          const body = [
+            `**Locations:** ${ev.event.properties.locations.slice(0, 259)}`,
+            `**Issued:** ${ev.event.properties.issued}`,
+            `**Expires:** ${ev.event.properties.expires}`,
+            `**Wind Gusts:** ${ev.event.properties.parameters.max_wind_gust}`,
+            `**Hail Size:** ${ev.event.properties.parameters.max_hail_size}`,
+            `**Damage Threat:** ${ev.event.properties.parameters.damage_threat}`,
+            `**Tornado Threat:** ${ev.event.properties.parameters.tornado_detection}`,
+            `**Flood Threat:** ${ev.event.properties.parameters.flood_detection}`,
+            `**Tags:** ${ev.event.properties.tags ? ev.event.properties.tags.join(", ") : "N/A"}`,
+            `**Sender:** ${ev.event.properties.sender_name}`,
+            `**Tracking ID:** ${ev.event.tracking}`,
+            "```",
+            ev.event.properties.description.split("\n").map((line) => line.trim()).filter((line) => line.length > 0).join("\n"),
+            "```"
+          ].join("\n");
+          yield submodules.networking.sendWebhook(title, body, webhooks.general_alerts);
+          if (pSet.has(ev.event.properties.event.toLowerCase())) {
+            yield submodules.networking.sendWebhook(title, body, webhooks.critical_alerts);
           }
         }
       }
@@ -5099,8 +5174,9 @@ var cache = {
     wx_radio: [],
     tornado: [],
     severe: [],
-    manual: [],
+    manual: { features: [] },
     events: { features: [] },
+    rng: { index: 0, alert: null },
     hashes: [],
     placefiles: {},
     locations: {
@@ -5119,6 +5195,7 @@ var cache = {
     express: void 0,
     manager: void 0,
     websocket: void 0,
+    webhooks: [],
     socket: void 0,
     last_cache_update: 0,
     metrics: {
@@ -5201,10 +5278,16 @@ Object.entries(submoduleClasses).forEach(([key, Class]) => {
 // src/index.ts
 new Promise((resolve) => __async(null, null, function* () {
   const ConfigType = cache.internal.configurations;
+  submodules.networking.updateCache();
+  submodules.networking.getUpdates();
+  submodules.alerts.randomize();
   new packages.jobs.Cron(ConfigType.internal_settings.global_update, () => {
     submodules.networking.updateCache();
   });
   new packages.jobs.Cron(ConfigType.internal_settings.update_check, () => {
     submodules.networking.getUpdates();
+  });
+  new packages.jobs.Cron(ConfigType.internal_settings.random_update, () => {
+    submodules.alerts.randomize();
   });
 }));
