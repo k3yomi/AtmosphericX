@@ -1,0 +1,67 @@
+@font-face { font-family: DefaultFont; src: url('/src/__assets/__fonts/GenericFont.ttf'); }
+* { font-family: "DefaultFont" }
+
+:root, .global { 
+    --global-font-family: 'DefaultFont';
+    --clr-dark-a0: #000000;
+    --clr-light-a0: #ffffff;
+    --clr-primary-a0: #617080;
+    --clr-primary-a10: #717f8d;
+    --clr-primary-a20: #828e9b;
+    --clr-primary-a30: #939da9;
+    --clr-primary-a40: #a4adb7;
+    --clr-primary-a50: #b6bdc5;
+    --clr-primary-a60: #c8cdd3;
+    --clr-primary-a70: #dadde1;
+    --clr-primary-a80: #eceef0;
+    --clr-surface-a0: #100d1a;
+    --clr-surface-a10: #26242f;
+    --clr-surface-a20: #3d3b45;
+    --clr-surface-a30: #56545d;
+    --clr-surface-a40: #6f6e76;
+    --clr-surface-a50: #8a8990;
+    --clr-surface-a60: #a6a5aa;
+    --clr-surface-a70: #c3c2c6;
+    --clr-surface-tonal-a0: #181823;
+    --clr-surface-tonal-a10: #2d2d38;
+    --clr-surface-tonal-a20: #44444d;
+    --clr-surface-tonal-a30: #5c5b64;
+    --clr-surface-tonal-a40: #75747c;
+    --clr-surface-tonal-a50: #8f8f95;
+    --clr-surface-tonal-a60: #aaa9ae;
+    --clr-surface-tonal-a70: #c5c5c9;
+    --clr-success-a0: #22946e;
+    --clr-success-a10: #47d5a6;
+    --clr-success-a20: #9ae8ce;
+    --clr-warning-a0: #a87a2a;
+    --clr-warning-a10: #d7ac61;
+    --clr-warning-a20: #ecd7b2;
+    --clr-danger-a0: #9c2121;
+    --clr-danger-a10: #d94a4a;
+    --clr-danger-a20: #eb9e9e;
+    --clr-info-a0: #21498a;
+    --clr-info-a10: #4077d1;
+    --clr-info-a20: #92b2e5;
+}
+
+
+.graph-bg { 
+    position: fixed; 
+    inset: 0; 
+    background-color: var(--clr-surface-tonal-a0);
+    background-image:
+        linear-gradient(var(--clr-surface-a10) 1px, transparent 1px),
+        linear-gradient(90deg, var(--clr-surface-a10) 1px, transparent 1px);
+    background-size: 80px 80px;
+    pointer-events: none; 
+    overflow: hidden; 
+    animation:
+        anim_grid_drift 5s linear infinite;
+    filter: drop-shadow(0 0 3px var(--clr-surface-a10));
+}
+
+@keyframes anim_grid_drift {
+    0% { background-position: 0px 0px, 0px 0px; }
+    100% { background-position: 80px 80px, 80px 80px; }
+}
+@keyframes anim_grid_pulse_brightness { 0% { opacity: 0.40; } 50% { opacity: 0.60; } 100% { opacity: 0.40; } }

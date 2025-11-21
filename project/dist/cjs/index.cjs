@@ -34,6 +34,9 @@ var __objRest = (source, exclude) => {
     }
   return target;
 };
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
@@ -3891,26 +3894,6 @@ var require_websocket_server = __commonJS({
   }
 });
 
-// src/bootstrap.ts
-var manager = __toESM(require("atmosx-nwws-parser"));
-var tempest = __toESM(require("atmosx-tempest-pulling"));
-var placefile = __toESM(require("atmosx-placefile-parser"));
-var import_better_sqlite3 = __toESM(require("better-sqlite3"));
-var import_express = __toESM(require("express"));
-var import_cookie_parser = __toESM(require("cookie-parser"));
-var import_axios = __toESM(require("axios"));
-var gui = __toESM(require("blessed"));
-var events = __toESM(require("events"));
-var path = __toESM(require("path"));
-var fs = __toESM(require("fs"));
-var crypto = __toESM(require("crypto"));
-var http = __toESM(require("http"));
-var https = __toESM(require("https"));
-var xmpp = __toESM(require("@xmpp/client"));
-var os = __toESM(require("os"));
-var xml2js = __toESM(require("xml2js"));
-var shapefile = __toESM(require("shapefile"));
-
 // node_modules/ws/wrapper.mjs
 var wrapper_exports = {};
 __export(wrapper_exports, {
@@ -3921,1311 +3904,2093 @@ __export(wrapper_exports, {
   createWebSocketStream: () => import_stream.default,
   default: () => wrapper_default
 });
-var import_stream = __toESM(require_stream(), 1);
-var import_receiver = __toESM(require_receiver(), 1);
-var import_sender = __toESM(require_sender(), 1);
-var import_websocket = __toESM(require_websocket(), 1);
-var import_websocket_server = __toESM(require_websocket_server(), 1);
-var wrapper_default = import_websocket.default;
-
-// src/bootstrap.ts
-var firebaseApp = __toESM(require("firebase/app"));
-var firebaseDatabase = __toESM(require("firebase/database"));
-var streamerBot = __toESM(require("@streamerbot/client"));
-var jobs = __toESM(require("croner"));
-var jsonc = __toESM(require("jsonc-parser"));
+var import_stream, import_receiver, import_sender, import_websocket, import_websocket_server, wrapper_default;
+var init_wrapper = __esm({
+  "node_modules/ws/wrapper.mjs"() {
+    import_stream = __toESM(require_stream(), 1);
+    import_receiver = __toESM(require_receiver(), 1);
+    import_sender = __toESM(require_sender(), 1);
+    import_websocket = __toESM(require_websocket(), 1);
+    import_websocket_server = __toESM(require_websocket_server(), 1);
+    wrapper_default = import_websocket.default;
+  }
+});
 
 // src/submodules/utils.ts
-var Utils = class {
-  constructor() {
-    this.VERSION_PATH = `../version`;
-    this.LOGO_LEGACY_PATH = `../storage/logo-legacy.txt`;
-    this.LOGO_PATH = `../storage/logo.txt`;
-    this.LOGS_PATH = `../storage/logs.txt`;
-    this.CONFIGURATIONS_PATH = `../configurations`;
-    this.NAME_SPACE = `submodule:utils`;
-    this.initialize();
-  }
-  initialize() {
-    this.configurations();
-    this.logo();
-    this.log(`${this.NAME_SPACE} initialized.`);
-  }
-  sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-  version() {
-    const version = packages.fs.existsSync(this.VERSION_PATH) ? packages.fs.readFileSync(this.VERSION_PATH, `utf-8`).replace(/\n/g, ``) : `v0.0.0`;
-    return version;
-  }
-  isFancyDisplay() {
-    return cache.internal.configurations.internal_settings.fancy_interface || false;
-  }
-  logo() {
-    const path2 = this.isFancyDisplay() ? this.LOGO_PATH : this.LOGO_LEGACY_PATH;
-    const ConfigType = cache.internal.configurations;
-    const logo = packages.fs.existsSync(path2) ? packages.fs.readFileSync(path2, `utf-8`).replace(`{VERSION}`, this.version()) : `AtmosphericX {VERSION}`;
-    if (ConfigType.internal_settings.fancy_interface) {
-      return logo;
-    }
-    console.clear();
-    console.log(logo);
-  }
-  log(message, options, logType = `__console__`) {
-    const title = (options == null ? void 0 : options.title) || `\x1B[32m[ATMOSX-UTILS]\x1B[0m`;
-    const msg = message || `No message provided.`;
-    const rawConsole = (options == null ? void 0 : options.rawConsole) || false;
-    const echoFile = (options == null ? void 0 : options.echoFile) || false;
-    if (!rawConsole) {
-      cache.internal.logs[logType].push({ title, message: msg, timestamp: (/* @__PURE__ */ new Date()).toLocaleString() });
-      if (cache.internal.logs[logType].length > 25) {
-        cache.internal.logs[logType].shift();
+var Utils, utils_default;
+var init_utils = __esm({
+  "src/submodules/utils.ts"() {
+    init_bootstrap();
+    Utils = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:utils`;
+        this.VERSION_PATH = `../version`;
+        this.LOGO_PATH = `../storage/logo.txt`;
+        this.LOGO_LEGACY_PATH = `../storage/logo-legacy.txt`;
+        this.LOGS_PATH = `../storage/logs.txt`;
+        this.CONFIGURATIONS_PATH = `../configurations`;
+        this.configurations();
+        this.logo();
+        this.log(`${this.NAME_SPACE} initialized.`);
       }
-    }
-    if (rawConsole || !this.isFancyDisplay()) {
-      console.log(`${title}\x1B[0m [${(/* @__PURE__ */ new Date()).toLocaleString()}] ${msg}`);
-    }
-    if (echoFile) {
-      packages.fs.appendFileSync(this.LOGS_PATH, `[${title.replace(/\x1b\[[0-9;]*m/g, "")}] [${(/* @__PURE__ */ new Date()).toLocaleString()}] ${msg}
+      /**
+       * @function sleep
+       * @description
+       *     Pauses execution for the given number of milliseconds.
+       * 
+       * @param {number} ms
+       * @returns {Promise<void>}
+       */
+      sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+      /**
+       * @function version
+       * @description
+       *     Reads and returns the current application version from VERSION_PATH, 
+       *     or defaults to "v0.0.0" if the file does not exist.
+       * 
+       * @returns {string}
+       */
+      version() {
+        const version = packages.fs.existsSync(this.VERSION_PATH) ? packages.fs.readFileSync(this.VERSION_PATH, `utf-8`).replace(/\n/g, ``) : `v0.0.0`;
+        return version;
+      }
+      /**
+       * @function isFancyDisplay
+       * @description
+       *     Checks if the fancy interface display setting is enabled in the configuration.
+       * 
+       * @returns {boolean}
+       */
+      isFancyDisplay() {
+        return cache.internal.configurations.internal_settings.fancy_interface || false;
+      }
+      /**
+       * @function logo
+       * @description
+       *     Returns the application logo as a string. If fancy interface is disabled,
+       *     also prints the logo to the console.
+       * 
+       * @returns {string | void}
+       */
+      logo() {
+        const path2 = this.isFancyDisplay() ? this.LOGO_PATH : this.LOGO_LEGACY_PATH;
+        const ConfigType = cache.internal.configurations;
+        const logo = packages.fs.existsSync(path2) ? packages.fs.readFileSync(path2, `utf-8`).replace(`{VERSION}`, this.version()) : `AtmosphericX {VERSION}`;
+        if (ConfigType.internal_settings.fancy_interface) {
+          return logo;
+        }
+        console.clear();
+        console.log(logo);
+      }
+      /**
+       * @function log
+       * @description
+       *     logs a message in the console and internal cache with options for formatting.
+       * 
+       * @param {string} [message]
+       * @param {types.LogOptions} [options]
+       * @param {string} [logType]
+       * @returns {void}
+       */
+      log(message, options, logType = `__console__`) {
+        const title = (options == null ? void 0 : options.title) || `\x1B[32m[ATMOSX-UTILS]\x1B[0m`;
+        const msg = message || `No message provided.`;
+        const rawConsole = (options == null ? void 0 : options.rawConsole) || false;
+        const echoFile = (options == null ? void 0 : options.echoFile) || false;
+        if (!rawConsole) {
+          cache.internal.logs[logType].push({ title, message: msg, timestamp: (/* @__PURE__ */ new Date()).toLocaleString() });
+          if (cache.internal.logs[logType].length > 25) {
+            cache.internal.logs[logType].shift();
+          }
+        }
+        if (rawConsole || !this.isFancyDisplay()) {
+          console.log(`${title}\x1B[0m [${(/* @__PURE__ */ new Date()).toLocaleString()}] ${msg}`);
+        }
+        if (echoFile) {
+          packages.fs.appendFileSync(this.LOGS_PATH, `[${title.replace(/\x1b\[[0-9;]*m/g, "")}] [${(/* @__PURE__ */ new Date()).toLocaleString()}] ${msg}
 `);
-    }
-  }
-  configurations() {
-    var _a;
-    let configurations = packages.fs.existsSync(this.CONFIGURATIONS_PATH) ? packages.fs.readdirSync(this.CONFIGURATIONS_PATH).reduce((acc, file) => {
-      const filePath = `${this.CONFIGURATIONS_PATH}/${file}`;
-      if (packages.fs.statSync(filePath).isFile()) {
-        try {
-          const fileContent = packages.jsonc.parse(packages.fs.readFileSync(filePath, "utf-8"));
-          acc = __spreadValues(__spreadValues({}, acc), fileContent);
-        } catch (e) {
-          this.log(`Failed to parse ${file}, malfored JSONC configuration`);
-          process.exit(1);
         }
       }
-      return acc;
-    }, {}) : {};
-    cache.internal.configurations = configurations;
-    cache.external.configurations = {
-      alerts: (_a = configurations.filters) == null ? void 0 : _a.listening_events,
-      tones: configurations.tones,
-      dictionary: configurations.alert_dictionary,
-      schemes: configurations.alert_schemes,
-      spc_outlooks: configurations.spc_outlooks,
-      third_party_services: configurations.third_party_services,
-      forecasting_services: configurations.forecasting_services
-    };
-  }
-  filterWebContent(content) {
-    if (typeof content == "string") try {
-      content = JSON.parse(content);
-    } catch (e) {
-      return content.replace(/<[^>]*>/g, "");
-    }
-    if (Array.isArray(content)) return content.map((item) => this.filterWebContent(item));
-    if (typeof content == "object" && content !== null) {
-      const obj = content;
-      for (let key in obj) {
-        let value = obj[key];
-        obj[key] = typeof value == "string" ? value.replace(/<[^>]*>/g, "") : this.filterWebContent(value);
+      /**
+       * @function log
+       * @description
+       *     Logs a message to the internal cache, console, and optionally to a log file.
+       * 
+       * @param {string} [message]
+       * @param {types.LogOptions} [options]
+       * @param {string} [logType]
+       * @returns {void}
+       */
+      configurations() {
+        var _a;
+        let configurations = packages.fs.existsSync(this.CONFIGURATIONS_PATH) ? packages.fs.readdirSync(this.CONFIGURATIONS_PATH).reduce((acc, file) => {
+          const filePath = `${this.CONFIGURATIONS_PATH}/${file}`;
+          if (packages.fs.statSync(filePath).isFile()) {
+            try {
+              const fileContent = packages.jsonc.parse(packages.fs.readFileSync(filePath, "utf-8"));
+              acc = __spreadValues(__spreadValues({}, acc), fileContent);
+            } catch (e) {
+              this.log(`Failed to parse ${file}, malfored JSONC configuration`);
+              process.exit(1);
+            }
+          }
+          return acc;
+        }, {}) : {};
+        cache.internal.configurations = configurations;
+        cache.external.configurations = {
+          alerts: (_a = configurations.filters) == null ? void 0 : _a.listening_events,
+          tones: configurations.tones,
+          dictionary: configurations.alert_dictionary,
+          schemes: configurations.alert_schemes,
+          spc_outlooks: configurations.spc_outlooks,
+          third_party_services: configurations.third_party_services,
+          forecasting_services: configurations.forecasting_services
+        };
       }
-    }
-    return content;
+      /**
+       * @function filterWebContent
+       * @description
+       *     Recursively removes HTML tags from strings within a given input.
+       *     If the input is a JSON string, it attempts to parse it first.
+       *     Supports nested objects and arrays, sanitizing all string values.
+       *
+       * @param {string | unknown} content
+       * @returns {unknown}
+       */
+      filterWebContent(content) {
+        if (typeof content == "string") try {
+          content = JSON.parse(content);
+        } catch (e) {
+          return content.replace(/<[^>]*>/g, "");
+        }
+        if (Array.isArray(content)) return content.map((item) => this.filterWebContent(item));
+        if (typeof content == "object" && content !== null) {
+          const obj = content;
+          for (let key in obj) {
+            let value = obj[key];
+            obj[key] = typeof value == "string" ? value.replace(/<[^>]*>/g, "") : this.filterWebContent(value);
+          }
+        }
+        return content;
+      }
+    };
+    utils_default = Utils;
   }
-};
-var utils_default = Utils;
+});
 
 // src/submodules/alerts.ts
-var Alerts = class {
-  constructor() {
-    this.package = packages.manager.AlertManager;
-    this.name = `submodule:alerts`;
-    this.initalize();
-  }
-  initalize() {
-    submodules.utils.log(`${this.name} initialized.`);
-    this.instance();
-  }
-  displayAlert(registry, isLiveFeed) {
-    if (!submodules.utils.isFancyDisplay() || !isLiveFeed) {
-      return strings.new_event_legacy.replace(`{EVENT}`, registry.event.properties.event).replace(`{STATUS}`, registry.event.properties.action_type).replace(`{TRACKING}`, registry.event.tracking.substring(0, 18)).replace(`{SOURCE}`, cache.internal.getSource);
-    } else {
-      if (isLiveFeed) {
-        return cache.external.events.features.sort((a, b) => {
-          const dateA = new Date(a.event.properties.issued).getTime();
-          const dateB = new Date(b.event.properties.issued).getTime();
-          return dateA - dateB;
-        }).map((registry2) => {
-          var _a;
-          return strings.new_event_fancy.replace(`{EVENT}`, registry2.event.properties.event).replace(`{ACTION_TYPE}`, registry2.event.properties.action_type).replace(`{TRACKING}`, registry2.event.tracking.substring(0, 18)).replace(`{SENDER}`, registry2.event.properties.sender_name).replace(`{ISSUED}`, registry2.event.properties.issued).replace(`{EXPIRES}`, submodules.calculations.timeRemaining(registry2.event.properties.expires)).replace(`{TAGS}`, registry2.event.properties.tags ? registry2.event.properties.tags.join(", ") : "N/A").replace(`{LOCATIONS}`, registry2.event.properties.locations.substring(0, 100)).replace(`{DISTANCE}`, ((_a = registry2.event.properties.distance) == null ? void 0 : _a.range) != null ? Object.entries(registry2.event.properties.distance.range).map(([key, value]) => {
-            return `${key}: ${value.distance} ${value.unit}`;
-          }).join(", ") : `No Distance Data Available`);
+var Alerts, alerts_default;
+var init_alerts = __esm({
+  "src/submodules/alerts.ts"() {
+    init_bootstrap();
+    Alerts = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:alerts`;
+        this.PACKAGE = packages.manager.AlertManager;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+        this.instance();
+      }
+      /**
+       * @function returnAlertText
+       * @description
+       *     Generates a formatted alert display string for either legacy or live-feed
+       *     rendering modes. When fancy display is enabled and live feed data is present,
+       *     alerts are sorted by issue time and formatted using the "fancy" template.
+       *     Otherwise, a simplified "legacy" template is used. This implementation is
+       *     defensive: it validates shapes, safely calls possible functions, and never
+       *     throws on malformed input.
+       *
+       * @param {types.RegisterType} [registry]
+       * @param {boolean} [isLiveFeed=false]
+       * @returns {string}
+       */
+      returnAlertText(reg, isLive) {
+        var _a, _b;
+        const { utils, calculations } = submodules, { strings: strings2, cache: cache2 } = bootstrap_exports;
+        if (!utils.isFancyDisplay() || !isLive) {
+          const e = reg == null ? void 0 : reg.event;
+          return strings2.new_event_legacy.replace("{EVENT}", (_a = e.properties.event) != null ? _a : "Unknown").replace("{STATUS}", (_b = e.properties.action_type) != null ? _b : "Unknown").replace("{TRACKING}", e.tracking.substring(0, 18)).replace("{SOURCE}", cache2.internal.getSource);
+        }
+        return cache2.external.events.features.sort((a, b) => new Date(a.event.properties.issued).getTime() - new Date(b.event.properties.issued).getTime()).map((r) => {
+          var _a2, _b2, _c, _d;
+          const p = r.event.properties, d = p.distance;
+          const dist = d && Object.keys(d).length > 0 ? Object.entries(d).map(([name, val]) => {
+            var _a3, _b3;
+            const distance = (_a3 = val == null ? void 0 : val.distance) != null ? _a3 : "N/A";
+            const unit = (_b3 = val == null ? void 0 : val.unit) != null ? _b3 : "";
+            return `${name}: ${distance}${unit ? ` ${unit}` : ""}`;
+          }).join(", ") : "Not Available";
+          return strings2.new_event_fancy.replace("{EVENT}", p.event).replace("{ACTION_TYPE}", p.action_type).replace("{TRACKING}", r.event.tracking.substring(0, 18)).replace("{SENDER}", p.sender_name).replace("{ISSUED}", p.issued).replace("{EXPIRES}", calculations.timeRemaining(p.expires)).replace("{TAGS}", (_b2 = (_a2 = p.tags) == null ? void 0 : _a2.join(", ")) != null ? _b2 : "N/A").replace("{LOCATIONS}", (_d = (_c = p.locations) == null ? void 0 : _c.substring(0, 100)) != null ? _d : "N/A").replace("{DISTANCE}", dist);
         }).join("\n");
       }
-    }
-  }
-  randomize() {
-    var _a, _b, _c, _d;
-    const manual = Array.isArray((_a = cache.external.manual) == null ? void 0 : _a.features) ? cache.external.manual.features : [];
-    const active = Array.isArray((_b = cache.external.events) == null ? void 0 : _b.features) ? cache.external.events.features : [];
-    const alerts = [...manual, ...active].filter((alert) => alert && Object.keys(alert).length > 0);
-    if (alerts.length === 0) {
-      cache.external.rng = { alert: null, index: null };
-      return null;
-    }
-    const currentIndex = (_d = (_c = cache.external.rng) == null ? void 0 : _c.index) != null ? _d : 0;
-    const nextIndex = (currentIndex + 1) % alerts.length;
-    cache.external.rng = {
-      alert: alerts[currentIndex],
-      index: nextIndex
-    };
-    return cache.external.rng.alert;
-  }
-  handle(events2) {
-    var _a, _b;
-    const features = cache.external.events.features;
-    for (const event of events2) {
-      const registeredEvent = submodules.structure.register(event);
-      const { tracking, properties, history = [] } = registeredEvent.event;
-      const index = features.findIndex((feature) => feature && feature.event.tracking === tracking);
-      if (properties.is_cancelled && index !== -1) {
-        features[index] = void 0;
-        continue;
+      /**
+       * @function randomize
+       * @description
+       *     Selects the next available alert from the combined list of manual and
+       *     active event sources. The method cycles sequentially through alerts and
+       *     wraps back to the beginning once all have been iterated. Invalid or empty
+       *     alert entries are ignored, and the RNG state is automatically reset if
+       *     corrupted or out of bounds.
+       *
+       * @public
+       * @returns {types.EventType | null}
+       */
+      randomize() {
+        var _a, _b, _c, _d, _e, _f;
+        const ext = cache.external;
+        const m = Array.isArray((_a = ext.manual) == null ? void 0 : _a.features) ? ext.manual.features.filter(Boolean) : [];
+        const a = Array.isArray((_b = ext.events) == null ? void 0 : _b.features) ? ext.events.features.filter(Boolean) : [];
+        const alerts = [...m, ...a].filter((x) => x && typeof x === "object" && Object.keys(x).length > 0);
+        if (!alerts.length) return ext.rng = { alert: null, index: null }, null;
+        const i = ((_d = (_c = ext.rng) == null ? void 0 : _c.index) != null ? _d : -1) + 1 >= alerts.length ? 0 : ((_f = (_e = ext.rng) == null ? void 0 : _e.index) != null ? _f : -1) + 1;
+        const alert = alerts[i];
+        ext.rng = { alert, index: i };
+        return alert;
       }
-      if (properties.is_issued && index === -1) {
-        features.push(registeredEvent);
-        continue;
-      }
-      if (properties.is_updated) {
-        if (index !== -1 && features[index]) {
-          const existing = features[index];
-          const existingLocations = (_a = existing.event.properties.locations) != null ? _a : "";
-          const mergedHistory = [...(_b = existing.event.history) != null ? _b : [], ...history].sort(
-            (a, b) => new Date(b.issued).getTime() - new Date(a.issued).getTime()
-          );
-          existing.event.properties.event = properties.event;
-          existing.event.history = mergedHistory;
-          existing.event.properties = registeredEvent.event.properties;
-          const combinedLocations = [
-            ...new Set((existingLocations + "; " + registeredEvent.event.properties.locations).split(";").map((loc) => loc.trim()).filter(Boolean))
-          ].join("; ");
-          existing.event.properties.locations = combinedLocations;
-        } else {
-          features.push(registeredEvent);
+      /**
+       * @function handle
+       * @description
+       *     Processes an incoming batch of event objects and updates the external
+       *     event cache accordingly. Each event is registered, validated, and merged
+       *     into the loader's existing structure. Handles issued, updated, and
+       *     cancelled alerts with full state synchronization between internal and
+       *     external caches.
+       *
+       *     - **Issued events** are appended when not already tracked.
+       *     - **Updated events** merge histories, locations, and property fields.
+       *     - **Cancelled events** remove matching entries from the cache.
+       *
+       *     This function also updates internal processing metrics and triggers a
+       *     network cache refresh to ensure consistent downstream state.
+       *
+       * @private
+       * @param {types.EventType[]} events
+       * @returns {void}
+       */
+      handle(events2) {
+        var _a, _b;
+        const features = cache.external.events.features;
+        for (const event of events2) {
+          const registeredEvent = submodules.structure.register(event);
+          const { tracking, properties, history = [] } = registeredEvent.event;
+          const index = features.findIndex((feature) => feature && feature.event.tracking === tracking);
+          if (properties.is_cancelled && index !== -1) {
+            features[index] = void 0;
+            continue;
+          }
+          if (properties.is_issued && index === -1) {
+            features.push(registeredEvent);
+            continue;
+          }
+          if (properties.is_updated) {
+            if (index !== -1 && features[index]) {
+              const existing = features[index];
+              const existingLocations = (_a = existing.event.properties.locations) != null ? _a : "";
+              const mergedHistory = [
+                ...(_b = existing.event.history) != null ? _b : [],
+                ...history
+              ].sort((a, b) => new Date(b.issued).getTime() - new Date(a.issued).getTime());
+              const uniqueHistory = mergedHistory.filter(
+                (item, pos, arr) => arr.findIndex((i) => i.issued === item.issued && i.description === item.description) === pos
+              );
+              existing.event.properties.event = properties.event;
+              existing.event.history = uniqueHistory;
+              existing.event.properties = registeredEvent.event.properties;
+              const combinedLocations = [
+                ...new Set((existingLocations + "; " + registeredEvent.event.properties.locations).split(";").map((loc) => loc.trim()).filter(Boolean))
+              ].join("; ");
+              existing.event.properties.locations = combinedLocations;
+            } else {
+              features.push(registeredEvent);
+            }
+          }
         }
+        cache.internal.metrics.events_processed += events2.length;
+        submodules.networking.updateCache(true);
       }
-    }
-    cache.internal.metrics.events_processed += events2.length;
-    submodules.networking.updateCache(true);
-  }
-  instance(isRefreshing) {
-    if (isRefreshing && !this.manager) return;
-    const configurations = cache.internal.configurations;
-    const alerts = configurations.sources.atmosx_parser_settings;
-    const nwws = alerts.weather_wire_settings;
-    const nws = alerts.national_weather_service_settings;
-    const filter = configurations.filters;
-    let now = /* @__PURE__ */ new Date();
-    let displayName = nwws.client_credentials.nickname.replace(`AtmosphericX`, ``).trim();
-    let displayTimestamp = `${String(now.getUTCMonth() + 1).padStart(2, "0")}/${String(now.getUTCDate()).padStart(2, "0")} ${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`;
-    if (alerts.noaa_weather_wire_service == true) {
-      cache.internal.getSource = `NWWS`;
-    }
-    const settings = {
-      database: nwws.database,
-      is_wire: alerts.noaa_weather_wire_service,
-      journal: alerts.journal,
-      noaa_weather_wire_service_settings: {
-        reconnection_settings: { enabled: nwws.client_reconnections.attempt_reconnections, interval: nwws.client_reconnections.reconnection_attempt_interval },
-        credentials: { username: nwws.client_credentials.username, password: nwws.client_credentials.password, nickname: `AtmosphericX v${submodules.utils.version()} -> ${displayName} (${displayTimestamp})` },
-        cache: { enabled: nwws.client_cache.read_cache, max_file_size: nwws.client_cache.max_size_mb, max_db_history: nwws.client_cache.max_db_history, directory: nwws.client_cache.directory },
-        preferences: { cap_only: nwws.alert_preferences.cap_only, shapefile_coordinates: nwws.alert_preferences.implement_db_ugc }
-      },
-      national_weather_service_settings: { interval: nws.interval, endpoint: nws.endpoint },
-      global_settings: {
-        parent_events_only: alerts.global_settings.parent_events,
-        better_event_parsing: alerts.global_settings.better_parsing,
-        filtering: {
-          location: { max_distance: filter.location_settings.max_distance, unit: filter.location_settings.unit, filter: filter.location_settings.enabled },
-          ignore_text_products: filter.ignore_tests,
-          events: filter.all_events == true ? [] : filter.listening_events,
-          ignored_events: filter.ignored_events,
-          filtered_icoa: filter.listening_icoa,
-          ignored_icoa: filter.ignored_icoa,
-          ugc_filter: filter.listening_ugcs,
-          state_filter: filter.listening_states,
-          check_expired: false
-        },
-        eas_settings: { festival_tts_voice: filter.festival_voice, directory: filter.eas_settings.eas_directory, intro_wav: filter.eas_settings.eas_intro }
+      /**
+       * @function instance
+       * @description
+       *     Initializes or refreshes the parser manager instance with current
+       *     configurations and settings. Sets up event handlers for alert reception,
+       *     messages, connection, reconnection, and logging. Supports refreshing
+       *     an existing manager instance without recreating it.
+       *
+       * @public
+       * @param {boolean} [isRefreshing=false]
+       * @returns {void}
+       */
+      instance(isRefreshing = false) {
+        if (isRefreshing && !this.MANAGER) return;
+        const configurations = cache.internal.configurations;
+        const alerts = configurations.sources.atmosx_parser_settings;
+        const nwws = alerts.weather_wire_settings;
+        const nws = alerts.national_weather_service_settings;
+        const filter = configurations.filters;
+        const now = /* @__PURE__ */ new Date();
+        const displayName = nwws.client_credentials.nickname.replace(`AtmosphericX`, ``).trim();
+        const displayTimestamp = `${String(now.getUTCMonth() + 1).padStart(2, "0")}/${String(now.getUTCDate()).padStart(2, "0")} ${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`;
+        if (alerts.noaa_weather_wire_service) cache.internal.getSource = `NWWS`;
+        const settings = {
+          database: nwws.database,
+          is_wire: alerts.noaa_weather_wire_service,
+          journal: alerts.journal,
+          noaa_weather_wire_service_settings: {
+            reconnection_settings: { enabled: nwws.client_reconnections.attempt_reconnections, interval: nwws.client_reconnections.reconnection_attempt_interval },
+            credentials: { username: nwws.client_credentials.username, password: nwws.client_credentials.password, nickname: `AtmosphericX v${submodules.utils.version()} -> ${displayName} (${displayTimestamp})` },
+            cache: { enabled: nwws.client_cache.read_cache, max_file_size: nwws.client_cache.max_size_mb, max_db_history: nwws.client_cache.max_db_history, directory: nwws.client_cache.directory },
+            preferences: { cap_only: nwws.alert_preferences.cap_only, shapefile_coordinates: nwws.alert_preferences.implement_db_ugc }
+          },
+          national_weather_service_settings: { interval: nws.interval, endpoint: nws.endpoint },
+          global_settings: {
+            parent_events_only: alerts.global_settings.parent_events,
+            better_event_parsing: alerts.global_settings.better_parsing,
+            filtering: {
+              location: { unit: filter.location_settings.unit },
+              ignore_text_products: filter.ignore_tests,
+              events: filter.all_events ? [] : filter.listening_events,
+              ignored_events: filter.ignored_events,
+              filtered_icoa: filter.listening_icoa,
+              ignored_icoa: filter.ignored_icoa,
+              ugc_filter: filter.listening_ugcs,
+              state_filter: filter.listening_states,
+              check_expired: false
+            },
+            eas_settings: { festival_tts_voice: filter.festival_voice, directory: filter.eas_settings.eas_directory, intro_wav: filter.eas_settings.eas_intro }
+          }
+        };
+        if (isRefreshing) {
+          this.MANAGER.setSettings(settings);
+          return;
+        }
+        this.MANAGER = new this.PACKAGE(settings);
+        this.MANAGER.on(`onAlerts`, (alerts2) => {
+          this.handle(alerts2);
+        });
+        this.MANAGER.on(`onMessage`, (message) => __async(this, null, function* () {
+          const webhooks = configurations.webhook_settings;
+          yield submodules.networking.sendWebhook(`New Stanza - ${message.awipsType.type}`, `\`\`\`${message.message}\`\`\``, webhooks.misc_alerts);
+        }));
+        this.MANAGER.on(`onConnection`, (displayName2) => __async(this, null, function* () {
+          submodules.utils.log(`Connected to NOAA Weather Wire Service as ${displayName2}.`);
+        }));
+        this.MANAGER.on(`onReconnection`, (service) => {
+          const now2 = /* @__PURE__ */ new Date();
+          const displayTimestamp2 = `${String(now2.getUTCMonth() + 1).padStart(2, "0")}/${String(now2.getUTCDate()).padStart(2, "0")} ${String(now2.getUTCHours()).padStart(2, "0")}:${String(now2.getUTCMinutes()).padStart(2, "0")}`;
+          this.MANAGER.setDisplayName(`AtmosphericX v${submodules.utils.version()} -> ${displayName} (${displayTimestamp2}) (x${service.reconnects})`);
+        });
+        this.MANAGER.on(`log`, (message) => {
+          submodules.utils.log(message, { title: `\x1B[33m[ATMOSX-PARSER]\x1B[0m` });
+        });
+        cache.internal.manager = this.MANAGER;
       }
     };
-    if (isRefreshing) {
-      this.manager.setSettings(settings);
-      return;
-    }
-    this.manager = new this.package(settings);
-    this.manager.on(`onAlerts`, (alerts2) => {
-      this.handle(alerts2);
-    });
-    this.manager.on(`onMessage`, (message) => __async(this, null, function* () {
-      const ConfigType = cache.internal.configurations;
-      const webhooks = ConfigType.webhook_settings;
-      yield submodules.networking.sendWebhook(`New Stanza - ${message.awipsType.type}`, `\`\`\`${message.message}\`\`\``, webhooks.misc_alerts);
-    }));
-    this.manager.on(`onConnection`, (displayName2) => __async(this, null, function* () {
-      submodules.utils.log(`Connected to NOAA Weather Wire Service as ${displayName2}.`);
-    }));
-    this.manager.on(`onReconnection`, (service) => {
-      now = /* @__PURE__ */ new Date();
-      displayTimestamp = `${String(now.getUTCMonth() + 1).padStart(2, "0")}/${String(now.getUTCDate()).padStart(2, "0")} ${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`;
-      this.manager.setDisplayName(`AtmosphericX v${submodules.utils.version()} -> ${displayName} (${displayTimestamp}) (x${service.reconnects})`);
-    });
-    this.manager.on(`log`, (message) => {
-      submodules.utils.log(message, { title: `\x1B[33m[ATMOSX-PARSER]\x1B[0m` });
-    });
-    cache.internal.manager = this.manager;
+    alerts_default = Alerts;
   }
-};
-var alerts_default = Alerts;
+});
 
 // src/submodules/calculations.ts
-var Calculations = class {
-  constructor() {
-    this.NAME_SPACE = `submodule:calculations`;
-    this.initialize();
+var Calculations, calculations_default;
+var init_calculations = __esm({
+  "src/submodules/calculations.ts"() {
+    init_bootstrap();
+    Calculations = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:calculations`;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+      }
+      /**
+       * @function convertDegreesToCardinal
+       * @description
+       *     Converts a numeric heading in degrees (0–360) to its corresponding
+       *     cardinal or intercardinal direction (N, NE, E, SE, S, SW, W, NW).
+       *
+       * @param {number} degrees
+       * @returns {string}
+       */
+      convertDegreesToCardinal(degrees) {
+        if (!Number.isFinite(degrees) || degrees < 0 || degrees > 360) return "Invalid";
+        const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+        return directions[Math.round((degrees % 360 + 360) % 360 / 45) % 8];
+      }
+      /**
+       * @function calculateDistance
+       * @description
+       *     Calculates the great-circle distance between two geographic coordinates
+       *     using the Haversine formula. Supports output in miles or kilometers.
+       *
+       * @param {types.Coordinates} coord1
+       * @param {types.Coordinates} coord2
+       * @param {'miles' | 'kilometers'} [unit='miles']
+       * @returns {number}
+       */
+      calculateDistance(c1, c2, u = "miles") {
+        if (!c1 || !c2) return 0;
+        const { lat: a, lon: b } = c1, { lat: x, lon: y } = c2;
+        if (![a, b, x, y].every(Number.isFinite)) return 0;
+        const r = u === "miles" ? 3958.8 : 6371, d = Math.PI / 180;
+        const dA = (x - a) * d, dB = (y - b) * d;
+        const h = __pow(Math.sin(dA / 2), 2) + Math.cos(a * d) * Math.cos(x * d) * __pow(Math.sin(dB / 2), 2);
+        return +(r * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))).toFixed(2);
+      }
+      /**
+       * @function timeRemaining
+       * @description
+       *     Returns a human-readable string representing the time remaining until
+       *     the specified future date. Returns "Expired" if the date has passed or
+       *     the original input if the date is invalid.
+       *
+       * @param {string} futureDate
+       * @returns {string | Date}
+       */
+      timeRemaining(future) {
+        const t = Date.parse(future);
+        if (isNaN(t)) return future;
+        let s = Math.floor((t - Date.now()) / 1e3);
+        if (s <= 0) return "Expired";
+        const d = Math.floor(s / 86400);
+        s %= 86400;
+        const h = Math.floor(s / 3600);
+        s %= 3600;
+        const m = Math.floor(s / 60);
+        s %= 60;
+        return [d && `${d}d`, h && `${h}h`, m && `${m}m`, `${s}s`].filter(Boolean).join(" ");
+      }
+      /**
+       * @function formatDuration
+       * @description
+       *     Converts a duration in milliseconds to a human-readable string
+       *     formatted as days, hours, minutes, and seconds.
+       *
+       * @param {number} uptimeMs
+       * @returns {string}
+       */
+      formatDuration(ms) {
+        if (!Number.isFinite(ms) || ms < 0) return "0s";
+        let s = Math.floor(ms / 1e3);
+        const d = Math.floor(s / 86400);
+        s %= 86400;
+        const h = Math.floor(s / 3600);
+        s %= 3600;
+        const m = Math.floor(s / 60);
+        s %= 60;
+        return [d && `${d}d`, h && `${h}h`, m && `${m}m`, `${s}s`].filter(Boolean).join(" ");
+      }
+    };
+    calculations_default = Calculations;
   }
-  initialize() {
-    submodules.utils.log(`${this.NAME_SPACE} initialized.`);
-  }
-  convertDegreesToCardinal(degrees) {
-    if (!Number.isFinite(degrees) || degrees < 0 || degrees > 360) {
-      return "Invalid";
-    }
-    const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-    const normalized = (degrees % 360 + 360) % 360;
-    const index = Math.round(normalized / 45) % 8;
-    return directions[index];
-  }
-  calculateDistance(coord1, coord2, unit = "miles") {
-    if (!coord1 || !coord2) return 0;
-    const { lat: lat1, lon: lon1 } = coord1;
-    const { lat: lat2, lon: lon2 } = coord2;
-    if ([lat1, lon1, lat2, lon2].some((v) => typeof v !== "number")) return 0;
-    const toRad = (deg) => deg * Math.PI / 180;
-    const R = unit === "miles" ? 3958.8 : 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = __pow(Math.sin(dLat / 2), 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * __pow(Math.sin(dLon / 2), 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return Math.round(R * c * 100) / 100;
-  }
-  timeRemaining(futureDate) {
-    if (isNaN(new Date(futureDate).getTime())) {
-      return futureDate;
-    }
-    const now = /* @__PURE__ */ new Date();
-    const target = new Date(futureDate);
-    const diff = target.getTime() - now.getTime();
-    if (diff <= 0) {
-      return "Expired";
-    }
-    const totalSeconds = Math.floor(diff / 1e3);
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor(totalSeconds % 86400 / 3600);
-    const minutes = Math.floor(totalSeconds % 3600 / 60);
-    const seconds = totalSeconds % 60;
-    const parts = [];
-    if (days) parts.push(`${days}d`);
-    if (hours) parts.push(`${hours}h`);
-    if (minutes) parts.push(`${minutes}m`);
-    parts.push(`${seconds}s`);
-    return parts.join(" ");
-  }
-  formatDuration(uptimeMs) {
-    if (!Number.isFinite(uptimeMs) || uptimeMs < 0) {
-      return "0s";
-    }
-    const totalSeconds = Math.floor(uptimeMs / 1e3);
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor(totalSeconds % 86400 / 3600);
-    const minutes = Math.floor(totalSeconds % 3600 / 60);
-    const seconds = totalSeconds % 60;
-    const parts = [];
-    if (days) parts.push(`${days}d`);
-    if (hours) parts.push(`${hours}h`);
-    if (minutes) parts.push(`${minutes}m`);
-    parts.push(`${seconds}s`);
-    return parts.join(" ");
-  }
-};
-var calculations_default = Calculations;
+});
 
 // src/submodules/networking.ts
-var Alerts2 = class {
-  constructor() {
-    this.name = `submodule:networking`;
-    this.initalize();
-  }
-  initalize() {
-    submodules.utils.log(`${this.name} initialized.`);
-    this.getUpdates();
-    this.updateCache();
-  }
-  buildSourceStructure(sources) {
-    var _a;
-    const structure = [];
-    for (const source in sources) {
-      for (const [key, value] of Object.entries(sources[source])) {
-        const source2 = value;
-        structure.push({
-          name: key,
-          url: source2.endpoint,
-          enabled: source2.enabled,
-          cache: source2.cache_time,
-          contradictions: (_a = source2.contradictions) != null ? _a : []
-        });
+var Alerts2, networking_default;
+var init_networking = __esm({
+  "src/submodules/networking.ts"() {
+    init_bootstrap();
+    Alerts2 = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:networking`;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+        this.getUpdates();
       }
-    }
-    return structure;
-  }
-  resolveContradictions(structure) {
-    for (const source of structure.filter((s) => s.enabled)) {
-      for (const contradiction of source.contradictions) {
-        const index = structure.findIndex((s) => s.name === contradiction);
-        if (index !== -1 && structure[index].enabled) {
-          submodules.utils.log(`Evoking contradiction: ${source.name} disables ${structure[index].name}`, { echoFile: true });
-          structure[index].enabled = false;
+      /**
+       * @function buildSourceStructure
+       * @description
+       *     Converts a raw sources object into a typed array of CacheStructure objects.
+       * 
+       * @param {any} sources
+       * @returns {types.CacheStructure[]}
+       */
+      buildSourceStructure(sources) {
+        var _a;
+        const structure = [];
+        for (const source in sources) {
+          for (const [key, value] of Object.entries(sources[source])) {
+            const source2 = value;
+            structure.push({
+              name: key,
+              url: source2.endpoint,
+              enabled: source2.enabled,
+              cache: source2.cache_time,
+              contradictions: (_a = source2.contradictions) != null ? _a : []
+            });
+          }
         }
+        return structure;
       }
-    }
-  }
-  getDataFromSource(url) {
-    return __async(this, null, function* () {
-      var _a, _b;
-      try {
-        const response = yield this.httpRequest(url);
-        if (response == null ? void 0 : response.error) {
-          return { error: true, message: `Error fetching data from ${url}` };
-        }
-        return { error: false, message: (_a = response == null ? void 0 : response.message) != null ? _a : response };
-      } catch (error) {
-        return { error: true, message: `Exception fetching data from ${url}: ${(_b = error.message) != null ? _b : error}` };
-      }
-    });
-  }
-  httpRequest(url, options) {
-    return new Promise((resolve) => __async(null, null, function* () {
-      try {
-        const config = cache.internal.configurations;
-        const isOptionsProvided = options !== void 0;
-        if (!isOptionsProvided) {
-          options = {
-            timeout: config.internal_settings.request_timeout * 1e3,
-            headers: {
-              "User-Agent": `AtmosphericX/${submodules.utils.version()}`,
-              "Accept": "application/geo+json, text/plain, */*; q=0.",
-              "Accept-Language": "en-US,en;q=0.9"
-            },
-            method: "GET",
-            body: null
-          };
-        }
-        const response = yield packages.axios.get(url, {
-          headers: options.headers,
-          maxRedirects: 0,
-          timeout: options.timeout,
-          httpsAgent: new packages.https.Agent({ rejectUnauthorized: false }),
-          validateStatus: (status) => status == 200 || status == 500
-        });
-        const { data: responseMessage } = response;
-        return resolve({ message: responseMessage, error: false });
-      } catch (error) {
-        return resolve({ message: error, error: true });
-      }
-    }));
-  }
-  getUpdates() {
-    return new Promise((resolve) => __async(this, null, function* () {
-      const onlineVersion = yield this.httpRequest(`https://raw.githubusercontent.com/k3yomi/AtmosphericX/main/version`, void 0);
-      const onlineChangelogs = yield this.httpRequest(`https://raw.githubusercontent.com/k3yomi/AtmosphericX/main/changelogs-history.json`, void 0);
-      const offlineVersion = submodules.utils.version();
-      if (onlineVersion.error == true || onlineChangelogs.error == true) {
-        submodules.utils.log(strings.updated_required_failed, { echoFile: true });
-        return resolve({ error: true, message: `Failed to check for updates.` });
-      }
-      const onlineVersionParsed = onlineVersion.message.replace(/\n/g, ``);
-      const onlineChangelogsParsed = onlineChangelogs.message[onlineVersion] ? onlineChangelogs.message[onlineVersionParsed].changelogs.join(`
-	`) : `No changelogs available.`;
-      cache.external.version = offlineVersion;
-      cache.external.changelogs = onlineChangelogsParsed;
-      const isNewerVersionDiscovered = (a, b) => {
-        const [ma, mi, pa] = a.split(".").map(Number);
-        const [mb, mi2, pb] = b.split(".").map(Number);
-        return ma > mb || ma === mb && mi > mi2 || ma === mb && mi === mi2 && pa > pb;
-      };
-      if (isNewerVersionDiscovered(onlineVersionParsed, offlineVersion)) {
-        submodules.utils.log(strings.updated_requied.replace(`{ONLINE_PARSED}`, onlineVersionParsed).replace(`{OFFLINE_VERSION}`, offlineVersion).replace(`{ONLINE_CHANGELOGS}`, onlineChangelogsParsed), { echoFile: true });
-      }
-      return { error: false, message: `Update check completed.` };
-    }));
-  }
-  sendWebhook(title, body, settings) {
-    return __async(this, null, function* () {
-      if (!settings.enabled) {
-        return;
-      }
-      const time = Date.now();
-      cache.internal.webhooks = cache.internal.webhooks.filter((ts) => ts.time > time - settings.webhook_cooldown * 1e3);
-      if (cache.internal.webhooks.filter((ts) => ts.type == title).length >= 3) {
-        return;
-      }
-      if (body.length > 1900) {
-        body = body.substring(0, 1900) + "\n\n[Message truncated due to length]";
-        if (body.split("```").length % 2 == 0) {
-          body += "```";
-        }
-      }
-      const embed = { title, description: body, color: 16711680, timestamp: (/* @__PURE__ */ new Date()).toISOString(), footer: { text: title } };
-      try {
-        yield packages.axios.post(settings.discord_webhook || ``, {
-          username: settings.webhook_display || `AtmosphericX Alerts`,
-          content: settings.content || ``,
-          embeds: [embed]
-        });
-        cache.internal.webhooks.push({ type: title, timestamp: time });
-        return;
-      } catch (error) {
-      }
-    });
-  }
-  updateCache(isAlertUpdate) {
-    return __async(this, null, function* () {
-      var _a, _c;
-      submodules.utils.configurations();
-      const ConfigType = cache.internal.configurations;
-      const ExternalType = cache.external;
-      ExternalType.hashes = ExternalType.hashes.filter((e) => e !== void 0 && new Date(e.expires).getTime() > (/* @__PURE__ */ new Date()).getTime());
-      ExternalType.events = {
-        features: (_a = ExternalType.events) == null ? void 0 : _a.features.filter((f) => f !== void 0 && new Date(f.event.properties.expires).getTime() > (/* @__PURE__ */ new Date()).getTime()).filter((f) => {
-          if (ConfigType.filters.all_events) return true;
-          return ConfigType.filters.listening_events.includes(f.event.properties.event);
-        })
-      };
-      submodules.alerts.instance(true);
-      yield submodules.utils.sleep(200);
-      let data = {};
-      let stringText = ``;
-      const setTime = Date.now();
-      const _b = ConfigType.sources, { atmosx_parser_settings } = _b, sources = __objRest(_b, ["atmosx_parser_settings"]);
-      if (!isAlertUpdate) {
-        const structure = this.buildSourceStructure(sources);
-        this.resolveContradictions(structure);
-        const activeSources = structure.filter((s) => s.enabled && s.url != null);
-        yield Promise.all(
-          activeSources.map((source) => __async(this, null, function* () {
-            var _a2;
-            const lastFetched = (_a2 = cache.internal.http_timers[source.name]) != null ? _a2 : 0;
-            if (setTime - lastFetched <= source.cache * 1e3) return;
-            cache.internal.http_timers[source.name] = setTime;
-            for (let attempt = 0; attempt < 3; attempt++) {
-              const response = yield this.getDataFromSource(source.url);
-              if (!response.error) {
-                data[source.name] = response.message;
-                stringText += `(OK) ${source.name.toUpperCase()}, `;
-                break;
-              } else {
-                submodules.utils.log(`Error fetching data from ${source.name.toUpperCase()} (${attempt + 1}/3)`, { echoFile: true });
-                if (attempt === 2) {
-                  data[source.name] = void 0;
-                  stringText += `(ERR) ${source.name.toUpperCase()}, `;
-                }
-              }
+      /**
+       * @function resolveContradictions
+       * @description
+       *     Processes a CacheStructure array and disables sources based on contradictions.
+       * 
+       * @param {types.CacheStructure[]} structure
+       * @returns {void}
+       */
+      resolveContradictions(structure) {
+        for (const source of structure.filter((s) => s.enabled)) {
+          for (const contradiction of source.contradictions) {
+            const index = structure.findIndex((s) => s.name === contradiction);
+            if (index !== -1 && structure[index].enabled) {
+              submodules.utils.log(`Evoking contradiction: ${source.name} disables ${structure[index].name}`, { echoFile: true });
+              structure[index].enabled = false;
             }
-          }))
-        );
-      }
-      if (isAlertUpdate) {
-        if (!atmosx_parser_settings.noaa_weather_wire_service) {
-          const lastFetched = (_c = cache.internal.http_timers[`NWS`]) != null ? _c : 0;
-          if (setTime - lastFetched <= atmosx_parser_settings.national_weather_service_settings.internal * 1e3) return;
-          cache.internal.http_timers[`NWS`] = setTime;
-          stringText += `(OK) NWS, `;
+          }
         }
       }
-      data["events"] = cache.external.events.features;
-      if (stringText.length > 0) {
-        submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${stringText.slice(0, -2)}`, { echoFile: true });
+      /**
+       * @function getDataFromSource
+       * @description
+       *     Fetches data from a given URL and returns an object indicating success or error.
+       * 
+       * @param {string} url
+       * @returns {Promise<{ error: boolean; message: any }>}
+       */
+      getDataFromSource(url) {
+        return __async(this, null, function* () {
+          var _a, _b;
+          try {
+            const response = yield this.httpRequest(url);
+            if (response == null ? void 0 : response.error) {
+              return { error: true, message: `Error fetching data from ${url}` };
+            }
+            return { error: false, message: (_a = response == null ? void 0 : response.message) != null ? _a : response };
+          } catch (error) {
+            return { error: true, message: `Exception fetching data from ${url}: ${(_b = error.message) != null ? _b : error}` };
+          }
+        });
       }
-      submodules.structure.create(data, isAlertUpdate);
-    });
+      /**
+       * @function httpRequest
+       * @description
+       *     Performs an HTTP GET request to the specified URL with optional custom options.
+       * 
+       * @param {string} url
+       * @param {types.HTTPOptions} [options]
+       * @returns {Promise<any>}
+       */
+      httpRequest(url, options) {
+        return new Promise((resolve) => __async(null, null, function* () {
+          try {
+            const config = cache.internal.configurations;
+            const isOptionsProvided = options !== void 0;
+            if (!isOptionsProvided) {
+              options = {
+                timeout: config.internal_settings.request_timeout * 1e3,
+                headers: {
+                  "User-Agent": `AtmosphericX/${submodules.utils.version()}`,
+                  "Accept": "application/geo+json, text/plain, */*; q=0.",
+                  "Accept-Language": "en-US,en;q=0.9"
+                },
+                method: "GET",
+                body: null
+              };
+            }
+            const response = yield packages.axios.get(url, {
+              headers: options.headers,
+              maxRedirects: 0,
+              timeout: options.timeout,
+              httpsAgent: new packages.https.Agent({ rejectUnauthorized: false }),
+              validateStatus: (status) => status == 200 || status == 500
+            });
+            const { data: responseMessage } = response;
+            return resolve({ message: responseMessage, error: false });
+          } catch (error) {
+            return resolve({ message: error, error: true });
+          }
+        }));
+      }
+      /**
+       * @function getUpdates
+       * @description
+       *     Checks the online repository for the latest version and changelogs.
+       *     Updates cache and logs messages if a newer version is discovered.
+       * 
+       * @returns {Promise<{error: boolean, message: string}>}
+       */
+      getUpdates() {
+        return new Promise((resolve) => __async(this, null, function* () {
+          const onlineVersion = yield this.httpRequest(`https://raw.githubusercontent.com/k3yomi/AtmosphericX/main/version`, void 0);
+          const onlineChangelogs = yield this.httpRequest(`https://raw.githubusercontent.com/k3yomi/AtmosphericX/main/changelogs-history.json`, void 0);
+          const offlineVersion = submodules.utils.version();
+          if (onlineVersion.error == true || onlineChangelogs.error == true) {
+            submodules.utils.log(strings.updated_required_failed, { echoFile: true });
+            return resolve({ error: true, message: `Failed to check for updates.` });
+          }
+          const onlineVersionParsed = onlineVersion.message.replace(/\n/g, ``);
+          const onlineChangelogsParsed = onlineChangelogs.message[onlineVersion] ? onlineChangelogs.message[onlineVersionParsed].changelogs.join(`
+	`) : `No changelogs available.`;
+          cache.external.version = offlineVersion;
+          cache.external.changelogs = onlineChangelogsParsed;
+          const isNewerVersionDiscovered = (a, b) => {
+            const [ma, mi, pa] = a.split(".").map(Number);
+            const [mb, mi2, pb] = b.split(".").map(Number);
+            return ma > mb || ma === mb && mi > mi2 || ma === mb && mi === mi2 && pa > pb;
+          };
+          if (isNewerVersionDiscovered(onlineVersionParsed, offlineVersion)) {
+            submodules.utils.log(strings.updated_requied.replace(`{ONLINE_PARSED}`, onlineVersionParsed).replace(`{OFFLINE_VERSION}`, offlineVersion).replace(`{ONLINE_CHANGELOGS}`, onlineChangelogsParsed), { echoFile: true });
+          }
+          return { error: false, message: `Update check completed.` };
+        }));
+      }
+      /**
+       * @function sendWebhook
+       * @description
+       *     Sends a Discord webhook message with a title and body, respecting cooldowns
+       *     and truncating messages that are too long.
+       * 
+       * @param {string} title
+       * @param {string} body
+       * @param {types.WebhookSettings} settings
+       * @returns {Promise<void>}
+       */
+      sendWebhook(title, body, settings) {
+        return __async(this, null, function* () {
+          if (!settings.enabled) {
+            return;
+          }
+          const time = Date.now();
+          cache.internal.webhooks = cache.internal.webhooks.filter((ts) => ts.time > time - settings.webhook_cooldown * 1e3);
+          if (cache.internal.webhooks.filter((ts) => ts.type == title).length >= 3) {
+            return;
+          }
+          if (body.length > 1900) {
+            body = body.substring(0, 1900) + "\n\n[Message truncated due to length]";
+            if (body.split("```").length % 2 == 0) {
+              body += "```";
+            }
+          }
+          const embed = { title, description: body, color: 16711680, timestamp: (/* @__PURE__ */ new Date()).toISOString(), footer: { text: title } };
+          try {
+            yield packages.axios.post(settings.discord_webhook || ``, {
+              username: settings.webhook_display || `AtmosphericX Alerts`,
+              content: settings.content || ``,
+              embeds: [embed]
+            });
+            cache.internal.webhooks.push({ type: title, timestamp: time });
+            return;
+          } catch (error) {
+          }
+        });
+      }
+      /**
+       * @function updateCache
+       * @description
+       *     Updates internal and external cache, fetching data from sources, resolving contradictions,
+       *     and optionally updating alerts. Logs fetch results and updates the structured cache.
+       * 
+       * @param {boolean} [isAlertUpdate]
+       * @returns {Promise<void>}
+       */
+      updateCache(isAlertUpdate) {
+        return __async(this, null, function* () {
+          var _a, _c;
+          submodules.utils.configurations();
+          const ConfigType = cache.internal.configurations;
+          const ExternalType = cache.external;
+          ExternalType.hashes = ExternalType.hashes.filter((e) => e !== void 0 && new Date(e.expires).getTime() > (/* @__PURE__ */ new Date()).getTime());
+          ExternalType.events = {
+            features: (_a = ExternalType.events) == null ? void 0 : _a.features.filter((f) => f !== void 0 && new Date(f.event.properties.expires).getTime() > (/* @__PURE__ */ new Date()).getTime()).filter((f) => {
+              if (ConfigType.filters.all_events) return true;
+              return ConfigType.filters.listening_events.includes(f.event.properties.event);
+            })
+          };
+          submodules.alerts.instance(true);
+          yield submodules.utils.sleep(200);
+          let data = {};
+          let stringText = ``;
+          const setTime = Date.now();
+          const _b = ConfigType.sources, { atmosx_parser_settings } = _b, sources = __objRest(_b, ["atmosx_parser_settings"]);
+          if (!isAlertUpdate) {
+            const structure = this.buildSourceStructure(sources);
+            this.resolveContradictions(structure);
+            const activeSources = structure.filter((s) => s.enabled && s.url != null);
+            yield Promise.all(
+              activeSources.map((source) => __async(this, null, function* () {
+                var _a2;
+                const lastFetched = (_a2 = cache.internal.http_timers[source.name]) != null ? _a2 : 0;
+                if (setTime - lastFetched <= source.cache * 1e3) return;
+                cache.internal.http_timers[source.name] = setTime;
+                for (let attempt = 0; attempt < 3; attempt++) {
+                  const response = yield this.getDataFromSource(source.url);
+                  if (!response.error) {
+                    data[source.name] = response.message;
+                    stringText += `(OK) ${source.name.toUpperCase()}, `;
+                    break;
+                  } else {
+                    submodules.utils.log(`Error fetching data from ${source.name.toUpperCase()} (${attempt + 1}/3)`, { echoFile: true });
+                    if (attempt === 2) {
+                      data[source.name] = void 0;
+                      stringText += `(ERR) ${source.name.toUpperCase()}, `;
+                    }
+                  }
+                }
+              }))
+            );
+          }
+          if (isAlertUpdate) {
+            if (!atmosx_parser_settings.noaa_weather_wire_service) {
+              const lastFetched = (_c = cache.internal.http_timers[`NWS`]) != null ? _c : 0;
+              if (setTime - lastFetched <= atmosx_parser_settings.national_weather_service_settings.interval * 1e3) return;
+              cache.internal.http_timers[`NWS`] = setTime;
+              stringText += `(OK) NWS, `;
+            }
+          }
+          data["events"] = cache.external.events.features;
+          if (stringText.length > 0) {
+            submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${stringText.slice(0, -2)}`, { echoFile: true });
+          }
+          submodules.structure.create(data);
+        });
+      }
+    };
+    networking_default = Alerts2;
   }
-};
-var networking_default = Alerts2;
+});
 
 // src/submodules/structure.ts
-var Structure = class {
-  constructor() {
-    this.NAME_SPACE = `submodule:structure`;
-    this.initialize();
-  }
-  initialize() {
-    submodules.utils.log(`${this.NAME_SPACE} initialized.`);
-  }
-  parsing(body, type) {
-    return __async(this, null, function* () {
-      switch (type) {
-        case "spotter_network_feed":
-          return submodules.parsing.getSpotterFeed(body);
-        case "storm_prediction_center_mesoscale":
-          return submodules.parsing.getSPCDiscussions(body);
-        case "spotter_reports":
-          return submodules.parsing.getSpotterReportStructure(body);
-        case "grlevelx_reports":
-          return submodules.parsing.getGibsonReportStructure(body);
-        case "tropical_storm_tracks":
-          return submodules.parsing.getTropicalStormStructure(body);
-        case "tornado":
-          return submodules.parsing.getProbabilityStructure(body, "tornado");
-        case "severe":
-          return submodules.parsing.getProbabilityStructure(body, "severe");
-        case "sonde_project_weather_eye":
-          return submodules.parsing.getWxEyeSondeStructure(body);
-        case "wx_radio":
-          return submodules.parsing.getWxRadioStructure(body);
-        default:
-          return [];
+var Structure, structure_default;
+var init_structure = __esm({
+  "src/submodules/structure.ts"() {
+    init_bootstrap();
+    Structure = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:structure`;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
       }
-    });
-  }
-  getEventMetadata(event) {
-    const ConfigType = cache.internal.configurations;
-    const schemes = ConfigType.alert_schemes[event.properties.event] || ConfigType.alert_schemes[event.properties.parent] || ConfigType.alert_schemes["Default"];
-    const dictionary = ConfigType.alert_dictionary[event.properties.event] || ConfigType.alert_dictionary[event.properties.parent] || ConfigType.alert_dictionary["Special Event"];
-    let sfx = dictionary.sfx_cancel;
-    if (event.properties.is_issued) sfx = dictionary.sfx_issued;
-    else if (event.properties.is_updated) sfx = dictionary.sfx_update;
-    else if (event.properties.is_cancelled) sfx = dictionary.sfx_cancel;
-    return { sfx, scheme: schemes, metadata: dictionary.metadata };
-  }
-  register(event) {
-    const ConfigType = cache.internal.configurations;
-    const eventName = event.properties.event;
-    const isPriorityEvent = ConfigType.filters.priority_events.includes(eventName);
-    const isBeepAuthorizedOnly = ConfigType.filters.sfx_beep_only;
-    const isShowingUpdatesAllowed = ConfigType.filters.show_updates;
-    const eventMetadata = this.getEventMetadata(event);
-    const isBeepOnly = isBeepAuthorizedOnly && isPriorityEvent;
-    const isIgnored = !isShowingUpdatesAllowed && !isPriorityEvent;
-    return {
-      event,
-      metadata: eventMetadata.metadata,
-      scheme: eventMetadata.scheme,
-      sfx: isBeepOnly ? ConfigType.tones.sfx_beep : eventMetadata.sfx,
-      ignored: isIgnored,
-      beep: isBeepOnly
-    };
-  }
-  create(data, isAlertupdate) {
-    return __async(this, null, function* () {
-      var _a;
-      const clean = submodules.utils.filterWebContent(data);
-      const ConfigType = cache.internal.configurations;
-      const dataTypes = [
-        { key: "spotter_network_feed", cache: "spotter_network_feed" },
-        { key: "spotter_reports", cache: "storm_reports" },
-        { key: "grlevelx_reports", cache: "storm_reports" },
-        { key: "storm_prediction_center_mesoscale", cache: "storm_prediction_center_mesoscale" },
-        { key: "tropical_storm_tracks", cache: "tropical_storm_tracks" },
-        { key: "tornado", cache: "tornado" },
-        { key: "severe", cache: "severe" },
-        { key: "sonde_project_weather_eye", cache: "sonde_project_weather_eye" },
-        { key: "wx_radio", cache: "wx_radio" }
-      ];
-      for (const { key, cache: cache2 } of dataTypes) {
-        if (clean[key]) {
-          cache.external[cache2] = yield this.parsing(clean[key], key);
-        }
-      }
-      if (isAlertupdate && ((_a = clean.events) == null ? void 0 : _a.length)) {
-        for (const ev of clean.events) {
-          const isAlreadyLogged = cache.external.hashes.some((log) => log.id === ev.event.hash);
-          if (isAlreadyLogged) continue;
-          if (ev.ignored) continue;
-          cache.external.hashes.push({ id: ev.event.hash, expires: ev.event.properties.expires });
-          if (!submodules.utils.isFancyDisplay()) {
-            submodules.utils.log(submodules.alerts.displayAlert(ev));
-          } else {
-            submodules.utils.log(submodules.alerts.displayAlert(ev), {}, `__events__`);
-          }
-          const webhooks = ConfigType.webhook_settings;
-          const pSet = new Set((ConfigType.filters.priority_events || []).map((p) => String(p).toLowerCase()));
-          const title = `${ev.event.properties.event} (${ev.event.properties.action_type})`;
-          const body = [
-            `**Locations:** ${ev.event.properties.locations.slice(0, 259)}`,
-            `**Issued:** ${ev.event.properties.issued}`,
-            `**Expires:** ${ev.event.properties.expires}`,
-            `**Wind Gusts:** ${ev.event.properties.parameters.max_wind_gust}`,
-            `**Hail Size:** ${ev.event.properties.parameters.max_hail_size}`,
-            `**Damage Threat:** ${ev.event.properties.parameters.damage_threat}`,
-            `**Tornado Threat:** ${ev.event.properties.parameters.tornado_detection}`,
-            `**Flood Threat:** ${ev.event.properties.parameters.flood_detection}`,
-            `**Tags:** ${ev.event.properties.tags ? ev.event.properties.tags.join(", ") : "N/A"}`,
-            `**Sender:** ${ev.event.properties.sender_name}`,
-            `**Tracking ID:** ${ev.event.tracking}`,
-            "```",
-            ev.event.properties.description.split("\n").map((line) => line.trim()).filter((line) => line.length > 0).join("\n"),
-            "```"
-          ].join("\n");
-          yield submodules.networking.sendWebhook(title, body, webhooks.general_alerts);
-          if (pSet.has(ev.event.properties.event.toLowerCase())) {
-            yield submodules.networking.sendWebhook(title, body, webhooks.critical_alerts);
-          }
-        }
-      }
-      cache.external.events.features = clean.events || [];
-      submodules.routes.onUpdateRequest();
-    });
-  }
-};
-var structure_default = Structure;
-
-// src/submodules/display.ts
-var Display = class {
-  constructor() {
-    this.NAME_SPACE = `submodule:display`;
-    this.elements = {};
-    this.initialize();
-  }
-  initialize() {
-    return __async(this, null, function* () {
-      submodules.utils.log(`${this.NAME_SPACE} initialized.`);
-      if (!submodules.utils.isFancyDisplay()) {
-        return;
-      }
-      this.package = packages.gui;
-      this.manager = this.package.screen({
-        smartCSR: true,
-        title: `AtmosphericX v${submodules.utils.version()}`
-      });
-      yield this.intro(1e3);
-      this.create();
-      this.keybindings();
-      this.update();
-      setInterval(() => {
-        this.update();
-      }, 1e3);
-    });
-  }
-  intro(delay) {
-    return new Promise((resolve) => __async(this, null, function* () {
-      const tempLogo = this.package.box({
-        width: "shrink",
-        height: "shrink",
-        top: "center",
-        left: "center",
-        content: submodules.utils.logo(),
-        tags: true,
-        style: { align: "center", fg: "white" },
-        valign: "middle",
-        align: "center"
-      });
-      const tempConsole = this.package.box({
-        top: "65%",
-        left: "center",
-        width: "80%",
-        height: "15%",
-        label: ` Preparing AtmosphericX v${submodules.utils.version()} `,
-        tags: true,
-        wrap: true,
-        content: cache.internal.logs.__console__.map((log) => {
-          return `${log.title} [${log.timestamp}] ${log.message}`;
-        }).join("\n"),
-        border: { type: "line" },
-        scrollable: true,
-        alwaysScroll: true,
-        style: { border: { fg: "white" } }
-      });
-      this.manager.append(tempLogo);
-      this.manager.append(tempConsole);
-      this.manager.render();
-      yield submodules.utils.sleep(delay);
-      tempLogo.destroy();
-      tempConsole.destroy();
-      resolve();
-    }));
-  }
-  create() {
-    this.elements.logs = this.package.box({
-      top: "50%",
-      left: 0,
-      width: "100%",
-      height: "50%",
-      label: ` AtmosphericX v${submodules.utils.version()} `,
-      tags: true,
-      wrap: true,
-      border: { type: "line" },
-      scrollable: true,
-      alwaysScroll: true,
-      style: { border: { fg: "white" } }
-    });
-    this.elements.system = this.package.box({
-      top: 0,
-      left: "75%",
-      width: "25%",
-      height: "15%",
-      label: " System Info ",
-      tags: true,
-      wrap: true,
-      border: { type: "line" },
-      scrollable: true,
-      alwaysScroll: true,
-      style: { border: { fg: "white" } }
-    });
-    this.elements.sessions = this.package.box({
-      top: "15%",
-      left: "75%",
-      width: "25%",
-      height: "37%",
-      label: " Active Sessions ",
-      tags: true,
-      wrap: true,
-      border: { type: "line" },
-      scrollable: true,
-      alwaysScroll: true,
-      style: { border: { fg: "white" } }
-    });
-    this.elements.events = this.package.box({
-      top: 0,
-      left: 0,
-      width: "75%",
-      height: "50%",
-      label: " Active Events (X{INT}) - {STR} ",
-      tags: true,
-      wrap: true,
-      border: { type: "line" },
-      scrollable: true,
-      alwaysScroll: true
-    });
-    for (const key in this.elements) {
-      this.manager.append(this.elements[key]);
-    }
-    this.manager.render();
-  }
-  update() {
-    const ConfigType = cache.internal.configurations;
-    this.modifyElement(
-      `events`,
-      !ConfigType.internal_settings.fancy_interface_feed ? cache.internal.logs.__events__.map((log) => {
-        return `[${log.timestamp}] ${log.message}`;
-      }).join("\n") : submodules.alerts.displayAlert({}, true),
-      ` Active Events (X${cache.external.events.features.length}) - ${cache.internal.getSource} `
-    );
-    this.elements.system.setContent(
-      strings.system_info.replace(`{UPTIME}`, submodules.calculations.formatDuration(Date.now() - cache.internal.metrics.start_uptime)).replace(`{MEMORY}`, ((packages.os.totalmem() - packages.os.freemem()) / (1024 * 1024)).toFixed(2)).replace(`{HEAP}`, (process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(2)).replace(`{EVENTS_PROCESSED}`, cache.internal.metrics.events_processed.toString()),
-      ` System Info `
-    );
-    this.modifyElement(
-      `logs`,
-      cache.internal.logs.__console__.map((log) => {
-        return `${log.title} [${log.timestamp}] ${log.message}`;
-      }).join("\n"),
-      ` AtmosphericX v${submodules.utils.version()} `
-    );
-    this.manager.render();
-  }
-  modifyElement(key, content, title) {
-    if (this.elements[key]) {
-      this.elements[key].setContent(content);
-      if (title) this.elements[key].setLabel(` ${title} `);
-      this.elements[key].setScrollPerc(100);
-      this.manager.render();
-    }
-  }
-  keybindings() {
-    this.manager.key(["escape", "C-c"], (ch, key) => {
-      return process.exit(0);
-    });
-  }
-};
-var display_default = Display;
-
-// src/submodules/parsing.ts
-var Parsing = class {
-  constructor() {
-    this.NAME_SPACE = `submodule:parsing`;
-    this.initialize();
-  }
-  initialize() {
-    submodules.utils.log(`${this.NAME_SPACE} initialized.`);
-  }
-  getGibsonReportStructure(body) {
-    return __async(this, null, function* () {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
-      const structure = { type: "FeatureCollection", features: [] };
-      const parsed = yield packages.placefile.PlacefileManager.parseTable(body);
-      for (const feature of parsed) {
-        const lon = parseFloat(feature.lon);
-        const lat = parseFloat(feature.lat);
-        if (isNaN(lon) || isNaN(lat)) continue;
-        structure.features.push({
-          type: "Feature",
-          geometry: { type: "Point", coordinates: [lon, lat] },
-          properties: {
-            location: `${(_a = feature.city) != null ? _a : "N/A"}, ${(_b = feature.county) != null ? _b : "N/A"}, ${(_c = feature.state) != null ? _c : "N/A"}`,
-            event: (_d = feature.event) != null ? _d : "N/A",
-            sender: (_e = feature.source) != null ? _e : "N/A",
-            description: `${(_f = feature.event) != null ? _f : "Event"} reported at ${(_g = feature.city) != null ? _g : "Unknown"}, ${(_h = feature.county) != null ? _h : "Unknown"}, ${(_i = feature.state) != null ? _i : "Unknown"}. ${(_j = feature.comment) != null ? _j : "No additional details."}`,
-            magnitude: (_k = feature.mag) != null ? _k : 0,
-            office: (_l = feature.office) != null ? _l : "N/A",
-            date: (_m = feature.date) != null ? _m : "N/A",
-            time: (_n = feature.time) != null ? _n : "N/A"
+      /**
+       * @function parsing
+       * @description
+       *     Routes raw input data to the appropriate parser based on the specified type.
+       * 
+       * @param {unknown} [body]
+       * @param {string} [type]
+       * @returns {Promise<any[]>}
+       */
+      parsing(body, type) {
+        return __async(this, null, function* () {
+          switch (type) {
+            case "spotter_network_feed":
+              return submodules.parsing.getSpotterFeed(body);
+            case "storm_prediction_center_mesoscale":
+              return submodules.parsing.getSPCDiscussions(body);
+            case "spotter_reports":
+              return submodules.parsing.getSpotterReportStructure(body);
+            case "grlevelx_reports":
+              return submodules.parsing.getGibsonReportStructure(body);
+            case "tropical_storm_tracks":
+              return submodules.parsing.getTropicalStormStructure(body);
+            case "tornado":
+              return submodules.parsing.getProbabilityStructure(body, "tornado");
+            case "severe":
+              return submodules.parsing.getProbabilityStructure(body, "severe");
+            case "sonde_project_weather_eye":
+              return submodules.parsing.getWxEyeSondeStructure(body);
+            case "wx_radio":
+              return submodules.parsing.getWxRadioStructure(body);
+            default:
+              return [];
           }
         });
       }
-      return structure;
-    });
-  }
-  getSpotterReportStructure(body) {
-    return __async(this, null, function* () {
-      var _a, _b, _c, _d, _e, _f, _g, _h;
-      const structure = { type: "FeatureCollection", features: [] };
-      const parsed = yield packages.placefile.PlacefileManager.parsePlacefile(body);
-      for (const feature of parsed) {
-        const lon = parseFloat(feature.icon.x);
-        const lat = parseFloat(feature.icon.y);
-        if (isNaN(lon) || isNaN(lat)) continue;
-        const lines = feature.icon.label.split("\n").map((l) => l.trim());
-        structure.features.push({
-          type: "Feature",
-          geometry: { type: "Point", coordinates: [lon, lat] },
-          properties: {
-            event: (_a = lines[1]) != null ? _a : "N/A",
-            reporter: (_c = (_b = lines[0]) == null ? void 0 : _b.replace("Reported By:", "").trim()) != null ? _c : "N/A",
-            size: (_e = (_d = lines[2]) == null ? void 0 : _d.replace("Size:", "").trim()) != null ? _e : "N/A",
-            notes: (_g = (_f = lines[3]) == null ? void 0 : _f.replace("Notes:", "").trim()) != null ? _g : "N/A",
-            sender: "Spotter Network",
-            description: (_h = feature.icon.label.replace(/\n/g, "<br>").trim()) != null ? _h : "N/A"
-          }
-        });
+      /**
+       * @function metadata
+       * @description
+       *     Retrieves the alert scheme, dictionary, and corresponding sound effect for a given event.
+       * 
+       * @param {types.EventType} event
+       * @returns {{ sfx: string; scheme: any; metadata: any }}
+       */
+      metadata(event) {
+        const ConfigType = cache.internal.configurations;
+        const schemes = ConfigType.alert_schemes[event.properties.event] || ConfigType.alert_schemes[event.properties.parent] || ConfigType.alert_schemes["Default"];
+        const dictionary = ConfigType.alert_dictionary[event.properties.event] || ConfigType.alert_dictionary[event.properties.parent] || ConfigType.alert_dictionary["Special Event"];
+        let sfx = dictionary.sfx_cancel;
+        if (event.properties.is_issued) sfx = dictionary.sfx_issued;
+        else if (event.properties.is_updated) sfx = dictionary.sfx_update;
+        else if (event.properties.is_cancelled) sfx = dictionary.sfx_cancel;
+        return { sfx, scheme: schemes, metadata: dictionary.metadata };
       }
-      return structure;
-    });
-  }
-  getSPCDiscussions(body) {
-    return __async(this, null, function* () {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o;
-      const structure = { type: "FeatureCollection", features: [] };
-      const parsed = yield packages.placefile.PlacefileManager.parseGeoJSON(body);
-      for (const feature of parsed) {
-        if (!feature.properties || !feature.coordinates) continue;
-        if (feature.properties.expires_at_ms < Date.now()) continue;
-        const torProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK TORNADO INTENSITY...", []);
-        const winProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK WIND GUST...", []);
-        const hagProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK HAIL SIZE...", []);
-        structure.features.push({
-          type: "Feature",
-          geometry: { type: "Polygon", coordinates: feature.coordinates },
-          properties: {
-            mesoscale_id: (_a = feature.properties.number) != null ? _a : "N/A",
-            expires: feature.properties.expires_at_ms ? new Date(feature.properties.expires_at_ms).toLocaleString() : "N/A",
-            issued: feature.properties.issued_at_ms ? new Date(feature.properties.issued_at_ms).toLocaleString() : "N/A",
-            description: (_c = (_b = packages.manager.TextParser.textProductToDescription(feature.properties.text)) == null ? void 0 : _b.replace(/\n/g, "<br>")) != null ? _c : "N/A",
-            locations: (_f = (_e = (_d = feature.properties.tags) == null ? void 0 : _d.AREAS_AFFECTED) == null ? void 0 : _e.join(", ")) != null ? _f : "N/A",
-            outlook: (_i = (_h = (_g = feature.properties.tags) == null ? void 0 : _g.CONCERNING) == null ? void 0 : _h.join(", ")) != null ? _i : "N/A",
-            population: (_l = (_k = (_j = feature.properties.population) == null ? void 0 : _j.people) == null ? void 0 : _k.toLocaleString()) != null ? _l : "0",
-            homes: (_o = (_n = (_m = feature.properties.population) == null ? void 0 : _m.homes) == null ? void 0 : _n.toLocaleString()) != null ? _o : "0",
-            parameters: {
-              tornado_probability: torProb,
-              wind_probability: winProb,
-              hail_probability: hagProb
+      /**
+       * @function register
+       * @description
+       *    Registers an event, determining its metadata, sound scheme, and whether it should be ignored or beeped.
+       * 	
+       * @param {types.EventType} event
+       * @returns {object}
+       */
+      register(event) {
+        const ConfigType = cache.internal.configurations;
+        const eventName = event.properties.event;
+        const isPriorityEvent = ConfigType.filters.priority_events.includes(eventName);
+        const isBeepAuthorizedOnly = ConfigType.filters.sfx_beep_only;
+        const isShowingUpdatesAllowed = ConfigType.filters.show_updates;
+        const eventMetadata = this.metadata(event);
+        const isBeepOnly = isBeepAuthorizedOnly && isPriorityEvent;
+        const isIgnored = !isShowingUpdatesAllowed && !isPriorityEvent;
+        return {
+          event,
+          metadata: eventMetadata.metadata,
+          scheme: eventMetadata.scheme,
+          sfx: isBeepOnly ? ConfigType.tones.sfx_beep : eventMetadata.sfx,
+          ignored: isIgnored,
+          beep: isBeepOnly
+        };
+      }
+      /**
+       * @function distance
+       * @description
+       *    Calculates the distance of an event from predefined locations and determines if it's within range.
+       * 	
+       * @param {types.EventType} event
+       * @returns {object}
+       */
+      distance(event) {
+        var _a, _b;
+        const ConfigType = cache.internal.configurations;
+        const cache2 = cache.external.locations;
+        const coords = (_b = (_a = event.properties) == null ? void 0 : _a.geometry) == null ? void 0 : _b.coordinates;
+        let range = [];
+        let inRange = ConfigType.filters.location_settings.enabled == true && cache2 && Object.keys(cache2).length > 0 ? false : true;
+        if (coords != null) {
+          for (const key in cache2) {
+            const name = key;
+            const lat = cache2[key].lat;
+            const lon = cache2[key].lon;
+            const unit = ConfigType.filters.location_settings.unit || "miles";
+            const singleCoord = coords;
+            const center = singleCoord.reduce((acc, [lat2, lon2]) => [acc[0] + lat2, acc[1] + lon2], [0, 0]).map((sum) => sum / singleCoord.length);
+            const distance = submodules.calculations.calculateDistance(
+              { lat: center[0], lon: center[1] },
+              { lat, lon },
+              unit
+            );
+            if (ConfigType.filters.location_settings.enabled) {
+              if (distance < ConfigType.filters.location_settings.max_distance) {
+                inRange = true;
+              }
+            }
+            range.push({ [name]: { distance, unit } });
+          }
+        }
+        return { inRange, range: __spreadValues(__spreadValues({}, event.properties.distance), Object.assign({}, ...range)) };
+      }
+      /**
+       * @function create
+       * @description
+       *     Processes raw data, parses it into structured types, updates caches, logs events,
+       *     and triggers webhooks for new alerts.
+       * 
+       * @param {unknown} data
+       * @param {boolean} [isAlertupdate]
+       * @returns {Promise<void>}
+       */
+      create(data, isAlertupdate) {
+        return __async(this, null, function* () {
+          var _a;
+          const clean = submodules.utils.filterWebContent(data);
+          const ConfigType = cache.internal.configurations;
+          const dataTypes = [
+            { key: "spotter_network_feed", cache: "spotter_network_feed" },
+            { key: "spotter_reports", cache: "storm_reports" },
+            { key: "grlevelx_reports", cache: "storm_reports" },
+            { key: "storm_prediction_center_mesoscale", cache: "storm_prediction_center_mesoscale" },
+            { key: "tropical_storm_tracks", cache: "tropical_storm_tracks" },
+            { key: "tornado", cache: "tornado" },
+            { key: "severe", cache: "severe" },
+            { key: "sonde_project_weather_eye", cache: "sonde_project_weather_eye" },
+            { key: "wx_radio", cache: "wx_radio" }
+          ];
+          for (const { key, cache: cache2 } of dataTypes) {
+            if (clean[key]) {
+              cache.external[cache2] = yield this.parsing(clean[key], key);
             }
           }
+          if ((_a = clean.events) == null ? void 0 : _a.length) {
+            for (const ev of clean.events) {
+              const isAlreadyLogged = cache.external.hashes.some((log) => log.id === ev.event.hash);
+              const eventDistance = this.distance(ev.event);
+              ev.event.properties.distance = eventDistance.range;
+              ev.ignored = this.distance(ev.event).inRange === false;
+              if (isAlreadyLogged) continue;
+              if (ev.ignored) continue;
+              cache.external.hashes.push({ id: ev.event.hash, expires: ev.event.properties.expires });
+              if (!submodules.utils.isFancyDisplay()) {
+                submodules.utils.log(submodules.alerts.returnAlertText(ev));
+              } else {
+                submodules.utils.log(submodules.alerts.returnAlertText(ev), {}, `__events__`);
+              }
+              const webhooks = ConfigType.webhook_settings;
+              const pSet = new Set((ConfigType.filters.priority_events || []).map((p) => String(p).toLowerCase()));
+              const title = `${ev.event.properties.event} (${ev.event.properties.action_type})`;
+              const body = [
+                `**Locations:** ${ev.event.properties.locations.slice(0, 259)}`,
+                `**Issued:** ${ev.event.properties.issued}`,
+                `**Expires:** ${ev.event.properties.expires}`,
+                `**Wind Gusts:** ${ev.event.properties.parameters.max_wind_gust}`,
+                `**Hail Size:** ${ev.event.properties.parameters.max_hail_size}`,
+                `**Damage Threat:** ${ev.event.properties.parameters.damage_threat}`,
+                `**Tornado Threat:** ${ev.event.properties.parameters.tornado_detection}`,
+                `**Flood Threat:** ${ev.event.properties.parameters.flood_detection}`,
+                `**Tags:** ${ev.event.properties.tags ? ev.event.properties.tags.join(", ") : "N/A"}`,
+                `**Sender:** ${ev.event.properties.sender_name}`,
+                `**Tracking ID:** ${ev.event.tracking}`,
+                "```",
+                ev.event.properties.description.split("\n").map((line) => line.trim()).filter((line) => line.length > 0).join("\n"),
+                "```"
+              ].join("\n");
+              yield submodules.networking.sendWebhook(title, body, webhooks.general_alerts);
+              if (pSet.has(ev.event.properties.event.toLowerCase())) {
+                yield submodules.networking.sendWebhook(title, body, webhooks.critical_alerts);
+              }
+            }
+          }
+          cache.external.events.features = clean.events.filter((ev) => !ev.ignored) || [];
+          submodules.routes.onUpdateRequest();
         });
       }
-      return structure;
-    });
+    };
+    structure_default = Structure;
   }
-  getSpotterFeed(body) {
-    return __async(this, null, function* () {
-      var _a, _b, _c, _d;
-      const ConfigType = cache.internal.configurations;
-      const feedConfig = (_b = (_a = ConfigType.sources) == null ? void 0 : _a.location_settings) == null ? void 0 : _b.spotter_network_feed;
-      const structure = { type: "FeatureCollection", features: [] };
-      const parsed = yield packages.placefile.PlacefileManager.parsePlacefile(body);
-      for (const feature of parsed) {
-        const lon = parseFloat(feature.object.coordinates[1]);
-        const lat = parseFloat(feature.object.coordinates[0]);
-        if (isNaN(lon) || isNaN(lat)) continue;
-        const isActive = feature.icon.scale === 6 && feature.icon.type === "2" && feedConfig.pins.active;
-        const isStreaming = feature.icon.scale === 1 && feature.icon.type === "19" && feedConfig.pins.streaming;
-        const isIdle = feature.icon.scale === 6 && feature.icon.type === "6" && feedConfig.pins.idle;
-        if (!isActive && !isStreaming && (!isIdle || !feedConfig.pins.offline)) continue;
-        if (feedConfig.pin_by_name.length > 0) {
-          const idx = feedConfig.pin_by_name.findIndex((name) => feature.icon.label.includes(name));
-          if (idx !== -1) {
-            const name = feedConfig.pin_by_name[idx];
-            cache.external.locations.spotter_network = { lat, lon };
-            cache.internal.manager.setCurrentLocation(name, { lat, lon });
+});
+
+// src/submodules/display.ts
+var Display, display_default;
+var init_display = __esm({
+  "src/submodules/display.ts"() {
+    init_bootstrap();
+    Display = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:display`;
+        this.elements = {};
+        (() => __async(this, null, function* () {
+          submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+          if (!submodules.utils.isFancyDisplay()) {
+            return;
           }
+          this.PACKAGE = packages.gui;
+          this.MANAGER = this.PACKAGE.screen({
+            smartCSR: true,
+            title: `AtmosphericX v${submodules.utils.version()}`
+          });
+          this.MANAGER.key(["escape", "C-c"], (ch, key) => {
+            return process.exit(0);
+          });
+          yield this.intro(1e3);
+          this.create();
+          this.update();
+          setInterval(() => {
+            this.update();
+          }, 1e3);
+        }))();
+      }
+      /**
+       * @function intro
+       * @description
+       *     Displays an introductory screen with logo and console logs
+       *     for a specified duration before transitioning to the main display.
+       *
+       * @param {number} delay
+       * @returns {Promise<void>}
+       */
+      intro(delay) {
+        const ConfigType = cache.internal.configurations;
+        return new Promise((resolve) => __async(this, null, function* () {
+          const tempLogo = this.PACKAGE.box(__spreadProps(__spreadValues({}, ConfigType.display_settings.intro_screen), {
+            content: submodules.utils.logo()
+          }));
+          const tempConsole = this.PACKAGE.box(__spreadProps(__spreadValues({}, ConfigType.display_settings.intro_console), {
+            label: ` Preparing AtmosphericX v${submodules.utils.version()} `,
+            content: cache.internal.logs.__console__.map((log) => {
+              return `${log.title} [${log.timestamp}] ${log.message}`;
+            }).join("\n")
+          }));
+          this.MANAGER.append(tempLogo);
+          this.MANAGER.append(tempConsole);
+          this.MANAGER.render();
+          yield submodules.utils.sleep(delay);
+          tempLogo.destroy();
+          tempConsole.destroy();
+          resolve();
+        }));
+      }
+      /**
+       * @function create
+       * @description
+       *     Creates and appends the main display elements (logs, system info, and events)
+       *     to the Blessed screen manager.
+       *
+       * @returns {void}
+       */
+      create() {
+        const ConfigType = cache.internal.configurations;
+        const dS = ConfigType.display_settings;
+        this.elements = {
+          logs: this.PACKAGE.box(__spreadProps(__spreadValues({}, dS.logging_window), { label: ` AtmosphericX v${submodules.utils.version()} ` })),
+          system: this.PACKAGE.box(__spreadValues({}, dS.system_info_window)),
+          sessions: this.PACKAGE.box(__spreadValues({}, dS.sessions_window)),
+          events: this.PACKAGE.box(__spreadValues({}, dS.events_window))
+        };
+        for (const key in this.elements) {
+          this.MANAGER.append(this.elements[key]);
         }
-        let distance = 0;
-        if (cache.external.locations.spotter_network) {
-          distance = submodules.calculations.calculateDistance(
-            { lat, lon },
-            { lat: cache.external.locations.spotter_network.lat, lon: cache.external.locations.spotter_network.lon }
-          );
+        this.MANAGER.render();
+      }
+      /**
+       * @function update
+       * @description
+       *     Updates the main display elements on the Blessed screen, including events,
+       *     system information, and console logs. Handles both legacy and fancy interface feeds.
+       *
+       * @returns {void}
+       */
+      update() {
+        if (!submodules.utils.isFancyDisplay()) {
+          return;
         }
-        structure.features.push({
-          type: "Feature",
-          geometry: { type: "Point", coordinates: [lon, lat] },
-          properties: {
-            description: (_d = (_c = feature.icon.label) == null ? void 0 : _c.replace(/\n/g, "<br>")) != null ? _d : "N/A",
-            distance,
-            status: isActive ? "Active" : isStreaming ? "Streaming" : isIdle ? "Idle" : "Unknown"
+        const ConfigType = cache.internal.configurations;
+        this.modifyElement(
+          `events`,
+          !ConfigType.internal_settings.fancy_interface_feed ? cache.internal.logs.__events__.map((log) => {
+            return `[${log.timestamp}] ${log.message}`;
+          }).join("\n") : submodules.alerts.returnAlertText({}, true),
+          ` Active Events (X${cache.external.events.features.length}) - ${cache.internal.getSource} `
+        );
+        this.elements.system.setContent(
+          strings.system_info.replace(`{UPTIME}`, submodules.calculations.formatDuration(Date.now() - cache.internal.metrics.start_uptime)).replace(`{MEMORY}`, ((packages.os.totalmem() - packages.os.freemem()) / (1024 * 1024)).toFixed(2)).replace(`{HEAP}`, (process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(2)).replace(`{EVENTS_PROCESSED}`, cache.internal.metrics.events_processed.toString()),
+          ` System Info `
+        );
+        this.modifyElement(
+          `logs`,
+          cache.internal.logs.__console__.map((log) => {
+            return `${log.title} [${log.timestamp}] ${log.message}`;
+          }).join("\n"),
+          ` AtmosphericX v${submodules.utils.version()} `
+        );
+        this.modifyElement(
+          `sessions`,
+          cache.internal.accounts.map((session) => {
+            return `${session.username} - ${session.address}`;
+          }).join("\n") || `No active sessions.`,
+          ` Active Sessions (X${cache.internal.accounts.length}) `
+        );
+        this.MANAGER.render();
+      }
+      /**
+       * @function modifyElement
+       * @description
+       *     Updates the content and optionally the label of a specific display element.
+       *     Scrolls the element to the bottom and re-renders the screen.
+       *
+       * @param {string} key
+       * @param {string} content
+       * @param {string} [title]
+       * @returns {void}
+       */
+      modifyElement(key, content, title) {
+        if (this.elements[key]) {
+          this.elements[key].setContent(content);
+          if (title) this.elements[key].setLabel(` ${title} `);
+          this.elements[key].setScrollPerc(100);
+          this.MANAGER.render();
+        }
+      }
+    };
+    display_default = Display;
+  }
+});
+
+// src/submodules/parsing.ts
+var Parsing, parsing_default;
+var init_parsing = __esm({
+  "src/submodules/parsing.ts"() {
+    init_bootstrap();
+    Parsing = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:parsing`;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+      }
+      /**
+       * @function getGibsonReportStructure
+       * @description
+       *     Parses a Gibson Ridge Placefile body and converts it into a GeoJSON FeatureCollection.
+       * 
+       * @param {string} body
+       * @returns {Promise<types.GeoJSONFeatureCollection>}
+       */
+      getGibsonReportStructure(body) {
+        return __async(this, null, function* () {
+          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
+          const structure = { type: "FeatureCollection", features: [] };
+          const parsed = yield packages.placefile.PlacefileManager.parseTable(body);
+          for (const feature of parsed) {
+            const lon = parseFloat(feature.lon);
+            const lat = parseFloat(feature.lat);
+            if (isNaN(lon) || isNaN(lat)) continue;
+            structure.features.push({
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [lon, lat] },
+              properties: {
+                location: `${(_a = feature.city) != null ? _a : "N/A"}, ${(_b = feature.county) != null ? _b : "N/A"}, ${(_c = feature.state) != null ? _c : "N/A"}`,
+                event: (_d = feature.event) != null ? _d : "N/A",
+                sender: (_e = feature.source) != null ? _e : "N/A",
+                description: `${(_f = feature.event) != null ? _f : "Event"} reported at ${(_g = feature.city) != null ? _g : "Unknown"}, ${(_h = feature.county) != null ? _h : "Unknown"}, ${(_i = feature.state) != null ? _i : "Unknown"}. ${(_j = feature.comment) != null ? _j : "No additional details."}`,
+                magnitude: (_k = feature.mag) != null ? _k : 0,
+                office: (_l = feature.office) != null ? _l : "N/A",
+                date: (_m = feature.date) != null ? _m : "N/A",
+                time: (_n = feature.time) != null ? _n : "N/A"
+              }
+            });
           }
+          return structure;
         });
       }
-      return structure;
-    });
-  }
-  getProbabilityStructure(body, type) {
-    return __async(this, null, function* () {
-      var _a, _b, _c, _d;
-      const structure = [];
-      const ConfigType = cache.internal.configurations;
-      const threshold = (_b = (_a = ConfigType.sources.probability_settings[type]) == null ? void 0 : _a.percentage_threshold) != null ? _b : 50;
-      const typeRegexp = type === "tornado" ? /ProbTor: (\d+)%\// : /PSv3: (\d+)%\//;
-      const parsed = yield packages.placefile.PlacefileManager.parsePlacefile(body);
-      for (const feature of parsed) {
-        if (!((_c = feature.line) == null ? void 0 : _c.text)) continue;
-        const probMatch = feature.line.text.match(typeRegexp);
-        const probability = probMatch ? parseInt(probMatch[1]) : 0;
-        const shearMatch = feature.line.text.match(/Max LLAzShear: ([\d.]+)/);
-        const shear = shearMatch ? parseFloat(shearMatch[1]) : 0;
-        if (probability >= threshold) {
-          structure.push({
-            type,
-            probability,
-            shear,
-            description: (_d = feature.line.text.replace(/\n/g, "<br>")) != null ? _d : "N/A"
+      /**
+       * @function getSpotterReportStructure
+       * @description
+       *     Parses a Spotter Network Placefile body and converts it into a GeoJSON FeatureCollection.
+       * 
+       * @param {string} body
+       * @returns {Promise<types.GeoJSONFeatureCollection>}
+       */
+      getSpotterReportStructure(body) {
+        return __async(this, null, function* () {
+          var _a, _b, _c, _d, _e, _f, _g, _h;
+          const structure = { type: "FeatureCollection", features: [] };
+          const parsed = yield packages.placefile.PlacefileManager.parsePlacefile(body);
+          for (const feature of parsed) {
+            const lon = parseFloat(feature.icon.x);
+            const lat = parseFloat(feature.icon.y);
+            if (isNaN(lon) || isNaN(lat)) continue;
+            const lines = feature.icon.label.split("\n").map((l) => l.trim());
+            structure.features.push({
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [lon, lat] },
+              properties: {
+                event: (_a = lines[1]) != null ? _a : "N/A",
+                reporter: (_c = (_b = lines[0]) == null ? void 0 : _b.replace("Reported By:", "").trim()) != null ? _c : "N/A",
+                size: (_e = (_d = lines[2]) == null ? void 0 : _d.replace("Size:", "").trim()) != null ? _e : "N/A",
+                notes: (_g = (_f = lines[3]) == null ? void 0 : _f.replace("Notes:", "").trim()) != null ? _g : "N/A",
+                sender: "Spotter Network",
+                description: (_h = feature.icon.label.replace(/\n/g, "<br>").trim()) != null ? _h : "N/A"
+              }
+            });
+          }
+          return structure;
+        });
+      }
+      /**
+       * @function getSPCDiscussions
+       * @description
+       *     Parses SPC GeoJSON discussion data and converts it into a GeoJSON FeatureCollection.
+       *     Filters out expired discussions and extracts relevant probabilities and metadata.
+       * 
+       * @param {string} body
+       * @returns {Promise<types.GeoJSONFeatureCollection>}
+       */
+      getSPCDiscussions(body) {
+        return __async(this, null, function* () {
+          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o;
+          const structure = { type: "FeatureCollection", features: [] };
+          const parsed = yield packages.placefile.PlacefileManager.parseGeoJSON(body);
+          for (const feature of parsed) {
+            if (!feature.properties || !feature.coordinates) continue;
+            if (feature.properties.expires_at_ms < Date.now()) continue;
+            const torProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK TORNADO INTENSITY...", []);
+            const winProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK WIND GUST...", []);
+            const hagProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK HAIL SIZE...", []);
+            structure.features.push({
+              type: "Feature",
+              geometry: { type: "Polygon", coordinates: feature.coordinates },
+              properties: {
+                mesoscale_id: (_a = feature.properties.number) != null ? _a : "N/A",
+                expires: feature.properties.expires_at_ms ? new Date(feature.properties.expires_at_ms).toLocaleString() : "N/A",
+                issued: feature.properties.issued_at_ms ? new Date(feature.properties.issued_at_ms).toLocaleString() : "N/A",
+                description: (_c = (_b = packages.manager.TextParser.textProductToDescription(feature.properties.text)) == null ? void 0 : _b.replace(/\n/g, "<br>")) != null ? _c : "N/A",
+                locations: (_f = (_e = (_d = feature.properties.tags) == null ? void 0 : _d.AREAS_AFFECTED) == null ? void 0 : _e.join(", ")) != null ? _f : "N/A",
+                outlook: (_i = (_h = (_g = feature.properties.tags) == null ? void 0 : _g.CONCERNING) == null ? void 0 : _h.join(", ")) != null ? _i : "N/A",
+                population: (_l = (_k = (_j = feature.properties.population) == null ? void 0 : _j.people) == null ? void 0 : _k.toLocaleString()) != null ? _l : "0",
+                homes: (_o = (_n = (_m = feature.properties.population) == null ? void 0 : _m.homes) == null ? void 0 : _n.toLocaleString()) != null ? _o : "0",
+                parameters: {
+                  tornado_probability: torProb,
+                  wind_probability: winProb,
+                  hail_probability: hagProb
+                }
+              }
+            });
+          }
+          return structure;
+        });
+      }
+      /**
+       * @function getSpotterFeed
+       * @description
+       *     Parses a Spotter Network Placefile feed, filters pins based on configuration,
+       *     updates current locations, calculates distances, and converts to a GeoJSON FeatureCollection.
+       * 
+       * @param {string} body
+       * @returns {Promise<types.GeoJSONFeatureCollection>}
+       */
+      getSpotterFeed(body) {
+        return __async(this, null, function* () {
+          var _a, _b, _c, _d;
+          const ConfigType = cache.internal.configurations;
+          const feedConfig = (_b = (_a = ConfigType.sources) == null ? void 0 : _a.location_settings) == null ? void 0 : _b.spotter_network_feed;
+          const structure = { type: "FeatureCollection", features: [] };
+          const parsed = yield packages.placefile.PlacefileManager.parsePlacefile(body);
+          const locations = Object.keys(cache.external.locations);
+          for (const feature of parsed) {
+            const lon = parseFloat(feature.object.coordinates[1]);
+            const lat = parseFloat(feature.object.coordinates[0]);
+            if (isNaN(lon) || isNaN(lat)) continue;
+            const isActive = feature.icon.scale === 6 && feature.icon.type === "2" && feedConfig.pins.active;
+            const isStreaming = feature.icon.scale === 1 && feature.icon.type === "19" && feedConfig.pins.streaming;
+            const isIdle = feature.icon.scale === 6 && feature.icon.type === "6" && feedConfig.pins.idle;
+            if (!isActive && !isStreaming && (!isIdle || !feedConfig.pins.offline)) continue;
+            if (feedConfig.pin_by_name.length > 0) {
+              const idx = feedConfig.pin_by_name.findIndex((name) => feature.icon.label.includes(name));
+              if (idx !== -1) {
+                const name = feedConfig.pin_by_name[idx];
+                submodules.gps.setCurrentCoordinates(name, { lat, lon }, `spotter_network`);
+              }
+            }
+            let distance = 0;
+            if (locations.length > 0) {
+              const index = locations[0];
+              distance = submodules.calculations.calculateDistance(
+                { lat, lon },
+                { lat: cache.external.locations[index].lat, lon: cache.external.locations[index].lon }
+              );
+            }
+            structure.features.push({
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [lon, lat] },
+              properties: {
+                description: (_d = (_c = feature.icon.label) == null ? void 0 : _c.replace(/\n/g, "<br>")) != null ? _d : "N/A",
+                distance,
+                status: isActive ? "Active" : isStreaming ? "Streaming" : isIdle ? "Idle" : "Unknown"
+              }
+            });
+          }
+          return structure;
+        });
+      }
+      /**
+       * @function getProbabilityStructure
+       * @description
+       *     Parses a Placefile feed for probability data (tornado or severe) and returns
+       *     entries that exceed the configured threshold.
+       * 
+       * @param {string} body
+       * @param {'tornado' | 'severe'} type
+       * @returns {Promise<types.ProbabilityTypes[]>}
+       */
+      getProbabilityStructure(body, type) {
+        return __async(this, null, function* () {
+          var _a, _b, _c, _d;
+          const structure = [];
+          const ConfigType = cache.internal.configurations;
+          const threshold = (_b = (_a = ConfigType.sources.probability_settings[type]) == null ? void 0 : _a.percentage_threshold) != null ? _b : 50;
+          const typeRegexp = type === "tornado" ? /ProbTor: (\d+)%\// : /PSv3: (\d+)%\//;
+          const parsed = yield packages.placefile.PlacefileManager.parsePlacefile(body);
+          for (const feature of parsed) {
+            if (!((_c = feature.line) == null ? void 0 : _c.text)) continue;
+            const probMatch = feature.line.text.match(typeRegexp);
+            const probability = probMatch ? parseInt(probMatch[1]) : 0;
+            const shearMatch = feature.line.text.match(/Max LLAzShear: ([\d.]+)/);
+            const shear = shearMatch ? parseFloat(shearMatch[1]) : 0;
+            if (probability >= threshold) {
+              structure.push({
+                type,
+                probability,
+                shear,
+                description: (_d = feature.line.text.replace(/\n/g, "<br>")) != null ? _d : "N/A"
+              });
+            }
+          }
+          return structure;
+        });
+      }
+      /**
+       * @function getWxRadioStructure
+       * @description
+       *     Converts WX Radio source data into a GeoJSON FeatureCollection.
+       * 
+       * @param {types.WxRadioTypes} body
+       * @returns {types.GeoJSONFeatureCollection}
+       */
+      getWxRadioStructure(body) {
+        var _a, _b, _c, _d;
+        let structure = { type: "FeatureCollection", features: [] };
+        for (const feature of body.sources) {
+          const lon = parseFloat(feature.lon);
+          const lat = parseFloat(feature.lat);
+          if (isNaN(lon) || isNaN(lat)) continue;
+          structure.features.push({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [lon, lat] },
+            properties: {
+              location: (_a = feature == null ? void 0 : feature.location) != null ? _a : "N/A",
+              callsign: (_b = feature == null ? void 0 : feature.callsign) != null ? _b : "N/A",
+              frequency: (_c = feature == null ? void 0 : feature.frequency) != null ? _c : "N/A",
+              stream: (_d = feature == null ? void 0 : feature.listen_url) != null ? _d : "N/A"
+            }
           });
         }
+        return structure;
       }
-      return structure;
-    });
-  }
-  getWxRadioStructure(body) {
-    var _a, _b, _c, _d;
-    let structure = { type: "FeatureCollection", features: [] };
-    for (const feature of body.sources) {
-      const lon = parseFloat(feature.lon);
-      const lat = parseFloat(feature.lat);
-      if (isNaN(lon) || isNaN(lat)) continue;
-      structure.features.push({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [lon, lat] },
-        properties: {
-          location: (_a = feature == null ? void 0 : feature.location) != null ? _a : "N/A",
-          callsign: (_b = feature == null ? void 0 : feature.callsign) != null ? _b : "N/A",
-          frequency: (_c = feature == null ? void 0 : feature.frequency) != null ? _c : "N/A",
-          stream: (_d = feature == null ? void 0 : feature.listen_url) != null ? _d : "N/A"
+      /**
+       * @function getTropicalStormStructure
+       * @description
+       *     Converts tropical storm data into a GeoJSON FeatureCollection.
+       * 
+       * @param {types.TropicalStormTypes[]} body
+       * @returns {types.GeoJSONFeatureCollection}
+       */
+      getTropicalStormStructure(body) {
+        var _a, _b, _c, _d, _e;
+        const structure = { type: "FeatureCollection", features: [] };
+        for (const feature of body) {
+          structure.features.push({
+            type: "Feature",
+            properties: {
+              name: (_a = feature.name) != null ? _a : "N/A",
+              discussion: (_b = feature.forecast_discussion) != null ? _b : "N/A",
+              classification: (_c = feature.classification) != null ? _c : "N/A",
+              pressure: (_d = feature.pressure) != null ? _d : 0,
+              wind_speed: (_e = feature.wind_speed_mph) != null ? _e : 0,
+              last_updated: feature.last_update_at ? new Date(feature.last_update_at).toLocaleString() : "N/A"
+            }
+          });
         }
-      });
-    }
-    return structure;
-  }
-  getTropicalStormStructure(body) {
-    var _a, _b, _c, _d, _e;
-    const structure = { type: "FeatureCollection", features: [] };
-    for (const feature of body) {
-      structure.features.push({
-        type: "Feature",
-        properties: {
-          name: (_a = feature.name) != null ? _a : "N/A",
-          discussion: (_b = feature.forecast_discussion) != null ? _b : "N/A",
-          classification: (_c = feature.classification) != null ? _c : "N/A",
-          pressure: (_d = feature.pressure) != null ? _d : 0,
-          wind_speed: (_e = feature.wind_speed_mph) != null ? _e : 0,
-          last_updated: feature.last_update_at ? new Date(feature.last_update_at).toLocaleString() : "N/A"
-        }
-      });
-    }
-    return structure;
-  }
-  getWxEyeSondeStructure(body) {
-    return body.map((feature) => feature);
-  }
-};
-var parsing_default = Parsing;
-
-// src/submodules/routes.ts
-var Routes = class {
-  constructor() {
-    this.NAME_SPACE = `submodule:routes`;
-    this.clients = [];
-    this.initialize();
-  }
-  initialize() {
-    return __async(this, null, function* () {
-      submodules.utils.log(`${this.NAME_SPACE} initialized.`);
-      const ConfigType = cache.internal.configurations;
-      const isHttps = ConfigType.web_hosting_settings.settings.is_https;
-      const isPortal = ConfigType.web_hosting_settings.is_login_required;
-      const getPort = ConfigType.web_hosting_settings.settings.port_number;
-      const getCertificates = isHttps ? this.getCertificates() : null;
-      this.package = cache.internal.express = packages.express();
-      this.middleware();
-      if (isHttps) {
-        cache.internal.websocket = packages.https.createServer(getCertificates, this.package).listen(getPort, () => {
-          submodules.utils.log(`${this.NAME_SPACE} HTTPS Server running on port ${getPort}`);
-        }).on("error", (err) => {
-          submodules.utils.log(`${this.NAME_SPACE} ERROR: ${err.message}`);
-        });
-      } else {
-        cache.internal.websocket = packages.http.createServer(this.package).listen(getPort, () => {
-          submodules.utils.log(`${this.NAME_SPACE} HTTP Server running on port ${getPort}`);
-        }).on("error", (err) => {
-          submodules.utils.log(`${this.NAME_SPACE} ERROR: ${err.message}`);
-        });
+        return structure;
       }
-      if (!isPortal) {
-        submodules.utils.log(`${strings.portal_disabled_warning}`, { echoFile: true });
+      /**
+       * @function getWxEyeSondeStructure
+       * @description
+       *     Converts raw WxEyeSonde data into an array of string-based records.
+       * 
+       * @param {unknown[]} body
+       * @returns {Record<string, string>[]}
+       */
+      getWxEyeSondeStructure(body) {
+        return body.map((feature) => feature);
       }
-      this.routes();
-      this.websocket();
-    });
-  }
-  middleware() {
-    const parentDirectory = packages.path.resolve(`..`, `storage`);
-    this.package.use((request, response, next) => {
-      response.setHeader("Access-Control-Allow-Origin", "*");
-      response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-      response.setHeader("Access-Control-Allow-Credentials", "true");
-      response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-      response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-      response.setHeader("Pragma", "no-cache");
-      response.setHeader("Expires", "0");
-      response.setHeader("Surrogate-Control", "no-store");
-      next();
-    });
-    this.package.use(packages.cookieParser());
-    this.package.use(`/assets`, packages.express.static(`${parentDirectory}/www`));
-    this.package.use(`/widgets`, packages.express.static(`${parentDirectory}/www/widgets`));
-    this.package.set(`trust proxy`, 1);
-  }
-  routes() {
-    const parentDirectory = packages.path.resolve(`..`, `storage`);
-    this.package.get(`/`, (request, response) => {
-      return response;
-    });
-    this.package.get(`/data/:endpoint/:id?`, (request, response) => {
-      const endpoint = request.params.endpoint;
-      const id = request.params.id;
-      const isValid = Object.keys(cache.external).includes(endpoint);
-      if (!isValid) {
-        return this.redirect(response, `${parentDirectory}/www/sites/404/404.html`);
-      }
-      return response.json(id ? cache.external[endpoint][id] : cache.external[endpoint]);
-    });
-  }
-  redirect(response, path2) {
-    response.sendFile(path2);
-    return;
-  }
-  getCertificates() {
-    const ConfigType = cache.internal.configurations;
-    if (!ConfigType.web_hosting_settings.settings.is_https) {
-      submodules.utils.log(`${this.NAME_SPACE} ERROR: Tried to get SSL certificates while HTTPS is disabled in the configuration file.`);
-    }
-    const keyPath = ConfigType.web_hosting_settings.settings.certification_paths.private_key_path;
-    const certPath = ConfigType.web_hosting_settings.settings.certification_paths.certificate_path;
-    if (!packages.fs.existsSync(keyPath)) {
-      submodules.utils.log(`${this.NAME_SPACE} ERROR: SSL key file not found at: ${keyPath}`);
-    }
-    if (!packages.fs.existsSync(certPath)) {
-      submodules.utils.log(`${this.NAME_SPACE} ERROR: SSL certificate file not found at: ${certPath}`);
-    }
-    return {
-      key: packages.fs.readFileSync(keyPath),
-      certificate: packages.fs.readFileSync(certPath)
     };
+    parsing_default = Parsing;
   }
-  websocket() {
-    var _a;
-    const cfg = cache.internal.configurations;
-    const max = (_a = cfg.websocket_settings.maximum_connections_per_ip) != null ? _a : 3;
-    const wss = cache.internal.socket = new packages.ws.WebSocketServer({
-      server: cache.internal.websocket,
-      path: "/stream"
-    });
-    wss.on("connection", (client, req) => {
-      var _a2, _b;
-      const ip = (_b = (_a2 = req == null ? void 0 : req.socket) == null ? void 0 : _a2.remoteAddress) != null ? _b : "unknown";
-      if (ip === "unknown") return client.close(4e3, "Invalid IP");
-      const count = this.clients.filter((c) => c.address === ip).length;
-      if (count >= max) {
-        try {
-          if (client.readyState === packages.ws.OPEN) client.send(JSON.stringify({ type: "eventConnection", message: `Connection limit reached (${max}).` }));
-        } catch (e) {
+});
+
+// src/submodules/express/@middleware/authority.ts
+var authority_exports = {};
+__export(authority_exports, {
+  Init: () => Init,
+  default: () => authority_default
+});
+var Init, authority_default;
+var init_authority = __esm({
+  "src/submodules/express/@middleware/authority.ts"() {
+    init_bootstrap();
+    Init = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:@middleware:authority`;
+        this.SESSION_INVALID_MESSAGE = `Session invalidated`;
+        this.RATELIMIT_INVALID_MESSAGE = `Too many requests - please try again later.`;
+        this.RESPONSE_HEADERS = {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Credentials": "true",
+          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0",
+          "Surrogate-Control": "no-store"
+        };
+        var _a, _b, _c;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+        const parentDirectory = packages.path.resolve(`..`, `storage`);
+        const ConfigType = cache.internal.configurations;
+        const limiter = packages.rateLimit({
+          windowMs: ((_a = ConfigType.web_hosting_settings.settings.ratelimiting) == null ? void 0 : _a.window_ms) || 3e4,
+          max: ((_b = ConfigType.web_hosting_settings.settings.ratelimiting) == null ? void 0 : _b.max_requests) || 125,
+          handler: (__, response) => {
+            return response.status(429).json({ message: this.RATELIMIT_INVALID_MESSAGE });
+          }
+        });
+        if ((_c = ConfigType.web_hosting_settings.settings.ratelimiting) == null ? void 0 : _c.enabled) {
+          cache.internal.express.use(limiter);
         }
-        return client.close(4001, "Connection limit reached");
+        cache.internal.express.use((request, response, next) => {
+          const session = cache.internal.accounts.find((a) => {
+            var _a2;
+            return a.session == ((_a2 = request.headers.cookie) == null ? void 0 : _a2.split(`=`)[1]);
+          });
+          const address = request.headers["cf-connecting-ip"] || request.connection.remoteAddress;
+          const useragent = request.headers["user-agent"] || "Unknown";
+          for (const key in this.RESPONSE_HEADERS) {
+            response.setHeader(key, this.RESPONSE_HEADERS[key]);
+          }
+          if (session && session.address !== address || session && session.agent !== useragent) {
+            this.invalidateSession(response, session);
+          }
+          next();
+        });
+        cache.internal.express.use(packages.cookieParser());
+        cache.internal.express.use(`/src`, packages.express.static(`${parentDirectory}/www`));
+        cache.internal.express.use(`/widgets`, packages.express.static(`${parentDirectory}/www/__pages/__widgets`));
+        cache.internal.express.set(`trust proxy`, 1);
       }
-      this.clients.push({ client, unix: Date.now() - 1e3, address: ip, requests: {}, hasSentInitialData: false });
-      try {
-        if (client.readyState === packages.ws.OPEN) client.send(JSON.stringify({ type: "eventConnection", message: "WebSocket connection established." }));
-      } catch (e) {
+      /**
+       * @function invalidateSession
+       * @description
+       *      Invalidates the user session and clears the session cookie.
+       *      Logs the logout event with the username and IP address.
+       *      
+       * @param response - The Express response object to send the logout confirmation.
+       * @param session - The user session object containing username and session details.
+       * @returns A JSON response confirming successful logout.
+       */
+      invalidateSession(response, session) {
+        cache.internal.accounts = cache.internal.accounts.filter((a) => a.session != session.session);
+        response.clearCookie(`session`);
+        return response.status(401).json({ message: this.SESSION_INVALID_MESSAGE });
       }
-      client.on("message", (msg) => this.onWebsocketClientMessage(client, msg));
-      client.on("close", () => {
-        this.clients = this.clients.filter((c) => c.client !== client);
-      });
-    });
-    submodules.utils.log(`${this.NAME_SPACE} WebSocket server listening on /stream`);
+    };
+    authority_default = Init;
   }
-  onWebsocketClientMessage(socket, message) {
-    const index = this.clients.findIndex((c) => c.client === socket);
-    if (index === -1) return;
-    const clientData = this.clients[index];
-    if (!clientData) return;
-    if (clientData.hasSentInitialData) {
-      socket.send(JSON.stringify({ type: "eventMessage", message: "Initial data already sent - Closing connection." }));
-      return socket.close(4002, "Initial data already sent");
-    }
-    clientData.hasSentInitialData = true;
-    const data = (() => {
-      try {
-        return JSON.parse(message);
-      } catch (e) {
-        return null;
+});
+
+// src/submodules/express/@websockets/general.ts
+var general_exports = {};
+__export(general_exports, {
+  Init: () => Init2,
+  default: () => general_default
+});
+var Init2, general_default;
+var init_general = __esm({
+  "src/submodules/express/@websockets/general.ts"() {
+    init_bootstrap();
+    Init2 = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:@websockets:general`;
+        this.clients = [];
+        this.SESSION_CONNECTION_ESTABLISHED_MESSAGE = `WebSocket connection established.`;
+        this.SESSION_CONNECTION_CLOSED_MESSAGE = `Connection limited reached - Closing connection.`;
+        this.SESSION_INITIAL_DATA_SENT_MESSAGE = `Initial data already sent - Closing connection.`;
+        this.SESSION_INVALID_IP_MESSAGE = `Invalid IP address - Closing connection.`;
+        this.SESSION_INVALID_REQUEST_MESSAGE = `Invalid request payload - Closing connection.`;
+        this.SESSION_MALFORMED_MESSAGE = `Malformed data - Closing connection.`;
+        this.SESSION_UNKNOWN_TYPE_MESSAGE = `Unknown data type - Closing connection.`;
+        this.SESSION_UPDATE_SUCCESS_MESSAGE = `Requested data update successful.`;
+        var _a;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+        const cfg = cache.internal.configurations;
+        const max = (_a = cfg.websocket_settings.maximum_connections_per_ip) != null ? _a : 3;
+        const wss = cache.internal.socket = new packages.ws.WebSocketServer({
+          server: cache.internal.websocket,
+          path: "/stream"
+        });
+        wss.on("connection", (client, req) => {
+          var _a2, _b;
+          const ip = (_b = (_a2 = req == null ? void 0 : req.socket) == null ? void 0 : _a2.remoteAddress) != null ? _b : "unknown";
+          if (ip === "unknown") return client.close(4e3, this.SESSION_INVALID_IP_MESSAGE);
+          const count = this.clients.filter((c) => c.address === ip).length;
+          if (count >= max) {
+            try {
+              if (client.readyState === packages.ws.OPEN) client.send(JSON.stringify({ type: "eventConnection", message: `${this.SESSION_CONNECTION_CLOSED_MESSAGE} (${max}).` }));
+            } catch (e) {
+            }
+            return client.close(4001, this.SESSION_CONNECTION_CLOSED_MESSAGE);
+          }
+          this.clients.push({ client, unix: Date.now() - 1e3, address: ip, requests: {}, hasSentInitialData: false });
+          try {
+            if (client.readyState === packages.ws.OPEN) client.send(JSON.stringify({ type: "eventConnection", message: this.SESSION_CONNECTION_ESTABLISHED_MESSAGE }));
+          } catch (e) {
+          }
+          client.on("message", (msg) => this.onWebsocketClientMessage(client, msg));
+          client.on("close", () => {
+            this.clients = this.clients.filter((c) => c.client !== client);
+          });
+        });
+        submodules.utils.log(`WebSocket server listening on /stream`);
       }
-    })();
-    if (!data) {
-      socket.send(JSON.stringify({ type: "eventMessage", message: "Invalid JSON format" }));
-      return socket.close(4002, "Invalid JSON");
-    }
-    if (!(data == null ? void 0 : data.type) || !(data == null ? void 0 : data.message)) {
-      socket.send(JSON.stringify({ type: "eventMessage", message: "Missing type or message" }));
-      return socket.close(4002, "Missing Data");
-    }
-    if (data.type === "eventRequest") {
-      let requestData;
-      try {
-        requestData = typeof data.message === "string" ? JSON.parse(data.message) : data.message;
-      } catch (e) {
-        requestData = null;
+      /**
+       * @function onWebsocketClientMessage
+       * @description
+       *      Handles incoming messages from WebSocket clients.
+       *      Processes requests for data updates and manages client state.
+       *      
+       * @param {any} socket - The WebSocket client socket.
+       * @param {string} message - The incoming message from the client.
+       * @returns {void}
+       */
+      onWebsocketClientMessage(socket, message) {
+        const index = this.clients.findIndex((c) => c.client === socket);
+        if (index === -1) return;
+        const clientData = this.clients[index];
+        if (!clientData) return;
+        if (clientData.hasSentInitialData) {
+          socket.send(JSON.stringify({ type: "eventMessage", message: this.SESSION_INITIAL_DATA_SENT_MESSAGE }));
+          return socket.close(4002, "Initial data already sent");
+        }
+        clientData.hasSentInitialData = true;
+        const data = (() => {
+          try {
+            return JSON.parse(message);
+          } catch (e) {
+            return null;
+          }
+        })();
+        if (!data) {
+          socket.send(JSON.stringify({ type: "eventMessage", message: this.SESSION_INVALID_REQUEST_MESSAGE }));
+          return socket.close(4002, this.SESSION_INVALID_REQUEST_MESSAGE);
+        }
+        if (!(data == null ? void 0 : data.type) || !(data == null ? void 0 : data.message)) {
+          socket.send(JSON.stringify({ type: "eventMessage", message: this.SESSION_MALFORMED_MESSAGE }));
+          return socket.close(4002, this.SESSION_MALFORMED_MESSAGE);
+        }
+        if (data.type === "eventRequest") {
+          let requestData;
+          try {
+            requestData = typeof data.message === "string" ? JSON.parse(data.message) : data.message;
+          } catch (e) {
+            requestData = null;
+          }
+          if (!requestData) {
+            socket.send(JSON.stringify({ type: "eventMessage", message: this.SESSION_MALFORMED_MESSAGE }));
+            return socket.close(4002, this.SESSION_MALFORMED_MESSAGE);
+          }
+          return this.onWebsocketClientUpdate(socket, clientData, requestData);
+        }
+        socket.send(JSON.stringify({ type: "eventMessage", message: this.SESSION_UNKNOWN_TYPE_MESSAGE }));
+        socket.close(4002, this.SESSION_UNKNOWN_TYPE_MESSAGE);
       }
-      if (!requestData) {
-        socket.send(JSON.stringify({ type: "eventMessage", message: "Invalid request payload" }));
-        return socket.close(4002, "Invalid Payload");
+      /**
+       * @function onWebsocketClientUpdate
+       * @description
+       *      Handles update requests from WebSocket clients.
+       *      Sends updated data based on the client's registered requests.
+       * 
+       * @param {any} socket - The WebSocket client socket.
+       * @param {types.WebSocketClient} clientData - The client's data object.
+       * @param {string[]} data - The list of requested data types.
+       * @returns {void}
+       */
+      onWebsocketClientUpdate(socket, clientData, data) {
+        const InternalConfig = cache.internal.configurations;
+        if (!Array.isArray(data)) return;
+        const now = Date.now();
+        let isQueued = false;
+        if (data[0] === "*") {
+          data = Object.keys(cache.external);
+        }
+        data.forEach((request) => {
+          if (!clientData.requests[request]) clientData.requests[request] = { unix: 0 };
+          const isPriority = InternalConfig.websocket_settings.priority_sockets.sockets.includes(request);
+          const isSecondary = InternalConfig.websocket_settings.secondary_sockets.sockets.includes(request);
+          const timeout = isPriority ? InternalConfig.websocket_settings.priority_sockets.timeout : isSecondary ? InternalConfig.websocket_settings.secondary_sockets.timeout : 0;
+          const timeoutMs = timeout < 1e3 ? timeout * 1e3 : timeout;
+          if (now - clientData.requests[request].unix < timeoutMs) {
+            return;
+          }
+          clientData.requests[request].unix = now;
+          const cache2 = cache.external[request] || null;
+          try {
+            socket.send(JSON.stringify({ type: "eventUpdate", message: cache2, value: request }));
+          } catch (e) {
+          }
+          isQueued = true;
+        });
+        if (isQueued) {
+          socket.send(JSON.stringify({ type: "eventUpdateFinished", message: this.SESSION_UPDATE_SUCCESS_MESSAGE }));
+        }
       }
-      return this.onWebsocketClientUpdate(socket, clientData, requestData);
-    }
-    socket.send(JSON.stringify({ type: "eventMessage", message: "Unknown type" }));
-    socket.close(4002, "Unknown type");
+    };
+    general_default = Init2;
   }
-  onWebsocketClientUpdate(socket, clientData, data) {
-    const InternalConfig = cache.internal.configurations;
-    if (!Array.isArray(data)) return;
-    const now = Date.now();
-    let isQueued = false;
-    if (data[0] === "*") {
-      data = Object.keys(cache.external);
-    }
-    data.forEach((request) => {
-      if (!clientData.requests[request]) clientData.requests[request] = { unix: 0 };
-      const isPriority = InternalConfig.websocket_settings.priority_sockets.sockets.includes(request);
-      const isSecondary = InternalConfig.websocket_settings.secondary_sockets.sockets.includes(request);
-      const timeout = isPriority ? InternalConfig.websocket_settings.priority_sockets.timeout : isSecondary ? InternalConfig.websocket_settings.secondary_sockets.timeout : 0;
-      const timeoutMs = timeout < 1e3 ? timeout * 1e3 : timeout;
-      if (now - clientData.requests[request].unix < timeoutMs) {
-        return;
+});
+
+// src/submodules/express/@routes/login.ts
+var login_exports = {};
+__export(login_exports, {
+  Init: () => Init3,
+  default: () => login_default
+});
+var Init3, login_default;
+var init_login = __esm({
+  "src/submodules/express/@routes/login.ts"() {
+    init_bootstrap();
+    Init3 = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:@routes:login`;
+        this.SESSION_ACCOUNT_INACTIVE_MESSAGE = `Account is not activated. Please contact the host administrator. If this is your instance, you must activate your account via the root account.`;
+        this.SESSION_ACCOUNT_DUPLICATE_MESSAGE = `An active session already exists for this account. Please logout from other sessions before logging in again.`;
+        this.SESSION_INVALID_MESSAGE = `Invalid username or password.`;
+        this.SESSION_SUCCESS_MESSAGE = `Login successful.`;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+        cache.internal.express.post(`/api/login`, (request, response) => __async(this, null, function* () {
+          const ConfigType = cache.internal.configurations;
+          const body = JSON.parse(yield new Promise((resolve, reject) => {
+            let data = ``;
+            request.on(`data`, (chunk) => data += chunk);
+            request.on(`end`, () => resolve(data));
+            request.on(`error`, (error) => reject(error));
+          }));
+          const username = body.username;
+          const password = body.password ? packages.crypto.createHash(`sha256`).update(body.password).digest(`base64`) : "";
+          const account = submodules.database.query(`SELECT * FROM accounts WHERE username = ? AND hash = ? LIMIT 1`, [username, password]);
+          if (account.length == 0) {
+            submodules.utils.log(`${this.NAME_SPACE} - Failed login attempt for username: ${username} @ ${request.headers["cf-connecting-ip"] || request.connection.remoteAddress}`);
+            return response.status(401).json({ message: this.SESSION_INVALID_MESSAGE });
+          }
+          if (account[0].activated == 0) {
+            submodules.utils.log(`${this.NAME_SPACE} - Inactive account login attempt for username: ${username} @ ${request.headers["cf-connecting-ip"] || request.connection.remoteAddress}`);
+            return response.status(403).json({ message: this.SESSION_ACCOUNT_INACTIVE_MESSAGE });
+          }
+          if (cache.internal.accounts.find((a) => a.username == username)) {
+            submodules.utils.log(`${this.NAME_SPACE} - Duplicate login attempt for username: ${username} @ ${request.headers["cf-connecting-ip"] || request.connection.remoteAddress}`);
+            return response.status(409).json({ message: this.SESSION_ACCOUNT_DUPLICATE_MESSAGE });
+          }
+          const session = packages.crypto.randomBytes(32).toString("hex");
+          response.cookie(`session`, session, {
+            httpOnly: true,
+            secure: ConfigType.web_hosting_settings.settings.is_https,
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1e3
+          });
+          cache.internal.accounts.push({
+            username,
+            session,
+            address: request.headers["cf-connecting-ip"] || request.connection.remoteAddress,
+            agent: request.headers["user-agent"] || "unknown"
+          });
+          submodules.utils.log(`${this.NAME_SPACE} - Successful login for username: ${username} @ ${request.headers["cf-connecting-ip"] || request.connection.remoteAddress}`);
+          return response.status(200).json({ message: this.SESSION_SUCCESS_MESSAGE });
+        }));
       }
-      clientData.requests[request].unix = now;
-      const cache2 = cache.external[request] || null;
-      try {
-        socket.send(JSON.stringify({ type: "eventUpdate", message: cache2, value: request }));
-      } catch (e) {
+    };
+    login_default = Init3;
+  }
+});
+
+// src/submodules/express/@routes/logout.ts
+var logout_exports = {};
+__export(logout_exports, {
+  Init: () => Init4,
+  default: () => logout_default
+});
+var Init4, logout_default;
+var init_logout = __esm({
+  "src/submodules/express/@routes/logout.ts"() {
+    init_bootstrap();
+    Init4 = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:@routes:logout`;
+        this.SESSION_INVALID_MESSAGE = `Session invalidated`;
+        this.SESSION_LOGOUT_SUCCESS_MESSAGE = `Logout successful.`;
+        this.SESSION_LOGOUT_NO_ACTIVE_MESSAGE = `No active session found.`;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+        cache.internal.express.post(`/api/logout`, (request, response) => {
+          const session = cache.internal.accounts.find((a) => {
+            var _a;
+            return a.session == ((_a = request.headers.cookie) == null ? void 0 : _a.split(`=`)[1]);
+          });
+          if (!session) {
+            return response.status(401).json({ message: this.SESSION_LOGOUT_NO_ACTIVE_MESSAGE });
+          }
+          submodules.utils.log(`${this.NAME_SPACE} - Successful logout for username: ${session.username} @ ${request.headers["cf-connecting-ip"] || request.connection.remoteAddress}`);
+          return this.invalidateSession(response, session);
+        });
       }
-      isQueued = true;
-    });
-    if (isQueued) {
-      socket.send(JSON.stringify({ type: "eventUpdateFinished", message: "Update complete" }));
-    }
+      /**
+       * @function invalidateSession
+       * @description
+       *      Invalidates the user session and clears the session cookie.
+       *      Logs the logout event with the username and IP address.
+       *      
+       * @param response - The Express response object to send the logout confirmation.
+       * @param session - The user session object containing username and session details.
+       * @returns A JSON response confirming successful logout.
+       */
+      invalidateSession(response, session) {
+        cache.internal.accounts = cache.internal.accounts.filter((a) => a.session != session.session);
+        response.clearCookie(`session`);
+        return response.status(401).json({ message: this.SESSION_INVALID_MESSAGE });
+      }
+    };
+    logout_default = Init4;
   }
-  onUpdateRequest() {
-    for (const clientData of this.clients) {
-      this.onWebsocketClientUpdate(clientData.client, clientData, Object.keys(clientData.requests));
-    }
+});
+
+// src/submodules/express/@routes/signup.ts
+var signup_exports = {};
+__export(signup_exports, {
+  Init: () => Init5,
+  default: () => signup_default
+});
+var Init5, signup_default;
+var init_signup = __esm({
+  "src/submodules/express/@routes/signup.ts"() {
+    init_bootstrap();
+    Init5 = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:@routes:signup`;
+        this.SESSION_ACCOUNT_EXISTS_MESSAGE = `Account with this username already exists.`;
+        this.SESSION_INVALID_USERNAME_MESSAGE = `Invalid username. Usernames must be 3-20 characters long and can only contain letters, numbers, underscores, hyphens, and periods.`;
+        this.SESSION_SUCCESS_MESSAGE = `Account created successfully. Please contact the host administrator to activate your account.`;
+        this.ALLOWED_CHARS = /^[a-zA-Z0-9_\-\.]{3,20}$/;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+        cache.internal.express.post(`/api/signup`, (request, response) => __async(this, null, function* () {
+          const body = JSON.parse(yield new Promise((resolve, reject) => {
+            let data = ``;
+            request.on(`data`, (chunk) => data += chunk);
+            request.on(`end`, () => resolve(data));
+            request.on(`error`, (error) => reject(error));
+          }));
+          const username = body.username;
+          const password = body.password ? packages.crypto.createHash(`sha256`).update(body.password).digest(`base64`) : "";
+          const account = submodules.database.query(`SELECT * FROM accounts WHERE username = ? LIMIT 1`, [username]);
+          if (account.length != 0) {
+            return response.status(409).json({ message: this.SESSION_ACCOUNT_EXISTS_MESSAGE });
+          }
+          if (!this.ALLOWED_CHARS.test(username)) {
+            return response.status(400).json({ message: this.SESSION_INVALID_USERNAME_MESSAGE });
+          }
+          submodules.database.query(`INSERT INTO accounts (username, hash, activated) VALUES (?, ?, ?)`, [username, password, 0]);
+          submodules.utils.log(`${this.NAME_SPACE} - New account created for username: ${username} @ ${request.headers["cf-connecting-ip"] || request.connection.remoteAddress}`);
+          return response.status(201).json({ message: this.SESSION_SUCCESS_MESSAGE });
+        }));
+      }
+    };
+    signup_default = Init5;
   }
-};
-var routes_default = Routes;
+});
+
+// src/submodules/express/@routes/core.ts
+var core_exports = {};
+__export(core_exports, {
+  Init: () => Init6,
+  default: () => core_default
+});
+var Init6, core_default;
+var init_core = __esm({
+  "src/submodules/express/@routes/core.ts"() {
+    init_bootstrap();
+    Init6 = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:@routes:core`;
+        this.PORTAL_DIRECT = `/www/__pages/__portal/index.html`;
+        this.DASHBOARD_DIRECT = `/www/__pages/__dashboard/index.html`;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+        const parentDirectory = packages.path.resolve(`..`, `storage`);
+        cache.internal.express.get(`/`, (request, response) => {
+          const ConfigType = cache.internal.configurations;
+          const isPortal = ConfigType.web_hosting_settings.is_login_required;
+          const isLogon = cache.internal.accounts.find((a) => {
+            var _a;
+            return a.session == ((_a = request.headers.cookie) == null ? void 0 : _a.split(`=`)[1]);
+          });
+          if (isPortal && !isLogon) {
+            return response.sendFile(`${parentDirectory}${this.PORTAL_DIRECT}`);
+          }
+          return response.sendFile(`${parentDirectory}${this.DASHBOARD_DIRECT}`);
+        });
+      }
+    };
+    core_default = Init6;
+  }
+});
+
+// src/submodules/express/@routes/data.ts
+var data_exports = {};
+__export(data_exports, {
+  Init: () => Init7,
+  default: () => data_default
+});
+var Init7, data_default;
+var init_data = __esm({
+  "src/submodules/express/@routes/data.ts"() {
+    init_bootstrap();
+    Init7 = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:@routes:data`;
+        this.UNKNOWN_DIRECTORY = `/www/__pages/__404/index.html`;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+        const parentDirectory = packages.path.resolve(`..`, `storage`);
+        cache.internal.express.get(`/data/:endpoint/`, (request, response) => {
+          const endpoint = request.params.endpoint;
+          const isValid = Object.keys(cache.external).includes(endpoint);
+          if (!isValid) {
+            return response.sendFile(`${parentDirectory}${this.UNKNOWN_DIRECTORY}`);
+          }
+          return response.json(cache.external[endpoint]);
+        });
+      }
+    };
+    data_default = Init7;
+  }
+});
+
+// src/submodules/express/routing.ts
+var Routes, routing_default;
+var init_routing = __esm({
+  "src/submodules/express/routing.ts"() {
+    init_bootstrap();
+    Routes = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:routing`;
+        this.CLIENTS = [];
+        this.initialize();
+      }
+      initialize() {
+        return __async(this, null, function* () {
+          submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+          const ConfigType = cache.internal.configurations;
+          const isHttps = ConfigType.web_hosting_settings.settings.is_https;
+          const isPortal = ConfigType.web_hosting_settings.is_login_required;
+          const getPort = ConfigType.web_hosting_settings.settings.port_number;
+          const getCertificates = isHttps ? this.getCertificates() : null;
+          this.PACKAGE = cache.internal.express = packages.express();
+          if (isHttps) {
+            cache.internal.websocket = packages.https.createServer(getCertificates, this.PACKAGE).listen(getPort, () => {
+            });
+          } else {
+            cache.internal.websocket = packages.http.createServer(this.PACKAGE).listen(getPort, () => {
+            });
+          }
+          if (!isPortal) {
+            submodules.utils.log(`${strings.portal_disabled_warning}`, { echoFile: true });
+          }
+          submodules.middleware = new (yield Promise.resolve().then(() => (init_authority(), authority_exports))).Init();
+          submodules.websockets = new (yield Promise.resolve().then(() => (init_general(), general_exports))).Init();
+          new (yield Promise.resolve().then(() => (init_login(), login_exports))).Init();
+          new (yield Promise.resolve().then(() => (init_logout(), logout_exports))).Init();
+          new (yield Promise.resolve().then(() => (init_signup(), signup_exports))).Init();
+          new (yield Promise.resolve().then(() => (init_core(), core_exports))).Init();
+          new (yield Promise.resolve().then(() => (init_data(), data_exports))).Init();
+        });
+      }
+      /**
+       * @function getCertificates
+       * @description
+       *      Retrieves SSL certificates for HTTPS configuration.
+       *  
+       *  @returns {void}
+       */
+      getCertificates() {
+        const ConfigType = cache.internal.configurations;
+        if (!ConfigType.web_hosting_settings.settings.is_https) {
+          submodules.utils.log(`${this.NAME_SPACE} ERROR: Tried to get SSL certificates while HTTPS is disabled in the configuration file.`);
+        }
+        const keyPath = ConfigType.web_hosting_settings.settings.certification_paths.private_key_path;
+        const certPath = ConfigType.web_hosting_settings.settings.certification_paths.certificate_path;
+        if (!packages.fs.existsSync(keyPath)) {
+          submodules.utils.log(`${this.NAME_SPACE} ERROR: SSL key file not found at: ${keyPath}`);
+        }
+        if (!packages.fs.existsSync(certPath)) {
+          submodules.utils.log(`${this.NAME_SPACE} ERROR: SSL certificate file not found at: ${certPath}`);
+        }
+        return {
+          key: packages.fs.readFileSync(keyPath),
+          certificate: packages.fs.readFileSync(certPath)
+        };
+      }
+      /**
+       * @function onUpdateRequest
+       * @description
+       *      Handles periodic update requests for all connected WebSocket clients.
+       *      Sends updated data based on each client's registered requests.
+       * 
+       *  @returns {void}
+       */
+      onUpdateRequest() {
+        for (const clientData of this.CLIENTS) {
+          submodules.websockets.onWebsocketClientUpdate(clientData.client, clientData, Object.keys(clientData.requests));
+        }
+      }
+    };
+    routing_default = Routes;
+  }
+});
+
+// src/submodules/gps.ts
+var GlobalPositioningSystem, gps_default;
+var init_gps = __esm({
+  "src/submodules/gps.ts"() {
+    init_bootstrap();
+    GlobalPositioningSystem = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:gps`;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+      }
+      setCurrentCoordinates(name, coords) {
+        cache.external.locations[name] = coords;
+        cache.internal.manager.setCurrentLocation(name, coords);
+        submodules.utils.log(`Updated current coordinates for ${name} [LAT: ${coords.lat}, LON: ${coords.lon}]`);
+      }
+    };
+    gps_default = GlobalPositioningSystem;
+  }
+});
+
+// src/submodules/database.ts
+var Database, database_default;
+var init_database = __esm({
+  "src/submodules/database.ts"() {
+    init_bootstrap();
+    Database = class {
+      constructor() {
+        this.NAME_SPACE = `submodule:database`;
+        submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+        const dbPath = packages.path.resolve(`..`, `storage`, `Accounts.db`);
+        if (packages.fs.existsSync(dbPath)) {
+          this.DATABASE = new packages.sqlite3(dbPath);
+          submodules.utils.log(`Account Database Loaded @ ${dbPath}`);
+        } else {
+          this.create();
+        }
+      }
+      create() {
+        const dbPath = packages.path.resolve(`..`, `storage`, `Accounts.db`);
+        this.DATABASE = new packages.sqlite3(dbPath);
+        try {
+          this.DATABASE.prepare(`CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, hash TEXT NOT NULL, activated INTEGER NOT NULL DEFAULT 0, role INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`).run();
+          let rootExists = this.DATABASE.prepare(`SELECT 1 FROM accounts WHERE username = ?`).get("root");
+          if (!rootExists) {
+            this.DATABASE.prepare(`INSERT INTO accounts (username, hash, role, activated) VALUES (?, ?, ?, ?)`).run("root", "hzf+LiRTX1pP+v335+TaeLSAWu136Ltqs26gebv7jBw=", 1, 1);
+            submodules.utils.log(`Root account created with default credentials. (Username: root | Password: root)`);
+          }
+          submodules.utils.log(`Account Database Created @ ${dbPath}`);
+        } catch (error) {
+          submodules.utils.log(`Error creating account database: ${error}`);
+        }
+      }
+      query(sql, params = []) {
+        try {
+          params = Array.isArray(params) ? params : [];
+          let stmt = this.DATABASE.prepare(sql);
+          return /^\s*select/i.test(sql) ? stmt.all(...params) : stmt.run(...params);
+        } catch (err) {
+          submodules.utils.log(`Database query error: ${err}`);
+          return [];
+        }
+      }
+    };
+    database_default = Database;
+  }
+});
 
 // src/bootstrap.ts
-var cache = {
-  external: {
-    configurations: {},
-    changelogs: void 0,
-    version: void 0,
-    spotter_network_feed: [],
-    storm_reports: [],
-    storm_prediction_center_mesoscale: [],
-    tropical_storm_tracks: [],
-    sonde_project_weather_eye: [],
-    wx_radio: [],
-    tornado: [],
-    severe: [],
-    manual: { features: [] },
-    events: { features: [] },
-    rng: { index: 0, alert: null },
-    hashes: [],
-    placefiles: {},
-    locations: {
-      spotter_network: { lat: 0, lon: 0 },
-      realtime_irl: { lat: 0, lon: 0 }
-    }
-  },
-  internal: {
-    getSource: `NWS`,
-    configurations: {},
-    logs: {
-      __console__: [],
-      __events__: []
-    },
-    http_timers: {},
-    express: void 0,
-    manager: void 0,
-    websocket: void 0,
-    webhooks: [],
-    socket: void 0,
-    last_cache_update: 0,
-    metrics: {
-      start_uptime: Date.now(),
-      memory_usage: 0,
-      events_processed: 0
-    }
-  }
-};
-var strings = {
-  updated_requied: `New version available: {ONLINE_PARSED} (Current version: {OFFLINE_VERSION})
+var bootstrap_exports = {};
+__export(bootstrap_exports, {
+  cache: () => cache,
+  packages: () => packages,
+  strings: () => strings,
+  submodules: () => submodules
+});
+var manager, tempest, placefile, import_better_sqlite3, import_express, import_express_rate_limit, import_cookie_parser, import_axios, gui, events, path, fs, crypto, http, https, xmpp, os, xml2js, shapefile, firebaseApp, firebaseDatabase, streamerBot, jobs, jsonc, cache, strings, packages, submoduleClasses, submodules;
+var init_bootstrap = __esm({
+  "src/bootstrap.ts"() {
+    manager = __toESM(require("atmosx-nwws-parser"));
+    tempest = __toESM(require("atmosx-tempest-pulling"));
+    placefile = __toESM(require("atmosx-placefile-parser"));
+    import_better_sqlite3 = __toESM(require("better-sqlite3"));
+    import_express = __toESM(require("express"));
+    import_express_rate_limit = __toESM(require("express-rate-limit"));
+    import_cookie_parser = __toESM(require("cookie-parser"));
+    import_axios = __toESM(require("axios"));
+    gui = __toESM(require("blessed"));
+    events = __toESM(require("events"));
+    path = __toESM(require("path"));
+    fs = __toESM(require("fs"));
+    crypto = __toESM(require("crypto"));
+    http = __toESM(require("http"));
+    https = __toESM(require("https"));
+    xmpp = __toESM(require("@xmpp/client"));
+    os = __toESM(require("os"));
+    xml2js = __toESM(require("xml2js"));
+    shapefile = __toESM(require("shapefile"));
+    init_wrapper();
+    firebaseApp = __toESM(require("firebase/app"));
+    firebaseDatabase = __toESM(require("firebase/database"));
+    streamerBot = __toESM(require("@streamerbot/client"));
+    jobs = __toESM(require("croner"));
+    jsonc = __toESM(require("jsonc-parser"));
+    init_utils();
+    init_alerts();
+    init_calculations();
+    init_networking();
+    init_structure();
+    init_display();
+    init_parsing();
+    init_routing();
+    init_gps();
+    init_database();
+    cache = {
+      external: {
+        configurations: {},
+        changelogs: null,
+        version: null,
+        spotter_network_feed: [],
+        storm_reports: [],
+        storm_prediction_center_mesoscale: [],
+        tropical_storm_tracks: [],
+        sonde_project_weather_eye: [],
+        wx_radio: [],
+        tornado: [],
+        severe: [],
+        manual: { features: [] },
+        events: { features: [] },
+        rng: { index: 0, alert: null },
+        hashes: [],
+        placefiles: {},
+        locations: {}
+      },
+      internal: {
+        getSource: `NWS`,
+        configurations: {},
+        logs: {
+          __console__: [],
+          __events__: []
+        },
+        accounts: [],
+        ratelimits: {},
+        http_timers: {},
+        express: null,
+        limiter: null,
+        manager: null,
+        websocket: null,
+        socket: null,
+        webhooks: [],
+        last_cache_update: 0,
+        metrics: {
+          start_uptime: Date.now(),
+          memory_usage: 0,
+          events_processed: 0
+        }
+      }
+    };
+    strings = {
+      updated_requied: `New version available: {ONLINE_PARSED} (Current version: {OFFLINE_VERSION})
 ${"	".repeat(5)} Update by running update.sh or download the latest version from GitHub.
 ${"	".repeat(5)} =================== CHANGE LOGS ======================= 
 ${"	".repeat(5)} {ONLINE_CHANGELOGS}
 
 `,
-  updated_required_failed: `Failed to check for updates. Please check your internet connection. This may also be due to an endpoint configuration change.`,
-  new_event_legacy: `{SOURCE} | Alert {STATUS} >> {EVENT} [{TRACKING}]`,
-  new_event_fancy: `\u251C\u2500 {bold}{EVENT} ({ACTION_TYPE}) [{TRACKING}]{/bold}
+      updated_required_failed: `Failed to check for updates. Please check your internet connection. This may also be due to an endpoint configuration change.`,
+      new_event_legacy: `{SOURCE} | Alert {STATUS} >> {EVENT} [{TRACKING}]`,
+      new_event_fancy: `\u251C\u2500 {bold}{EVENT} ({ACTION_TYPE}) [{TRACKING}]{/bold}
 \u2502  \u251C\u2500 Issued: {ISSUED} ({EXPIRES})
 \u2502  \u251C\u2500 Sender {SENDER}
 \u2502  \u251C\u2500 Tags: {TAGS}
 \u2502  \u251C\u2500 Locations: {LOCATIONS}
-\u2502  \u2514\u2500 Distance: {DISTANCE})`,
-  system_info: `{bold}Uptime:{/bold} {UPTIME}
+\u2502  \u2514\u2500 Distance: {DISTANCE}`,
+      system_info: `{bold}Uptime:{/bold} {UPTIME}
 {bold}Memory Usage:{/bold} {MEMORY} MB
 {bold}Heap Usage:{/bold} {HEAP} MB
 {bold}Events Processed:{/bold} {EVENTS_PROCESSED}
 `,
-  portal_disabled_warning: `
+      portal_disabled_warning: `
 
 [SECURITY] THE PORTAL LOGIN PAGE IS DISABLED,
 	   THIS IS NOT RECOMMENDED FOR PRODUCTION USE AS EVERYONE CAN ACCESS THE DASHBOARD WITHOUT AUTHENTICATION.
@@ -5233,54 +5998,57 @@ ${"	".repeat(5)} {ONLINE_CHANGELOGS}
 	   IF YOU WISH TO ENABLE THE PORTAL LOGIN PAGE, PLEASE SET THE PORTAL CONFIG TO TRUE IN THE CONFIGURATION FILE.
 
 `
-};
-var packages = {
-  events,
-  path,
-  fs,
-  sqlite3: import_better_sqlite3.default,
-  express: import_express.default,
-  cookieParser: import_cookie_parser.default,
-  crypto,
-  http,
-  https,
-  axios: import_axios.default,
-  xmpp,
-  os,
-  jsonc,
-  xml2js,
-  manager,
-  tempest,
-  placefile,
-  shapefile,
-  ws: wrapper_exports,
-  firebaseApp,
-  firebaseDatabase,
-  streamerBot,
-  jobs,
-  gui
-};
-var submoduleClasses = {
-  utils: utils_default,
-  alerts: alerts_default,
-  calculations: calculations_default,
-  networking: networking_default,
-  structure: structure_default,
-  display: display_default,
-  parsing: parsing_default,
-  routes: routes_default
-};
-var submodules = {};
-Object.entries(submoduleClasses).forEach(([key, Class]) => {
-  submodules[key] = new Class();
+    };
+    packages = {
+      events,
+      path,
+      fs,
+      sqlite3: import_better_sqlite3.default,
+      express: import_express.default,
+      cookieParser: import_cookie_parser.default,
+      crypto,
+      http,
+      https,
+      axios: import_axios.default,
+      xmpp,
+      os,
+      jsonc,
+      xml2js,
+      manager,
+      tempest,
+      placefile,
+      shapefile,
+      ws: wrapper_exports,
+      firebaseApp,
+      firebaseDatabase,
+      streamerBot,
+      jobs,
+      gui,
+      rateLimit: import_express_rate_limit.default
+    };
+    submoduleClasses = {
+      utils: utils_default,
+      alerts: alerts_default,
+      calculations: calculations_default,
+      networking: networking_default,
+      structure: structure_default,
+      display: display_default,
+      parsing: parsing_default,
+      routes: routing_default,
+      gps: gps_default,
+      database: database_default
+    };
+    submodules = {};
+    Object.entries(submoduleClasses).forEach(([key, Class]) => {
+      submodules[key] = new Class();
+    });
+  }
 });
 
 // src/index.ts
-new Promise((resolve) => __async(null, null, function* () {
+init_bootstrap();
+new Promise(() => {
   const ConfigType = cache.internal.configurations;
-  submodules.networking.updateCache();
-  submodules.networking.getUpdates();
-  submodules.alerts.randomize();
   new packages.jobs.Cron(ConfigType.internal_settings.global_update, () => {
     submodules.networking.updateCache();
   });
@@ -5290,4 +6058,4 @@ new Promise((resolve) => __async(null, null, function* () {
   new packages.jobs.Cron(ConfigType.internal_settings.random_update, () => {
     submodules.alerts.randomize();
   });
-}));
+});

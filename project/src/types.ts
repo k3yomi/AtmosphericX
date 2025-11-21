@@ -8,13 +8,9 @@
                                      | |                                 
                                      |_|                                                                                                                
     
-    Written by: KiyoWx (k3yomi) & StarflightWx  
-    Last Updated: 2025-11-10
-    Changelogs: 
-        - Added type definitions for websockets
-                          
-*/
+    Written by: KiyoWx (k3yomi) & StarflightWx      
 
+*/
 
 // ----------- Definitions Interfaces ----------- //
 interface LocalLonLat  { lon: number; lat: number }
@@ -87,6 +83,7 @@ export interface EventType {
 
 export interface ConfigurationsType { 
     project_settings?: any; 
+    display_settings?: any;
     internal_settings?: any;
     websocket_settings?: any;
     webhook_settings?: any;
@@ -103,9 +100,13 @@ export interface ConfigurationsType {
 // ----------- Generic Types ----------- //
 type LocalHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 type LocalCoordinates = Record<number, number> | Record<number, number>[] | Record<number, number>[][]
+type LocalCoordinatesDefined = {lon: number; lat: number}
+type LocalInRange = { inRange: boolean; range: Record<string, { distance: number; unit: string}> }
 
 // --- Exports --- //
 export type Coordinates  = LocalLonLat
+export type CoordinatesDefined = LocalCoordinatesDefined
+export type InRange = LocalInRange
 
 
 // ----------- Parsing Interfaces ----------- //

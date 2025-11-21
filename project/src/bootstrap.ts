@@ -1,5 +1,5 @@
 /*
-                                            _               _     __   __
+              _                             _               _     __   __
          /\  | |                           | |             (_)    \ \ / /
         /  \ | |_ _ __ ___   ___  ___ _ __ | |__   ___ _ __ _  ___ \ V / 
        / /\ \| __| '_ ` _ \ / _ \/ __| '_ \| '_ \ / _ \ '__| |/ __| > <  
@@ -8,7 +8,8 @@
                                      | |                                 
                                      |_|                                                                                                                
     
-    Written by: KiyoWx (k3yomi) & StarflightWx                    
+    Written by: KiyoWx (k3yomi) & StarflightWx      
+
 */
 
 
@@ -20,6 +21,7 @@ import * as placefile from 'atmosx-placefile-parser';
 /* [ Variable Exports ] */
 import sqlite3 from 'better-sqlite3';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import axios from 'axios';
 
@@ -50,14 +52,18 @@ import networking from './submodules/networking';
 import structure from './submodules/structure';
 import display from './submodules/display';
 import parsing from './submodules/parsing';
-import routes from './submodules/routes';
+import routes from './submodules/express/routing';
+import gps from './submodules/gps';
+import database from './submodules/database';
+
+
 
 /* [ Global Cache ] */
 export const cache = {
     external: {
         configurations: {}, 
-        changelogs: undefined, 
-        version: undefined,
+        changelogs: null, 
+        version: null,
         spotter_network_feed: [],
         storm_reports: [],
         storm_prediction_center_mesoscale: [],
@@ -71,10 +77,7 @@ export const cache = {
         rng: {index: 0, alert: null},
         hashes: [],
         placefiles: {},
-        locations: {
-            spotter_network: {lat: 0, lon: 0},
-            realtime_irl: {lat: 0, lon: 0},
-        },
+        locations: {},
     }, 
     internal: {
         getSource: `NWS`,
@@ -83,12 +86,15 @@ export const cache = {
             __console__: [],
             __events__: []
         },
+        accounts: [],
+        ratelimits: {},
         http_timers: {},
-        express: undefined,
-        manager: undefined,
-        websocket: undefined,
+        express: null,
+        limiter: null,
+        manager: null,
+        websocket: null,
+        socket: null,
         webhooks: [],
-        socket: undefined,
         last_cache_update: 0,
         metrics: {
             start_uptime: Date.now(),
@@ -102,7 +108,7 @@ export const strings = {
     updated_requied: `New version available: {ONLINE_PARSED} (Current version: {OFFLINE_VERSION})\n${("\t").repeat(5)} Update by running update.sh or download the latest version from GitHub.\n${("\t").repeat(5)} =================== CHANGE LOGS ======================= \n${("\t").repeat(5)} {ONLINE_CHANGELOGS}\n\n`,
     updated_required_failed: `Failed to check for updates. Please check your internet connection. This may also be due to an endpoint configuration change.`,
     new_event_legacy: `{SOURCE} | Alert {STATUS} >> {EVENT} [{TRACKING}]`,
-    new_event_fancy: `├─ {bold}{EVENT} ({ACTION_TYPE}) [{TRACKING}]{/bold}\n` +`│  ├─ Issued: {ISSUED} ({EXPIRES})\n` +`│  ├─ Sender {SENDER}\n` + `│  ├─ Tags: {TAGS}\n` +`│  ├─ Locations: {LOCATIONS}\n` +`│  └─ Distance: {DISTANCE})`,
+    new_event_fancy: `├─ {bold}{EVENT} ({ACTION_TYPE}) [{TRACKING}]{/bold}\n` +`│  ├─ Issued: {ISSUED} ({EXPIRES})\n` +`│  ├─ Sender {SENDER}\n` + `│  ├─ Tags: {TAGS}\n` +`│  ├─ Locations: {LOCATIONS}\n` +`│  └─ Distance: {DISTANCE}`,
     system_info: `{bold}Uptime:{/bold} {UPTIME}\n{bold}Memory Usage:{/bold} {MEMORY} MB\n{bold}Heap Usage:{/bold} {HEAP} MB\n{bold}Events Processed:{/bold} {EVENTS_PROCESSED}\n`,
     portal_disabled_warning: `\n\n[SECURITY] THE PORTAL LOGIN PAGE IS DISABLED,\n\t   THIS IS NOT RECOMMENDED FOR PRODUCTION USE AS EVERYONE CAN ACCESS THE DASHBOARD WITHOUT AUTHENTICATION.\n\t   YOU CAN SIMPLY DO IP WHITELISTING THROUGH A WEB SERVER OR FIREWALL IF YOU WISH TO KEEP THIS OFF.\n\t   IF YOU WISH TO ENABLE THE PORTAL LOGIN PAGE, PLEASE SET THE PORTAL CONFIG TO TRUE IN THE CONFIGURATION FILE.\n\n`,
 }
@@ -115,14 +121,15 @@ export const packages = {
     xml2js, manager, tempest, placefile, 
     shapefile, ws, firebaseApp, 
     firebaseDatabase, streamerBot, jobs, 
-    gui
+    gui, rateLimit
 };
 
 
 /* [ Submodule Initialization ] */
 const submoduleClasses = {
     utils, alerts, calculations, networking,
-    structure, display, parsing, routes
+    structure, display, parsing, routes, gps,
+    database
 };
 
 export const submodules: any = {};

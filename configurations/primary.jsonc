@@ -39,6 +39,11 @@
         "settings" : {
             "is_https": false,
             "port_number": 80,
+            "ratelimiting": {
+                "enabled": true,
+                "window_ms": 30000,
+                "max_requests": 125
+            },
             "certification_paths": {
                 "private_key_path": ".../storage/policy/certificates/key.pem",
                 "certificate_path": ".../storage/policy/certificates/cert.pem"
@@ -97,168 +102,6 @@
             "webhook_display": "AtmosphericX (Webhook Integration)",
             "content": "<@&ROLE_ID_HERE>",
             "webhook_cooldown": 10
-        }
-    },
-    "filters": {
-        "listening_events": [
-            "Tornado Emergency", "PDS Tornado Warning", "PDS Tornado Watch",
-            "EDS Severe Thunderstorm Warning", "Considerable Severe Thunderstorm Warning (TPROB)",
-            "Destructive Severe Thunderstorm Warning (TPROB)", "Severe Thunderstorm Warning (TPROB)",
-            "Considerable Severe Thunderstorm Warning", "Destructive Severe Thunderstorm Warning",
-            "Confirmed Tornado Warning", "Radar Indicated Tornado Warning",
-            "Flash Flood Emergency", "Flash Flood Watch",
-            "Severe Thunderstorm Watch", "Tornado Watch",
-            "Special Marine Warning", "Flash Flood Warning",
-            "Severe Thunderstorm Warning", "Tornado Warning",
-            "Snow Squall Warning", "Tsunami Warning",
-            "Tsunami Watch", "Tsunami Advisory",
-            "Earthquake Warning", "Hurricane Warning",
-            "Hurricane Watch", "Special Weather Statement",
-            "Tropical Storm Warning", "Winter Storm Warning", "Blizzard Warning",
-            "Winter Weather Advisory", "Wind Chill Warning", "Wind Chill Advisory"
-        ],
-        "priority_events": [
-            "Tornado Emergency", "PDS Tornado Warning", "PDS Tornado Watch",
-            "EDS Severe Thunderstorm Warning", "Considerable Severe Thunderstorm Warning (TPROB)",
-            "Destructive Severe Thunderstorm Warning (TPROB)", "Severe Thunderstorm Warning (TPROB)",
-            "Considerable Severe Thunderstorm Warning", "Destructive Severe Thunderstorm Warning",
-            "Confirmed Tornado Warning",
-            "Flash Flood Emergency", 
-            "Tsunami Warning", "Hurricane Warning",
-            "Tropical Storm Warning"
-        ],
-        "all_events": false,
-        "sfx_beep_only": false,
-        "show_updates": true,
-        "ignore_tests": true,
-        "ignored_events": ["Xx"],
-        "listening_icoa": [],
-        "listening_ugcs": [],
-        "listening_state": [],
-        "ignored_icoa": ["KWNS"],
-        "eas_settings": {
-            "eas_directory": "../storage/scenarios",
-            "eas_intro": "../storage/scenarios/intro.wav", // .WAV FILES ONLY
-            "festival_voice": "slt" // Festival TTS Voice (Linux / WSL) Only (Will be replaced with LLM Studio)
-        },
-        "location_settings": {
-            "enabled": false,
-            "unit": "miles",
-            "max_distance": 125
-        }
-    },
-    "sources": {
-        "atmosx_parser_settings": {
-            "noaa_weather_wire_service": false, 
-            "journal": false,
-            "national_weather_service_settings": {
-                "interval": 29,
-                "endpoint": "https://api.weather.gov/alerts/active"
-            },
-            "weather_wire_settings": {
-                "database": "../storage/NoaaWeatherWireService.db",
-                "client_credentials": {
-                    "username": "username_here",
-                    "password": "password_here",
-                    "nickname": "nwws_client_atmosx"
-                },
-                "client_reconnections": {
-                    "attempt_reconnections": true,
-                    "reconnection_attempt_interval": 60
-                },
-                "client_cache": {
-                    "read_cache": true,
-                    "max_size_mb": 15,
-                    "max_db_history": 15000,
-                    "directory": "../storage/nwws/cache"
-                },
-                "alert_preferences": {
-                    "cap_only": false,
-                    "implement_db_ugc": false
-                }
-            },
-            "global_settings": {
-                "parent_events": false,
-                "better_parsing": true
-            }
-        },
-        "location_settings": {
-            "realtime_irl": {
-                "enabled": false,
-                "authentication": "YOUR_PULL_KEY_HERE",
-                "contradictions": []
-            },
-            "spotter_network_feed": {
-                "enabled": true,
-                "pin_by_name": [],
-                "pins": {
-                    "offline": true,
-                    "idle": true,
-                    "active": true,
-                    "streaming": true
-                },
-                "cache_time": 29,
-                "endpoint": "https://www.spotternetwork.org/feeds/gr.txt",
-                "contradictions": []
-            }
-        },
-        "local_storm_report_settings": {
-            "spotter_reports": {
-                "enabled": true,
-                "cache_time": 119,
-                "endpoint": "https://www.spotternetwork.org/feeds/reports.txt",
-                "contradictions": ["grlevelx"]
-            },
-            "grlevelx_reports": {
-                "enabled": true,
-                "cache_time": 119,
-                "endpoint": "https://www.grlevelx.com/lsr/lsr_latest.txt",
-                "contradictions": ["spotter_network"]
-            }
-        },
-        "dicussion_settings": {
-            "storm_prediction_center_mesoscale": {
-                "enabled": true,
-                "cache_time": 360,
-                "endpoint": "https://data2.weatherwise.app/mesoscale-discussions/USA.geojson",
-                "contradictions": []
-            },
-            "tropical_storm_tracks": {
-                "enabled": true,
-                "cache_time": 360,
-                "endpoint": "https://data2.weatherwise.app/tropical/USA/NHC/storms.json?",
-                "contradictions": []
-            }
-        },
-        "probability_settings": {
-            "tornado": {
-                "enabled": true,
-                "cache_time": 119,
-                "percentage_threshold": 2,
-                "endpoint": "https://cimss.ssec.wisc.edu/severe_conv/NOAACIMSS_PTv3_LOOP",
-                "contradictions": []
-            },
-            "severe": {
-                "enabled": true,
-                "cache_time": 119,
-                "percentage_threshold": 50,
-                "endpoint": "https://cimss.ssec.wisc.edu/severe_conv/NOAACIMSS_PSv3_LOOP",
-                "contradictions": []
-            }
-        },
-        "miscellaneous_settings": {
-            "sonde_project_weather_eye": {
-                "enabled": true,
-                "cache_time": 119,
-                "endpoint": "https://sonde.projectweathereye.org/data",
-                "contradictions": []
-            },
-            "wx_radio": {
-                "enabled": true,
-                "cache_time": 3600,
-                "endpoint": "https://api.weatherusa.net/v1/wxradio",
-                "contradictions": []
-            }
         }
     },
     "character_ai": {

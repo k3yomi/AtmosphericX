@@ -8,10 +8,8 @@
                                      | |                                 
                                      |_|                                                                                                                
     
-    Written by: KiyoWx (k3yomi) & StarflightWx  
-    Last Updated: 2025-11-10
-    Changelogs: 
-        - Webhook definition and sending method added.                        
+    Written by: KiyoWx (k3yomi) & StarflightWx      
+
 */
 
 
@@ -19,18 +17,20 @@ import * as loader from '../bootstrap';
 import * as types from '../types';
 
 export class Alerts { 
-    name: string
+    NAME_SPACE: string = `submodule:networking`;
     constructor() {
-        this.name = `submodule:networking`;
-        this.initalize()
-    }
-
-    private initalize() {
-        loader.submodules.utils.log(`${this.name} initialized.`)
+        loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
         this.getUpdates();
-        this.updateCache();
     }
-
+    
+    /**
+     * @function buildSourceStructure
+     * @description
+     *     Converts a raw sources object into a typed array of CacheStructure objects.
+     * 
+     * @param {any} sources
+     * @returns {types.CacheStructure[]}
+     */
     private buildSourceStructure(sources: any): types.CacheStructure[] {
         const structure: types.CacheStructure[] = [];
         for (const source in sources) {
@@ -48,6 +48,14 @@ export class Alerts {
         return structure;
     }
 
+    /**
+     * @function resolveContradictions
+     * @description
+     *     Processes a CacheStructure array and disables sources based on contradictions.
+     * 
+     * @param {types.CacheStructure[]} structure
+     * @returns {void}
+     */
     private resolveContradictions(structure: types.CacheStructure[]): void {
         for (const source of structure.filter(s => s.enabled)) {
             for (const contradiction of source.contradictions) {
@@ -60,6 +68,14 @@ export class Alerts {
         }
     }
 
+    /**
+     * @function getDataFromSource
+     * @description
+     *     Fetches data from a given URL and returns an object indicating success or error.
+     * 
+     * @param {string} url
+     * @returns {Promise<{ error: boolean; message: any }>}
+     */
     private async getDataFromSource(url: string): Promise<{ error: boolean; message: any }> {
         try {
             const response = await this.httpRequest(url);
@@ -72,6 +88,15 @@ export class Alerts {
         }
     }
 
+    /**
+     * @function httpRequest
+     * @description
+     *     Performs an HTTP GET request to the specified URL with optional custom options.
+     * 
+     * @param {string} url
+     * @param {types.HTTPOptions} [options]
+     * @returns {Promise<any>}
+     */
     public httpRequest(url: string, options?: types.HTTPOptions): Promise<any> {
         return new Promise(async (resolve) => {
             try { 
@@ -104,6 +129,14 @@ export class Alerts {
         });
     }
 
+    /**
+     * @function getUpdates
+     * @description
+     *     Checks the online repository for the latest version and changelogs.
+     *     Updates cache and logs messages if a newer version is discovered.
+     * 
+     * @returns {Promise<{error: boolean, message: string}>}
+     */
     public getUpdates(): Promise<{error: boolean, message: string}> {
         return new Promise(async (resolve) => {
             const onlineVersion = await this.httpRequest(`https://raw.githubusercontent.com/k3yomi/AtmosphericX/main/version`, undefined)
@@ -111,8 +144,8 @@ export class Alerts {
             const offlineVersion = loader.submodules.utils.version();
             if (onlineVersion.error == true || onlineChangelogs.error == true) { loader.submodules.utils.log(loader.strings.updated_required_failed, {echoFile: true}); return resolve({error: true, message: `Failed to check for updates.`}); }
             const onlineVersionParsed = onlineVersion.message.replace(/\n/g, ``);
-            const onlineChangelogsParsed = onlineChangelogs.message[onlineVersion] ? 
-                onlineChangelogs.message[onlineVersionParsed].changelogs.join(`\n\t`) : `No changelogs available.`;
+            const onlineChangelogsParsed = onlineChangelogs.message[onlineVersion] 
+                ? onlineChangelogs.message[onlineVersionParsed].changelogs.join(`\n\t`) : `No changelogs available.`;
             loader.cache.external.version = offlineVersion;
             loader.cache.external.changelogs = onlineChangelogsParsed;
             const isNewerVersionDiscovered = (a: string, b: string) => {
@@ -127,6 +160,17 @@ export class Alerts {
         });
     }
 
+    /**
+     * @function sendWebhook
+     * @description
+     *     Sends a Discord webhook message with a title and body, respecting cooldowns
+     *     and truncating messages that are too long.
+     * 
+     * @param {string} title
+     * @param {string} body
+     * @param {types.WebhookSettings} settings
+     * @returns {Promise<void>}
+     */
     public async sendWebhook(title: string, body: string, settings: types.WebhookSettings): Promise<void> {
         if (!settings.enabled) { return }
         const time = Date.now();
@@ -150,6 +194,15 @@ export class Alerts {
         } catch (error) {}
     }
 
+    /**
+     * @function updateCache
+     * @description
+     *     Updates internal and external cache, fetching data from sources, resolving contradictions,
+     *     and optionally updating alerts. Logs fetch results and updates the structured cache.
+     * 
+     * @param {boolean} [isAlertUpdate]
+     * @returns {Promise<void>}
+     */
     public async updateCache(isAlertUpdate?: boolean): Promise<void> {
         loader.submodules.utils.configurations();
         const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
@@ -195,7 +248,7 @@ export class Alerts {
         if (isAlertUpdate) {
             if (!atmosx_parser_settings.noaa_weather_wire_service) {
                 const lastFetched = loader.cache.internal.http_timers[`NWS`] ?? 0;
-                if (setTime - lastFetched <= atmosx_parser_settings.national_weather_service_settings.internal * 1000) return;
+                if (setTime - lastFetched <= atmosx_parser_settings.national_weather_service_settings.interval * 1000) return;
                 loader.cache.internal.http_timers[`NWS`] = setTime;
                 stringText += `(OK) NWS, `
             }   
@@ -204,7 +257,7 @@ export class Alerts {
         if (stringText.length > 0) {
             loader.submodules.utils.log(`Cache Updated: - Taken: ${Date.now() - setTime}ms - ${stringText.slice(0, -2)}`, { echoFile: true })
         }
-        loader.submodules.structure.create(data, isAlertUpdate);
+        loader.submodules.structure.create(data);
     }
 }
 

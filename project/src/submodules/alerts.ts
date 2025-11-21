@@ -9,9 +9,6 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx      
-    Last Updated: 2025-11-10
-    Changelogs: 
-        - randomize method for random alert cycles.
 
 */
 
@@ -20,92 +17,141 @@ import * as loader from '../bootstrap';
 import * as types from '../types';
 
 export class Alerts { 
-    name: string
-    package: typeof loader.packages.manager.AlertManager
-    manager: any;
+    NAME_SPACE: string = `submodule:alerts`;
+    PACKAGE: typeof loader.packages.manager.AlertManager
+    MANAGER: any;
     constructor() {
-        this.package = loader.packages.manager.AlertManager;
-        this.name = `submodule:alerts`;
-        this.initalize()
-    }
-
-    private initalize() {
-        loader.submodules.utils.log(`${this.name} initialized.`)
+        this.PACKAGE = loader.packages.manager.AlertManager;
+        loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
         this.instance();
     }
 
-    public displayAlert(registry?: types.RegisterType, isLiveFeed?: boolean): string {
-        if (!loader.submodules.utils.isFancyDisplay() || !isLiveFeed) {
-            return loader.strings.new_event_legacy
-                .replace(`{EVENT}`, registry.event.properties.event)
-                .replace(`{STATUS}`, registry.event.properties.action_type)
-                .replace(`{TRACKING}`, registry.event.tracking.substring(0, 18))
-                .replace(`{SOURCE}`, loader.cache.internal.getSource)
-        } else {
-            if (isLiveFeed) { 
-                return loader.cache.external.events.features.sort((a: types.RegisterType, b: types.RegisterType) => {
-                    const dateA = new Date(a.event.properties.issued).getTime();
-                    const dateB = new Date(b.event.properties.issued).getTime();
-                    return dateA - dateB
-                }).map((registry: types.RegisterType) => {
-                    return loader.strings.new_event_fancy
-                    .replace(`{EVENT}`, registry.event.properties.event)
-                    .replace(`{ACTION_TYPE}`, registry.event.properties.action_type)
-                    .replace(`{TRACKING}`, registry.event.tracking.substring(0, 18))
-                    .replace(`{SENDER}`, registry.event.properties.sender_name)
-                    .replace(`{ISSUED}`, registry.event.properties.issued)
-                    .replace(`{EXPIRES}`, loader.submodules.calculations.timeRemaining(registry.event.properties.expires))
-                    .replace(`{TAGS}`, registry.event.properties.tags ? registry.event.properties.tags.join(', ') : 'N/A')
-                    .replace(`{LOCATIONS}`, registry.event.properties.locations.substring(0, 100))
-                    .replace(`{DISTANCE}`, (registry.event.properties.distance?.range != null ? Object.entries(registry.event.properties.distance.range).map(([key, value]: [string, any]) => {return `${key}: ${value.distance} ${value.unit}`;}).join(', ') : `No Distance Data Available`));
-                }).join('\n')
-            }
+
+    /**
+     * @function returnAlertText
+     * @description
+     *     Generates a formatted alert display string for either legacy or live-feed
+     *     rendering modes. When fancy display is enabled and live feed data is present,
+     *     alerts are sorted by issue time and formatted using the "fancy" template.
+     *     Otherwise, a simplified "legacy" template is used. This implementation is
+     *     defensive: it validates shapes, safely calls possible functions, and never
+     *     throws on malformed input.
+     *
+     * @param {types.RegisterType} [registry]
+     * @param {boolean} [isLiveFeed=false]
+     * @returns {string}
+     */
+    public returnAlertText(reg?: types.RegisterType, isLive?: boolean): string {
+        const { utils, calculations } = loader.submodules, { strings, cache } = loader;
+        if (!utils.isFancyDisplay() || !isLive) {
+            const e = reg?.event
+            return strings.new_event_legacy
+                .replace('{EVENT}', e.properties.event ?? 'Unknown')
+                .replace('{STATUS}', e.properties.action_type ?? 'Unknown')
+                .replace('{TRACKING}', e.tracking.substring(0, 18))
+                .replace('{SOURCE}', cache.internal.getSource);
         }
+        return cache.external.events.features
+            .sort((a, b) => new Date(a.event.properties.issued).getTime() - new Date(b.event.properties.issued).getTime())
+            .map(r => {
+                const p = r.event.properties, d = p.distance;
+                const dist = d && Object.keys(d).length > 0 ?
+                    Object.entries(d as Record<string, { distance?: number | string; unit?: string }>).map(([name, val]) => {
+                        const distance = val?.distance ?? 'N/A';
+                        const unit = val?.unit ?? '';
+                        return `${name}: ${distance}${unit ? ` ${unit}` : ''}`;
+                    }).join(', ')
+                    : 'Not Available';
+                return strings.new_event_fancy
+                    .replace('{EVENT}', p.event)
+                    .replace('{ACTION_TYPE}', p.action_type)
+                    .replace('{TRACKING}', r.event.tracking.substring(0, 18))
+                    .replace('{SENDER}', p.sender_name)
+                    .replace('{ISSUED}', p.issued)
+                    .replace('{EXPIRES}', calculations.timeRemaining(p.expires))
+                    .replace('{TAGS}', p.tags?.join(', ') ?? 'N/A')
+                    .replace('{LOCATIONS}', p.locations?.substring(0, 100) ?? 'N/A')
+                    .replace('{DISTANCE}', dist);
+            })
+            .join('\n');
     }
 
+
+    /**
+     * @function randomize
+     * @description
+     *     Selects the next available alert from the combined list of manual and
+     *     active event sources. The method cycles sequentially through alerts and
+     *     wraps back to the beginning once all have been iterated. Invalid or empty
+     *     alert entries are ignored, and the RNG state is automatically reset if
+     *     corrupted or out of bounds.
+     *
+     * @public
+     * @returns {types.EventType | null}
+     */
     public randomize(): types.EventType | null {
-        const manual = Array.isArray(loader.cache.external.manual?.features) ? loader.cache.external.manual.features : [];
-        const active = Array.isArray(loader.cache.external.events?.features) ? loader.cache.external.events.features : [];
-        const alerts = [...manual, ...active].filter(alert => alert && Object.keys(alert).length > 0);
-        if (alerts.length === 0) {
-            loader.cache.external.rng = { alert: null, index: null };
-            return null;
-        }
-        const currentIndex = loader.cache.external.rng?.index ?? 0;
-        const nextIndex = (currentIndex + 1) % alerts.length;
-        loader.cache.external.rng = {
-            alert: alerts[currentIndex],
-            index: nextIndex
-        };
-        return loader.cache.external.rng.alert;
+        const ext = loader.cache.external;
+        const m = Array.isArray(ext.manual?.features) ? ext.manual.features.filter(Boolean) : [];
+        const a = Array.isArray(ext.events?.features) ? ext.events.features.filter(Boolean) : [];
+        const alerts = [...m, ...a].filter((x): x is types.EventType => x && typeof x === 'object' && Object.keys(x).length > 0);
+        if (!alerts.length) return (ext.rng = { alert: null, index: null }), null;
+        const i = (ext.rng?.index ?? -1) + 1 >= alerts.length ? 0 : (ext.rng?.index ?? -1) + 1;
+        const alert = alerts[i];
+        ext.rng = { alert, index: i };
+        return alert;
     }
 
-    private handle(events:  types.EventType[]): void {
+    /**
+     * @function handle
+     * @description
+     *     Processes an incoming batch of event objects and updates the external
+     *     event cache accordingly. Each event is registered, validated, and merged
+     *     into the loader's existing structure. Handles issued, updated, and
+     *     cancelled alerts with full state synchronization between internal and
+     *     external caches.
+     *
+     *     - **Issued events** are appended when not already tracked.
+     *     - **Updated events** merge histories, locations, and property fields.
+     *     - **Cancelled events** remove matching entries from the cache.
+     *
+     *     This function also updates internal processing metrics and triggers a
+     *     network cache refresh to ensure consistent downstream state.
+     *
+     * @private
+     * @param {types.EventType[]} events
+     * @returns {void}
+     */
+    private handle(events: types.EventType[]): void {
         const features = loader.cache.external.events.features;
         for (const event of events) {
             const registeredEvent = loader.submodules.structure.register(event);
             const { tracking, properties, history = [] } = registeredEvent.event;
-            const index = features.findIndex( feature => feature && feature.event.tracking === tracking );
+            const index = features.findIndex(feature => feature && feature.event.tracking === tracking);
             if (properties.is_cancelled && index !== -1) {
-                features[index] = undefined; continue;
+                features[index] = undefined;
+                continue;
             }
             if (properties.is_issued && index === -1) {
-                features.push(registeredEvent); continue;
+                features.push(registeredEvent)
+                continue;
             }
             if (properties.is_updated) {
                 if (index !== -1 && features[index]) {
                     const existing = features[index];
                     const existingLocations = existing.event.properties.locations ?? "";
-                    const mergedHistory = [ ...(existing.event.history ?? []), ...history ].sort(
-                        (a, b) => new Date(b.issued).getTime() - new Date(a.issued).getTime()
+                    const mergedHistory = [ 
+                        ...(existing.event.history ?? []), 
+                        ...history 
+                    ].sort((a, b) => new Date(b.issued).getTime() - new Date(a.issued).getTime());
+                    const uniqueHistory = mergedHistory.filter((item, pos, arr) => 
+                        arr.findIndex(i => i.issued === item.issued && i.description === item.description) === pos
                     );
                     existing.event.properties.event = properties.event;
-                    existing.event.history = mergedHistory;
+                    existing.event.history = uniqueHistory;
                     existing.event.properties = registeredEvent.event.properties;
-                    const combinedLocations = [...new Set((existingLocations + "; " + registeredEvent.event.properties.locations)
-                        .split(";")
-                        .map(loc => loc.trim())
-                        .filter(Boolean)),
+                    const combinedLocations = [
+                        ...new Set((existingLocations + "; " + registeredEvent.event.properties.locations)
+                        .split(";").map(loc => loc.trim()).filter(Boolean))
                     ].join("; ");
                     existing.event.properties.locations = combinedLocations;
                 } else {
@@ -117,53 +163,73 @@ export class Alerts {
         loader.submodules.networking.updateCache(true);
     }
 
-    private instance(isRefreshing?: boolean) {
-        if (isRefreshing && !this.manager) return;
-        const configurations = loader.cache.internal.configurations as types.ConfigurationsType
-        const alerts = configurations.sources.atmosx_parser_settings
-        const nwws = alerts.weather_wire_settings
-        const nws = alerts.national_weather_service_settings
-        const filter = configurations.filters
-        let now = new Date();
-        let displayName = nwws.client_credentials.nickname.replace(`AtmosphericX`, ``).trim();
-        let displayTimestamp = `${String(now.getUTCMonth() + 1).padStart(2, '0')}/${String(now.getUTCDate()).padStart(2, '0')} ${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`;
-        if (alerts.noaa_weather_wire_service == true) { loader.cache.internal.getSource = `NWWS`; } 
+    /**
+     * @function instance
+     * @description
+     *     Initializes or refreshes the parser manager instance with current
+     *     configurations and settings. Sets up event handlers for alert reception,
+     *     messages, connection, reconnection, and logging. Supports refreshing
+     *     an existing manager instance without recreating it.
+     *
+     * @public
+     * @param {boolean} [isRefreshing=false]
+     * @returns {void}
+     */
+    public instance(isRefreshing: boolean = false): void {
+        if (isRefreshing && !this.MANAGER) return;
+        const configurations = loader.cache.internal.configurations as types.ConfigurationsType;
+        const alerts = configurations.sources.atmosx_parser_settings;
+        const nwws = alerts.weather_wire_settings;
+        const nws = alerts.national_weather_service_settings;
+        const filter = configurations.filters;
+        const now = new Date();
+        const displayName = nwws.client_credentials.nickname.replace(`AtmosphericX`, ``).trim();
+        const displayTimestamp = `${String(now.getUTCMonth() + 1).padStart(2, '0')}/${String(now.getUTCDate()).padStart(2, '0')} ${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`;
+        if (alerts.noaa_weather_wire_service) loader.cache.internal.getSource = `NWWS`;
         const settings = {
             database: nwws.database,
             is_wire: alerts.noaa_weather_wire_service,
             journal: alerts.journal,
             noaa_weather_wire_service_settings: {
-                reconnection_settings: { enabled: nwws.client_reconnections.attempt_reconnections, interval: nwws.client_reconnections.reconnection_attempt_interval, },
-                credentials: { username: nwws.client_credentials.username, password: nwws.client_credentials.password, nickname: `AtmosphericX v${loader.submodules.utils.version()} -> ${displayName} (${displayTimestamp})`, },   
-                cache: { enabled: nwws.client_cache.read_cache, max_file_size: nwws.client_cache.max_size_mb, max_db_history: nwws.client_cache.max_db_history, directory: nwws.client_cache.directory, },
-                preferences: { cap_only: nwws.alert_preferences.cap_only, shapefile_coordinates: nwws.alert_preferences.implement_db_ugc, }
+                reconnection_settings: { enabled: nwws.client_reconnections.attempt_reconnections, interval: nwws.client_reconnections.reconnection_attempt_interval },
+                credentials: { username: nwws.client_credentials.username, password: nwws.client_credentials.password, nickname: `AtmosphericX v${loader.submodules.utils.version()} -> ${displayName} (${displayTimestamp})` },
+                cache: { enabled: nwws.client_cache.read_cache, max_file_size: nwws.client_cache.max_size_mb, max_db_history: nwws.client_cache.max_db_history, directory: nwws.client_cache.directory },
+                preferences: { cap_only: nwws.alert_preferences.cap_only, shapefile_coordinates: nwws.alert_preferences.implement_db_ugc }
             },
-            national_weather_service_settings: { interval: nws.interval, endpoint: nws.endpoint, },
+            national_weather_service_settings: { interval: nws.interval, endpoint: nws.endpoint },
             global_settings: {
                 parent_events_only: alerts.global_settings.parent_events,
                 better_event_parsing: alerts.global_settings.better_parsing,
-                filtering: { 
-                    location: { max_distance: filter.location_settings.max_distance, unit: filter.location_settings.unit, filter: filter.location_settings.enabled },
+                filtering: {
+                    location: { unit: filter.location_settings.unit },
                     ignore_text_products: filter.ignore_tests,
-                    events: filter.all_events == true ? [] : filter.listening_events, ignored_events: filter.ignored_events, filtered_icoa: filter.listening_icoa, ignored_icoa: filter.ignored_icoa, ugc_filter: filter.listening_ugcs, state_filter: filter.listening_states, check_expired: false,
+                    events: filter.all_events ? [] : filter.listening_events,
+                    ignored_events: filter.ignored_events,
+                    filtered_icoa: filter.listening_icoa,
+                    ignored_icoa: filter.ignored_icoa,
+                    ugc_filter: filter.listening_ugcs,
+                    state_filter: filter.listening_states,
+                    check_expired: false
                 },
                 eas_settings: { festival_tts_voice: filter.festival_voice, directory: filter.eas_settings.eas_directory, intro_wav: filter.eas_settings.eas_intro }
             }
-        }
-        if (isRefreshing) { this.manager.setSettings(settings); return; }
-        this.manager = new this.package(settings);
-        this.manager.on(`onAlerts`, (alerts) => { this.handle(alerts); });
-        this.manager.on(`onMessage`, async (message) => { 
-            const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
-            const webhooks = ConfigType.webhook_settings;
+        };
+        if (isRefreshing) { this.MANAGER.setSettings(settings); return; }
+        this.MANAGER = new this.PACKAGE(settings);
+        this.MANAGER.on(`onAlerts`, (alerts: types.EventType[]) => { this.handle(alerts); });
+        this.MANAGER.on(`onMessage`, async (message: { awipsType: { type: string }; message: string }) => {
+            const webhooks = configurations.webhook_settings;
             await loader.submodules.networking.sendWebhook(`New Stanza - ${message.awipsType.type}`, `\`\`\`${message.message}\`\`\``, webhooks.misc_alerts);
         });
-        this.manager.on(`onConnection`, async (displayName) => {loader.submodules.utils.log(`Connected to NOAA Weather Wire Service as ${displayName}.`);});
-        this.manager.on(`onReconnection`, (service) => { now = new Date(); displayTimestamp = `${String(now.getUTCMonth() + 1).padStart(2, '0')}/${String(now.getUTCDate()).padStart(2, '0')} ${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`; this.manager.setDisplayName(`AtmosphericX v${loader.submodules.utils.version()} -> ${displayName} (${displayTimestamp}) (x${service.reconnects})`) })
-        this.manager.on(`log`, (message) => { loader.submodules.utils.log(message, { title: `\x1b[33m[ATMOSX-PARSER]\x1b[0m` }); });
-        loader.cache.internal.manager = this.manager;
+        this.MANAGER.on(`onConnection`, async (displayName: string) => { loader.submodules.utils.log(`Connected to NOAA Weather Wire Service as ${displayName}.`); });
+        this.MANAGER.on(`onReconnection`, (service: { reconnects: number }) => {
+            const now = new Date();
+            const displayTimestamp = `${String(now.getUTCMonth() + 1).padStart(2, '0')}/${String(now.getUTCDate()).padStart(2, '0')} ${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`;
+            this.MANAGER.setDisplayName(`AtmosphericX v${loader.submodules.utils.version()} -> ${displayName} (${displayTimestamp}) (x${service.reconnects})`);
+        });
+        this.MANAGER.on(`log`, (message: string) => { loader.submodules.utils.log(message, { title: `\x1b[33m[ATMOSX-PARSER]\x1b[0m` }); });
+        loader.cache.internal.manager = this.MANAGER;
     }
-
 }
 
 export default Alerts;

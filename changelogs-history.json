@@ -1,4 +1,13 @@
 {
+    "8.0.004": {
+        "version": "8.0.004",
+        "updated": "Thursday, November 20th",
+        "headline": "<span style='color:green'>[FEED]</span>__BETA_BRANCH_DEVELOPER_USE_ONLY__ DO NOT USE",
+        "changelogs": [
+            "note: DO_NOT_USE_DEV_BUILD"
+        ],
+        "rewrite": true
+    },
     "8.0.003": {
         "version": "8.0.003",
         "updated": "Monday, November 10th",

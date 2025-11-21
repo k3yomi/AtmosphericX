@@ -9,25 +9,27 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx      
-	Last Updated: 2025-11-10
-    Changelogs: 
-        - Webhook integration for alert dispatching.
+
 */
 
 import * as loader from '../bootstrap';
 import * as types from '../types';
 
 export class Structure { 
-    NAME_SPACE: string
+    NAME_SPACE: string = `submodule:structure`;
     constructor() {
-        this.NAME_SPACE = `submodule:structure`;
-        this.initialize();
-    }
-
-    private initialize() {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
     }
-
+	
+	/**
+	 * @function parsing
+	 * @description
+	 *     Routes raw input data to the appropriate parser based on the specified type.
+	 * 
+	 * @param {unknown} [body]
+	 * @param {string} [type]
+	 * @returns {Promise<any[]>}
+	 */
 	private async parsing(body?: unknown, type?: string): Promise<any[]> {
         switch (type) {
             case 'spotter_network_feed': return loader.submodules.parsing.getSpotterFeed(body);
@@ -43,7 +45,15 @@ export class Structure {
         }
     }
 
-	private getEventMetadata(event: types.EventType) {
+	/**
+	 * @function metadata
+	 * @description
+	 *     Retrieves the alert scheme, dictionary, and corresponding sound effect for a given event.
+	 * 
+	 * @param {types.EventType} event
+	 * @returns {{ sfx: string; scheme: any; metadata: any }}
+	 */
+	private metadata(event: types.EventType) {
     	const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
 		const schemes = ConfigType.alert_schemes[event.properties.event]
 			|| ConfigType.alert_schemes[event.properties.parent]
@@ -51,7 +61,6 @@ export class Structure {
 		const dictionary = ConfigType.alert_dictionary[event.properties.event]
 			|| ConfigType.alert_dictionary[event.properties.parent]
 			|| ConfigType.alert_dictionary['Special Event'];
-		// Determine SFX based on event status
 		let sfx = dictionary.sfx_cancel;
 		if (event.properties.is_issued) sfx = dictionary.sfx_issued;
 		else if (event.properties.is_updated) sfx = dictionary.sfx_update;
@@ -59,15 +68,23 @@ export class Structure {
 		return { sfx, scheme: schemes, metadata: dictionary.metadata };
 	}
 
+	/**
+	 * @function register
+	 * @description
+	 *    Registers an event, determining its metadata, sound scheme, and whether it should be ignored or beeped.
+	 * 	
+	 * @param {types.EventType} event
+	 * @returns {object}
+	 */
 	public register(event: types.EventType) {
 		const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
 		const eventName = event.properties.event;
 		const isPriorityEvent = ConfigType.filters.priority_events.includes(eventName);
 		const isBeepAuthorizedOnly = ConfigType.filters.sfx_beep_only;
 		const isShowingUpdatesAllowed = ConfigType.filters.show_updates;
-		const eventMetadata = this.getEventMetadata(event);
+		const eventMetadata = this.metadata(event);
 		const isBeepOnly = isBeepAuthorizedOnly && isPriorityEvent;
-		const isIgnored = !isShowingUpdatesAllowed && !isPriorityEvent;
+		const isIgnored = !isShowingUpdatesAllowed && !isPriorityEvent 
 		return {
 			event,
 			metadata: eventMetadata.metadata,
@@ -78,6 +95,54 @@ export class Structure {
 		};
 	}
 
+	/**
+	 * @function distance
+	 * @description
+	 *    Calculates the distance of an event from predefined locations and determines if it's within range.
+	 * 	
+	 * @param {types.EventType} event
+	 * @returns {object}
+	 */
+	public distance(event: types.EventType): types.InRange {
+		const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
+		const cache = loader.cache.external.locations;
+		const coords = event.properties?.geometry?.coordinates;
+		let range = [] 
+		let inRange = ConfigType.filters.location_settings.enabled == true && cache && Object.keys(cache).length > 0 ? false : true;
+		if (coords != null) {
+			for (const key in cache) {
+				const name = key;
+				const lat = cache[key].lat;
+				const lon = cache[key].lon;
+				const unit = ConfigType.filters.location_settings.unit || 'miles';
+				const singleCoord = coords;
+        	    const center = singleCoord.reduce((acc, [lat, lon]) => ([acc[0] + lat, acc[1] + lon]), [0, 0]).map(sum => sum / singleCoord.length);
+				const distance = loader.submodules.calculations.calculateDistance(
+					{ lat: center[0], lon: center[1] },
+					{ lat, lon },
+					unit
+				); 
+				if (ConfigType.filters.location_settings.enabled) {
+					if (distance < ConfigType.filters.location_settings.max_distance) {
+						inRange = true;
+					}
+				}
+				range.push({ [name]: { distance, unit } });
+			}
+		}
+		return { inRange, range: {... event.properties.distance, ...Object.assign({}, ...range) } };
+	}
+
+	/**
+	 * @function create
+	 * @description
+	 *     Processes raw data, parses it into structured types, updates caches, logs events,
+	 *     and triggers webhooks for new alerts.
+	 * 
+	 * @param {unknown} data
+	 * @param {boolean} [isAlertupdate]
+	 * @returns {Promise<void>}
+	 */
 	public async create(data: unknown, isAlertupdate?: boolean): Promise<void> {
 		const clean = loader.submodules.utils.filterWebContent(data);
 		const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
@@ -97,16 +162,18 @@ export class Structure {
 				loader.cache.external[cache] = await this.parsing(clean[key], key);
 			}
 		}
-		if (isAlertupdate && clean.events?.length) {
+		if (clean.events?.length) {
 			for (const ev of clean.events) {
 				const isAlreadyLogged = loader.cache.external.hashes.some(log => log.id === ev.event.hash);
+				const eventDistance = this.distance(ev.event)
+				ev.event.properties.distance = eventDistance.range; ev.ignored = this.distance(ev.event).inRange === false;
 				if (isAlreadyLogged) continue;
 				if (ev.ignored) continue;
 				loader.cache.external.hashes.push({ id: ev.event.hash, expires: ev.event.properties.expires });
 				if (!loader.submodules.utils.isFancyDisplay()) {
-					loader.submodules.utils.log(loader.submodules.alerts.displayAlert(ev));
+					loader.submodules.utils.log(loader.submodules.alerts.returnAlertText(ev));
 				} else { 
-					loader.submodules.utils.log(loader.submodules.alerts.displayAlert(ev), {}, `__events__`);
+					loader.submodules.utils.log(loader.submodules.alerts.returnAlertText(ev), {}, `__events__`);
 				}
 				const webhooks = ConfigType.webhook_settings;
 				const pSet = new Set((ConfigType.filters.priority_events || []).map(p => String(p).toLowerCase()));
@@ -133,7 +200,7 @@ export class Structure {
 				}
 			}
 		}
-		loader.cache.external.events.features = clean.events || [];
+		loader.cache.external.events.features = clean.events.filter(ev => !ev.ignored) || [];
 		loader.submodules.routes.onUpdateRequest();
 	}
 }

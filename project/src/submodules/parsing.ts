@@ -8,27 +8,27 @@
                                      | |                                 
                                      |_|                                                                                                                
     
-    Written by: KiyoWx (k3yomi) & StarflightWx
-    Last Updated: 2025-11-10
-    Changelogs: 
-        - Change placefile parsing and structure methods.           
-*/
+    Written by: KiyoWx (k3yomi) & StarflightWx      
 
+*/
 
 import * as loader from '../bootstrap';
 import * as types from '../types';
 
 export class Parsing { 
-    NAME_SPACE: string
+    NAME_SPACE: string = `submodule:parsing`;
     constructor() {
-        this.NAME_SPACE = `submodule:parsing`;
-        this.initialize();
-    }
-
-    private initialize() {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
     }
 
+    /**
+     * @function getGibsonReportStructure
+     * @description
+     *     Parses a Gibson Ridge Placefile body and converts it into a GeoJSON FeatureCollection.
+     * 
+     * @param {string} body
+     * @returns {Promise<types.GeoJSONFeatureCollection>}
+     */
     public async getGibsonReportStructure(body: string): Promise<types.GeoJSONFeatureCollection> {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
         const parsed = await loader.packages.placefile.PlacefileManager.parseTable(body) as types.GibsonRidgeReportTypes[];
@@ -54,6 +54,14 @@ export class Parsing {
         return structure;
     }
 
+    /**
+     * @function getSpotterReportStructure
+     * @description
+     *     Parses a Spotter Network Placefile body and converts it into a GeoJSON FeatureCollection.
+     * 
+     * @param {string} body
+     * @returns {Promise<types.GeoJSONFeatureCollection>}
+     */
     public async getSpotterReportStructure(body: string): Promise<types.GeoJSONFeatureCollection> {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
         const parsed = await loader.packages.placefile.PlacefileManager.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
@@ -78,6 +86,15 @@ export class Parsing {
         return structure;
     }
     
+    /**
+     * @function getSPCDiscussions
+     * @description
+     *     Parses SPC GeoJSON discussion data and converts it into a GeoJSON FeatureCollection.
+     *     Filters out expired discussions and extracts relevant probabilities and metadata.
+     * 
+     * @param {string} body
+     * @returns {Promise<types.GeoJSONFeatureCollection>}
+     */
     public async getSPCDiscussions(body: string): Promise<types.GeoJSONFeatureCollection> {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
         const parsed = await loader.packages.placefile.PlacefileManager.parseGeoJSON(body) as types.SPCDiscussionTypes[];
@@ -110,11 +127,21 @@ export class Parsing {
         return structure;
     }
 
+    /**
+     * @function getSpotterFeed
+     * @description
+     *     Parses a Spotter Network Placefile feed, filters pins based on configuration,
+     *     updates current locations, calculates distances, and converts to a GeoJSON FeatureCollection.
+     * 
+     * @param {string} body
+     * @returns {Promise<types.GeoJSONFeatureCollection>}
+     */
     public async getSpotterFeed(body: string): Promise<types.GeoJSONFeatureCollection> {
         const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
         const feedConfig = ConfigType.sources?.location_settings?.spotter_network_feed;
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
         const parsed = await loader.packages.placefile.PlacefileManager.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
+        const locations = Object.keys(loader.cache.external.locations);
         for (const feature of parsed) {
             const lon = parseFloat(feature.object.coordinates[1]);
             const lat = parseFloat(feature.object.coordinates[0]);
@@ -127,15 +154,15 @@ export class Parsing {
                 const idx = feedConfig.pin_by_name.findIndex(name => feature.icon.label.includes(name));
                 if (idx !== -1) {
                     const name = feedConfig.pin_by_name[idx];
-                    loader.cache.external.locations.spotter_network = { lat, lon };
-                    loader.cache.internal.manager.setCurrentLocation(name, { lat, lon });
+                    loader.submodules.gps.setCurrentCoordinates(name, { lat, lon }, `spotter_network`);
                 }
             }
             let distance = 0;
-            if (loader.cache.external.locations.spotter_network) {
+            if (locations.length > 0) {
+                const index = locations[0] as string;
                 distance = loader.submodules.calculations.calculateDistance(
                     { lat, lon },
-                    { lat: loader.cache.external.locations.spotter_network.lat, lon: loader.cache.external.locations.spotter_network.lon }
+                    { lat: loader.cache.external.locations[index].lat, lon: loader.cache.external.locations[index].lon }
                 );
             }
             structure.features.push({
@@ -151,6 +178,16 @@ export class Parsing {
         return structure;
     }
 
+    /**
+     * @function getProbabilityStructure
+     * @description
+     *     Parses a Placefile feed for probability data (tornado or severe) and returns
+     *     entries that exceed the configured threshold.
+     * 
+     * @param {string} body
+     * @param {'tornado' | 'severe'} type
+     * @returns {Promise<types.ProbabilityTypes[]>}
+     */
     public async getProbabilityStructure(body: string, type: 'tornado' | 'severe'): Promise<types.ProbabilityTypes[]> {
         const structure: types.ProbabilityTypes[] = [];
         const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
@@ -175,6 +212,14 @@ export class Parsing {
         return structure;
     }
   
+    /**
+     * @function getWxRadioStructure
+     * @description
+     *     Converts WX Radio source data into a GeoJSON FeatureCollection.
+     * 
+     * @param {types.WxRadioTypes} body
+     * @returns {types.GeoJSONFeatureCollection}
+     */
     public getWxRadioStructure(body: types.WxRadioTypes): types.GeoJSONFeatureCollection {
         let structure = { type: 'FeatureCollection', features: [] }
         for (const feature of body.sources) {
@@ -193,6 +238,14 @@ export class Parsing {
         return structure;
     }
 
+    /**
+     * @function getTropicalStormStructure
+     * @description
+     *     Converts tropical storm data into a GeoJSON FeatureCollection.
+     * 
+     * @param {types.TropicalStormTypes[]} body
+     * @returns {types.GeoJSONFeatureCollection}
+     */
     public getTropicalStormStructure(body: types.TropicalStormTypes[]): types.GeoJSONFeatureCollection {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
         for (const feature of body) {
@@ -211,6 +264,14 @@ export class Parsing {
         return structure;
     }
 
+    /**
+     * @function getWxEyeSondeStructure
+     * @description
+     *     Converts raw WxEyeSonde data into an array of string-based records.
+     * 
+     * @param {unknown[]} body
+     * @returns {Record<string, string>[]}
+     */
     public getWxEyeSondeStructure(body: unknown[]): Record<string, string>[] {
         return body.map(feature => feature as Record<string, string>);
     }

@@ -9,45 +9,45 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx      
-    Last Updated: 2025-10-20
-    Changelogs: 
-        - Added type definitions for better clarity and maintainability.
-        - Refactored configuration and logging methods for improved structure.
-        - Implemented JSONC parsing for configurations with error handling.
-        - Enhanced logging functionality with options for raw console output and file echoing.
-        - Created a web content filtering method for sanitization.            
+
 */
 
 import * as loader from '../bootstrap';
 import * as types from '../types';
 
 export class Utils { 
-    NAME_SPACE: string
-    VERSION_PATH: string
-    LOGO_PATH: string
-    LOGO_LEGACY_PATH: string
-    LOGS_PATH: string
-    CONFIGURATIONS_PATH: string
+    NAME_SPACE: string = `submodule:utils`;
+    VERSION_PATH: string = `../version`
+    LOGO_PATH: string = `../storage/logo.txt`
+    LOGO_LEGACY_PATH: string = `../storage/logo-legacy.txt`
+    LOGS_PATH: string = `../storage/logs.txt`
+    CONFIGURATIONS_PATH: string = `../configurations`
     constructor() {
-        this.VERSION_PATH = `../version`;
-        this.LOGO_LEGACY_PATH = `../storage/logo-legacy.txt`;
-        this.LOGO_PATH = `../storage/logo.txt`;
-        this.LOGS_PATH = `../storage/logs.txt`;
-        this.CONFIGURATIONS_PATH = `../configurations`;
-        this.NAME_SPACE = `submodule:utils`;
-        this.initialize();
-    }
-
-    private initialize() {
         this.configurations();
         this.logo();
         this.log(`${this.NAME_SPACE} initialized.`)
     }
-
+    
+    /**
+     * @function sleep
+     * @description
+     *     Pauses execution for the given number of milliseconds.
+     * 
+     * @param {number} ms
+     * @returns {Promise<void>}
+     */
     public sleep(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    /**
+     * @function version
+     * @description
+     *     Reads and returns the current application version from VERSION_PATH, 
+     *     or defaults to "v0.0.0" if the file does not exist.
+     * 
+     * @returns {string}
+     */
     public version(): string {
         const version = loader.packages.fs.existsSync(this.VERSION_PATH) 
             ? loader.packages.fs.readFileSync(this.VERSION_PATH, `utf-8`).replace(/\n/g, ``) 
@@ -55,10 +55,25 @@ export class Utils {
         return version
     }
 
+    /**
+     * @function isFancyDisplay
+     * @description
+     *     Checks if the fancy interface display setting is enabled in the configuration.
+     * 
+     * @returns {boolean}
+     */
     public isFancyDisplay(): boolean {
         return (loader.cache.internal.configurations as types.ConfigurationsType).internal_settings.fancy_interface || false;
     }
 
+    /**
+     * @function logo
+     * @description
+     *     Returns the application logo as a string. If fancy interface is disabled,
+     *     also prints the logo to the console.
+     * 
+     * @returns {string | void}
+     */
     public logo(): string | void{
         const path = this.isFancyDisplay() ? this.LOGO_PATH : this.LOGO_LEGACY_PATH;
         const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
@@ -69,7 +84,17 @@ export class Utils {
         console.clear();
         console.log(logo);
     }
-  
+
+    /**
+     * @function log
+     * @description
+     *     logs a message in the console and internal cache with options for formatting.
+     * 
+     * @param {string} [message]
+     * @param {types.LogOptions} [options]
+     * @param {string} [logType]
+     * @returns {void}
+     */
     public log(message?: string, options?: types.LogOptions, logType: string = `__console__`): void {
         const title = options?.title || `\x1b[32m[ATMOSX-UTILS]\x1b[0m`;
         const msg = message || `No message provided.`;
@@ -85,6 +110,16 @@ export class Utils {
         }
     }
 
+    /**
+     * @function log
+     * @description
+     *     Logs a message to the internal cache, console, and optionally to a log file.
+     * 
+     * @param {string} [message]
+     * @param {types.LogOptions} [options]
+     * @param {string} [logType]
+     * @returns {void}
+     */
     public configurations(): void {
         let configurations = loader.packages.fs.existsSync(this.CONFIGURATIONS_PATH)
             ? loader.packages.fs.readdirSync(this.CONFIGURATIONS_PATH).reduce((acc: Record<string, any>, file: string) => {
@@ -111,6 +146,16 @@ export class Utils {
         };
     }
     
+    /**
+     * @function filterWebContent
+     * @description
+     *     Recursively removes HTML tags from strings within a given input.
+     *     If the input is a JSON string, it attempts to parse it first.
+     *     Supports nested objects and arrays, sanitizing all string values.
+     *
+     * @param {string | unknown} content
+     * @returns {unknown}
+     */
     public filterWebContent(content: string): string | unknown {
         if (typeof content == 'string') try { content = JSON.parse(content); } catch (e) { return content.replace(/<[^>]*>/g, ''); }
         if (Array.isArray(content)) return content.map(item => this.filterWebContent(item));

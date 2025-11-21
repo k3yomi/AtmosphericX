@@ -9,13 +9,7 @@
                                      |_|                                                                                                                
     
     Written by: KiyoWx (k3yomi) & StarflightWx      
-    Last Updated: 2025-10-20
-    Changelogs: 
-        - Added type definitions for better clarity and maintainability.
-        - Implemented calculations for geographic and temporal data.
-        - Created methods for distance calculation, time remaining, and duration formatting.
-        - Developed degree to cardinal direction conversion.
-        - Enhanced accuracy and error handling in calculations.                   
+
 */
 
 
@@ -23,78 +17,84 @@ import * as loader from '../bootstrap';
 import * as types from '../types';
 
 export class Calculations { 
-    NAME_SPACE: string
+    NAME_SPACE: string = `submodule:calculations`;
     constructor() {
-        this.NAME_SPACE = `submodule:calculations`;
-        this.initialize();
-    }
-
-    private initialize() {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
     }
 
-    public convertDegreesToCardinal(degrees: number): string { 
-        if (!Number.isFinite(degrees) || degrees < 0 || degrees > 360) {
-            return "Invalid";
-        }
-        const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-        const normalized = (degrees % 360 + 360) % 360; // normalize in case of floating precision
-        const index = Math.round(normalized / 45) % 8;
-        return directions[index];
+    /**
+     * @function convertDegreesToCardinal
+     * @description
+     *     Converts a numeric heading in degrees (0–360) to its corresponding
+     *     cardinal or intercardinal direction (N, NE, E, SE, S, SW, W, NW).
+     *
+     * @param {number} degrees
+     * @returns {string}
+     */
+    public convertDegreesToCardinal(degrees: number): string {
+        if (!Number.isFinite(degrees) || degrees < 0 || degrees > 360) return "Invalid";
+        const directions = ["N","NE","E","SE","S","SW","W","NW"];
+        return directions[Math.round(((degrees % 360 + 360) % 360) / 45) % 8];
     }
 
-    public calculateDistance(coord1: types.Coordinates, coord2: types.Coordinates, unit: 'miles' | 'kilometers' = 'miles'): number {
-        if (!coord1 || !coord2) return 0;
-        const { lat: lat1, lon: lon1 } = coord1;
-        const { lat: lat2, lon: lon2 } = coord2;
-        if ([lat1, lon1, lat2, lon2].some(v => typeof v !== 'number')) return 0;
-        const toRad = (deg: number) => deg * Math.PI / 180;
-        const R = unit === 'miles' ? 3958.8 : 6371;
-        const dLat = toRad(lat2 - lat1);
-        const dLon = toRad(lon2 - lon1);
-        const a =
-            Math.sin(dLat / 2) ** 2 +
-            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return Math.round(R * c * 100) / 100;
+    /**
+     * @function calculateDistance
+     * @description
+     *     Calculates the great-circle distance between two geographic coordinates
+     *     using the Haversine formula. Supports output in miles or kilometers.
+     *
+     * @param {types.Coordinates} coord1
+     * @param {types.Coordinates} coord2
+     * @param {'miles' | 'kilometers'} [unit='miles']
+     * @returns {number}
+     */
+    public calculateDistance(c1: types.Coordinates, c2: types.Coordinates, u: 'miles' | 'kilometers' = 'miles'): number {
+        if (!c1 || !c2) return 0;
+        const { lat: a, lon: b } = c1, { lat: x, lon: y } = c2;
+        if (![a, b, x, y].every(Number.isFinite)) return 0;
+        const r = u === 'miles' ? 3958.8 : 6371, d = Math.PI / 180;
+        const dA = (x - a) * d, dB = (y - b) * d;
+        const h = Math.sin(dA / 2) ** 2 + Math.cos(a * d) * Math.cos(x * d) * Math.sin(dB / 2) ** 2;
+        return +(r * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))).toFixed(2);
     }
 
-    public timeRemaining(futureDate: string): string | Date {
-        if (isNaN(new Date(futureDate).getTime())) {
-            return futureDate
-        }
-        const now = new Date();
-        const target = new Date(futureDate);
-        const diff = target.getTime() - now.getTime();
-        if (diff <= 0) { return "Expired"; }
-        const totalSeconds = Math.floor(diff / 1000);
-        const days = Math.floor(totalSeconds / 86400);
-        const hours = Math.floor((totalSeconds % 86400) / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
-        const parts: string[] = [];
-        if (days) parts.push(`${days}d`);
-        if (hours) parts.push(`${hours}h`);
-        if (minutes) parts.push(`${minutes}m`);
-        parts.push(`${seconds}s`);
-        return parts.join(" ");
+    /**
+     * @function timeRemaining
+     * @description
+     *     Returns a human-readable string representing the time remaining until
+     *     the specified future date. Returns "Expired" if the date has passed or
+     *     the original input if the date is invalid.
+     *
+     * @param {string} futureDate
+     * @returns {string | Date}
+     */
+    public timeRemaining(future: string): string | Date {
+        const t = Date.parse(future);
+        if (isNaN(t)) return future;
+        let s = Math.floor((t - Date.now()) / 1000);
+        if (s <= 0) return "Expired";
+        const d = Math.floor(s / 86400); s %= 86400;
+        const h = Math.floor(s / 3600); s %= 3600;
+        const m = Math.floor(s / 60); s %= 60;
+        return [d && `${d}d`, h && `${h}h`, m && `${m}m`, `${s}s`].filter(Boolean).join(" ");
     }
 
-    public formatDuration(uptimeMs: number): string {
-        if (!Number.isFinite(uptimeMs) || uptimeMs < 0) {
-            return "0s";
-        }
-        const totalSeconds = Math.floor(uptimeMs / 1000);
-        const days = Math.floor(totalSeconds / 86400);
-        const hours = Math.floor((totalSeconds % 86400) / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
-        const parts: string[] = [];
-        if (days) parts.push(`${days}d`);
-        if (hours) parts.push(`${hours}h`);
-        if (minutes) parts.push(`${minutes}m`);
-        parts.push(`${seconds}s`);
-        return parts.join(" ");
+    /**
+     * @function formatDuration
+     * @description
+     *     Converts a duration in milliseconds to a human-readable string
+     *     formatted as days, hours, minutes, and seconds.
+     *
+     * @param {number} uptimeMs
+     * @returns {string}
+     */
+    public formatDuration(ms: number): string {
+        if (!Number.isFinite(ms) || ms < 0) return "0s";
+        let s = Math.floor(ms / 1000);
+        const d = Math.floor(s / 86400); s %= 86400;
+        const h = Math.floor(s / 3600); s %= 3600;
+        const m = Math.floor(s / 60); s %= 60;
+        return [d && `${d}d`, h && `${h}h`, m && `${m}m`, `${s}s`].filter(Boolean).join(" ");
     }
 }
 
