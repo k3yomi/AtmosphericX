@@ -3905,7 +3905,7 @@ __export(bootstrap_exports, {
   strings: () => strings,
   submodules: () => submodules
 });
-import * as manager from "atmosx-nwws-parser";
+import { AlertManager, TextParser } from "atmosx-nwws-parser";
 import * as tempest from "atmosx-tempest-pulling";
 import * as placefile from "atmosx-placefile-parser";
 import sqlite3 from "better-sqlite3";
@@ -4111,7 +4111,7 @@ var utils_default = Utils;
 var Alerts = class {
   constructor() {
     this.NAME_SPACE = `submodule:alerts`;
-    this.PACKAGE = packages.manager.AlertManager;
+    this.PACKAGE = packages.AlertManager;
     submodules.utils.log(`${this.NAME_SPACE} initialized.`);
     this.instance();
   }
@@ -5089,9 +5089,9 @@ var Parsing = class {
       for (const feature of parsed) {
         if (!feature.properties || !feature.coordinates) continue;
         if (feature.properties.expires_at_ms < Date.now()) continue;
-        const torProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK TORNADO INTENSITY...", []);
-        const winProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK WIND GUST...", []);
-        const hagProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK HAIL SIZE...", []);
+        const torProb = packages.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK TORNADO INTENSITY...", []);
+        const winProb = packages.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK WIND GUST...", []);
+        const hagProb = packages.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK HAIL SIZE...", []);
         structure.features.push({
           type: "Feature",
           geometry: { type: "Polygon", coordinates: feature.coordinates },
@@ -5099,7 +5099,7 @@ var Parsing = class {
             mesoscale_id: (_a = feature.properties.number) != null ? _a : "N/A",
             expires: feature.properties.expires_at_ms ? new Date(feature.properties.expires_at_ms).toLocaleString() : "N/A",
             issued: feature.properties.issued_at_ms ? new Date(feature.properties.issued_at_ms).toLocaleString() : "N/A",
-            description: (_c = (_b = packages.manager.TextParser.textProductToDescription(feature.properties.text)) == null ? void 0 : _b.replace(/\n/g, "<br>")) != null ? _c : "N/A",
+            description: (_c = (_b = packages.TextParser.textProductToDescription(feature.properties.text)) == null ? void 0 : _b.replace(/\n/g, "<br>")) != null ? _c : "N/A",
             locations: (_f = (_e = (_d = feature.properties.tags) == null ? void 0 : _d.AREAS_AFFECTED) == null ? void 0 : _e.join(", ")) != null ? _f : "N/A",
             outlook: (_i = (_h = (_g = feature.properties.tags) == null ? void 0 : _g.CONCERNING) == null ? void 0 : _h.join(", ")) != null ? _i : "N/A",
             population: (_l = (_k = (_j = feature.properties.population) == null ? void 0 : _j.people) == null ? void 0 : _k.toLocaleString()) != null ? _l : "0",
@@ -5298,13 +5298,13 @@ var Routes = class {
       if (!isPortal) {
         submodules.utils.log(`${strings.portal_disabled_warning}`, { echoFile: true });
       }
-      submodules.middleware = new (yield import("./authority-46XTWOOG.mjs")).Init();
-      submodules.websockets = new (yield import("./general-TQHGGESI.mjs")).Init();
-      new (yield import("./login-BX3WD3ZJ.mjs")).Init();
-      new (yield import("./logout-LQ4MR7AW.mjs")).Init();
-      new (yield import("./signup-FDDHZ364.mjs")).Init();
-      new (yield import("./core-EWJHRNHY.mjs")).Init();
-      new (yield import("./data-2DUGPCNI.mjs")).Init();
+      submodules.middleware = new (yield import("./authority-52PBPQ6Z.mjs")).Init();
+      submodules.websockets = new (yield import("./general-YLU5YXDP.mjs")).Init();
+      new (yield import("./login-6BJ6UGDC.mjs")).Init();
+      new (yield import("./logout-GTC5C3PN.mjs")).Init();
+      new (yield import("./signup-XGDCBFMS.mjs")).Init();
+      new (yield import("./core-TTVBJXXT.mjs")).Init();
+      new (yield import("./data-DC4UIEV7.mjs")).Init();
     });
   }
   /**
@@ -5492,7 +5492,8 @@ var packages = {
   os,
   jsonc,
   xml2js,
-  manager,
+  AlertManager,
+  TextParser,
   tempest,
   placefile,
   shapefile,

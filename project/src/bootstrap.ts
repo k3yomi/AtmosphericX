@@ -14,7 +14,7 @@
 
 
 /* [ AtmosphericX Custom Modules ] */
-import * as manager from 'atmosx-nwws-parser';
+import {AlertManager, TextParser} from 'atmosx-nwws-parser';
 import * as tempest from 'atmosx-tempest-pulling';
 import * as placefile from 'atmosx-placefile-parser';
 
@@ -118,7 +118,7 @@ export const packages = {
     events, path, fs, sqlite3,
     express, cookieParser, crypto, http,
     https, axios, xmpp, os, jsonc,
-    xml2js, manager, tempest, placefile, 
+    xml2js, AlertManager, TextParser, tempest, placefile, 
     shapefile, ws, firebaseApp, 
     firebaseDatabase, streamerBot, jobs, 
     gui, rateLimit

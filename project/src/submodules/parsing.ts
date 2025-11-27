@@ -101,9 +101,9 @@ export class Parsing {
         for (const feature of parsed) {
             if (!feature.properties || !feature.coordinates) continue;
             if (feature.properties.expires_at_ms < Date.now()) continue;
-            const torProb = loader.packages.manager.TextParser.textProductToString(feature.properties.text, 'MOST PROBABLE PEAK TORNADO INTENSITY...', []);
-            const winProb = loader.packages.manager.TextParser.textProductToString(feature.properties.text, 'MOST PROBABLE PEAK WIND GUST...', []);
-            const hagProb = loader.packages.manager.TextParser.textProductToString(feature.properties.text, 'MOST PROBABLE PEAK HAIL SIZE...', []);
+            const torProb = loader.packages.TextParser.textProductToString(feature.properties.text, 'MOST PROBABLE PEAK TORNADO INTENSITY...', []);
+            const winProb = loader.packages.TextParser.textProductToString(feature.properties.text, 'MOST PROBABLE PEAK WIND GUST...', []);
+            const hagProb = loader.packages.TextParser.textProductToString(feature.properties.text, 'MOST PROBABLE PEAK HAIL SIZE...', []);
             structure.features.push({
                 type: 'Feature',
                 geometry: { type: 'Polygon', coordinates: feature.coordinates },
@@ -111,7 +111,7 @@ export class Parsing {
                     mesoscale_id: feature.properties.number ?? 'N/A',
                     expires: feature.properties.expires_at_ms ? new Date(feature.properties.expires_at_ms).toLocaleString() : 'N/A',
                     issued: feature.properties.issued_at_ms ? new Date(feature.properties.issued_at_ms).toLocaleString() : 'N/A',
-                    description: loader.packages.manager.TextParser.textProductToDescription(feature.properties.text)?.replace(/\n/g, '<br>') ?? 'N/A',
+                    description: loader.packages.TextParser.textProductToDescription(feature.properties.text)?.replace(/\n/g, '<br>') ?? 'N/A',
                     locations: feature.properties.tags?.AREAS_AFFECTED?.join(', ') ?? 'N/A',
                     outlook: feature.properties.tags?.CONCERNING?.join(', ') ?? 'N/A',
                     population: feature.properties.population?.people?.toLocaleString() ?? '0',

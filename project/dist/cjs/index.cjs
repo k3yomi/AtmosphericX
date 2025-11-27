@@ -4088,7 +4088,7 @@ var init_alerts = __esm({
     Alerts = class {
       constructor() {
         this.NAME_SPACE = `submodule:alerts`;
-        this.PACKAGE = packages.manager.AlertManager;
+        this.PACKAGE = packages.AlertManager;
         submodules.utils.log(`${this.NAME_SPACE} initialized.`);
         this.instance();
       }
@@ -5096,9 +5096,9 @@ var init_parsing = __esm({
           for (const feature of parsed) {
             if (!feature.properties || !feature.coordinates) continue;
             if (feature.properties.expires_at_ms < Date.now()) continue;
-            const torProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK TORNADO INTENSITY...", []);
-            const winProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK WIND GUST...", []);
-            const hagProb = packages.manager.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK HAIL SIZE...", []);
+            const torProb = packages.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK TORNADO INTENSITY...", []);
+            const winProb = packages.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK WIND GUST...", []);
+            const hagProb = packages.TextParser.textProductToString(feature.properties.text, "MOST PROBABLE PEAK HAIL SIZE...", []);
             structure.features.push({
               type: "Feature",
               geometry: { type: "Polygon", coordinates: feature.coordinates },
@@ -5106,7 +5106,7 @@ var init_parsing = __esm({
                 mesoscale_id: (_a = feature.properties.number) != null ? _a : "N/A",
                 expires: feature.properties.expires_at_ms ? new Date(feature.properties.expires_at_ms).toLocaleString() : "N/A",
                 issued: feature.properties.issued_at_ms ? new Date(feature.properties.issued_at_ms).toLocaleString() : "N/A",
-                description: (_c = (_b = packages.manager.TextParser.textProductToDescription(feature.properties.text)) == null ? void 0 : _b.replace(/\n/g, "<br>")) != null ? _c : "N/A",
+                description: (_c = (_b = packages.TextParser.textProductToDescription(feature.properties.text)) == null ? void 0 : _b.replace(/\n/g, "<br>")) != null ? _c : "N/A",
                 locations: (_f = (_e = (_d = feature.properties.tags) == null ? void 0 : _d.AREAS_AFFECTED) == null ? void 0 : _e.join(", ")) != null ? _f : "N/A",
                 outlook: (_i = (_h = (_g = feature.properties.tags) == null ? void 0 : _g.CONCERNING) == null ? void 0 : _h.join(", ")) != null ? _i : "N/A",
                 population: (_l = (_k = (_j = feature.properties.population) == null ? void 0 : _j.people) == null ? void 0 : _k.toLocaleString()) != null ? _l : "0",
@@ -5888,10 +5888,10 @@ __export(bootstrap_exports, {
   strings: () => strings,
   submodules: () => submodules
 });
-var manager, tempest, placefile, import_better_sqlite3, import_express, import_express_rate_limit, import_cookie_parser, import_axios, gui, events, path, fs, crypto, http, https, xmpp, os, xml2js, shapefile, firebaseApp, firebaseDatabase, streamerBot, jobs, jsonc, cache, strings, packages, submoduleClasses, submodules;
+var import_atmosx_nwws_parser, tempest, placefile, import_better_sqlite3, import_express, import_express_rate_limit, import_cookie_parser, import_axios, gui, events, path, fs, crypto, http, https, xmpp, os, xml2js, shapefile, firebaseApp, firebaseDatabase, streamerBot, jobs, jsonc, cache, strings, packages, submoduleClasses, submodules;
 var init_bootstrap = __esm({
   "src/bootstrap.ts"() {
-    manager = __toESM(require("atmosx-nwws-parser"));
+    import_atmosx_nwws_parser = require("atmosx-nwws-parser");
     tempest = __toESM(require("atmosx-tempest-pulling"));
     placefile = __toESM(require("atmosx-placefile-parser"));
     import_better_sqlite3 = __toESM(require("better-sqlite3"));
@@ -6014,7 +6014,8 @@ ${"	".repeat(5)} {ONLINE_CHANGELOGS}
       os,
       jsonc,
       xml2js,
-      manager,
+      AlertManager: import_atmosx_nwws_parser.AlertManager,
+      TextParser: import_atmosx_nwws_parser.TextParser,
       tempest,
       placefile,
       shapefile,

@@ -18,10 +18,10 @@ import * as types from '../types';
 
 export class Alerts { 
     NAME_SPACE: string = `submodule:alerts`;
-    PACKAGE: typeof loader.packages.manager.AlertManager
+    PACKAGE: typeof loader.packages.AlertManager
     MANAGER: any;
     constructor() {
-        this.PACKAGE = loader.packages.manager.AlertManager;
+        this.PACKAGE = loader.packages.AlertManager;
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
         this.instance();
     }

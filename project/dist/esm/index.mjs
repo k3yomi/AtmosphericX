@@ -2,7 +2,7 @@ import {
   cache,
   packages,
   submodules
-} from "./chunk-V4INPCA6.mjs";
+} from "./chunk-LZBD7MCR.mjs";
 
 // src/index.ts
 new Promise(() => {

@@ -104,15 +104,6 @@
             "webhook_cooldown": 10
         }
     },
-    "character_ai": {
-        "enabled": false,
-        "automatic_responses": false,
-        "prefix": "Describe the warning like a weather radio guy would, make it short and simple..",
-        "auth_token": "Token YOUR_CHARACTER_AI_TOKEN_HERE",
-        "character_id": "CHARACTER_ID_HERE",
-        "character_voice_id": "VOICE_ID_HERE",
-        "chromium_path": "PATH_TO_YOUR_CHROMIUM_EXECUTABLE_HERE"
-    },
     "streamer_bot_settings": {
         "enabled": false,
         "address": "127.0.0.1",
