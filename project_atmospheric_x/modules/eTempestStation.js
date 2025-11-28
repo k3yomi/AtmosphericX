@@ -23,6 +23,7 @@ class TempestService {
         this.latitude = 0;
         this.longitude = 0;
         loader.modules.hooks.createOutput(this.name, `Successfully initialized ${this.name} module`);
+        loader.modules.hooks.createOutput(this.name, `WARNING - THIS MODULE IS TECHNICALLY DEPRECATED AND WILL NO LONGER BE SUPPORTED IN FUTURE RELEASES.`);
         loader.modules.hooks.createLog(this.name, `Successfully initialized ${this.name} module`);
         this.createSession()
     }
