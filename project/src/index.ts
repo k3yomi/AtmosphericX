@@ -18,7 +18,7 @@ import * as types from './types';
 
 new Promise(() => {
     const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
-    new loader.packages.jobs.Cron(ConfigType.internal_settings.global_update, () => { loader.submodules.networking.updateCache();  });
+    new loader.packages.jobs.Cron(ConfigType.internal_settings.global_update, () => { loader.submodules.networking.updateCache(); loader.submodules.gps.getTrackingInformation(); });
     new loader.packages.jobs.Cron(ConfigType.internal_settings.update_check, () => { loader.submodules.networking.getUpdates(); });
     new loader.packages.jobs.Cron(ConfigType.internal_settings.random_update, () => { loader.submodules.alerts.randomize(); });
 })

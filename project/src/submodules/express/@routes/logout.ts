@@ -23,7 +23,7 @@ export class Init {
     SESSION_LOGOUT_NO_ACTIVE_MESSAGE: string = `No active session found.`
     constructor() {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
-        loader.cache.internal.express.post(`/api/logout`, (request: Record<string, any>, response: Record<string, any>) => { 
+        loader.cache.handlers.express.post(`/api/logout`, (request: Record<string, any>, response: Record<string, any>) => { 
             const session = loader.cache.internal.accounts.find(a => a.session == request.headers.cookie?.split(`=`)[1]);
             if (!session) { 
                 return response.status(401).json({ message: this.SESSION_LOGOUT_NO_ACTIVE_MESSAGE});

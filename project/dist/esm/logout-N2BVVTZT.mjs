@@ -1,7 +1,7 @@
 import {
   cache,
   submodules
-} from "./chunk-LZBD7MCR.mjs";
+} from "./chunk-US3JLQEF.mjs";
 
 // src/submodules/express/@routes/logout.ts
 var Init = class {
@@ -11,7 +11,7 @@ var Init = class {
     this.SESSION_LOGOUT_SUCCESS_MESSAGE = `Logout successful.`;
     this.SESSION_LOGOUT_NO_ACTIVE_MESSAGE = `No active session found.`;
     submodules.utils.log(`${this.NAME_SPACE} initialized.`);
-    cache.internal.express.post(`/api/logout`, (request, response) => {
+    cache.handlers.express.post(`/api/logout`, (request, response) => {
       const session = cache.internal.accounts.find((a) => {
         var _a;
         return a.session == ((_a = request.headers.cookie) == null ? void 0 : _a.split(`=`)[1]);

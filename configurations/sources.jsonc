@@ -71,7 +71,12 @@
         "location_settings": {
             "realtime_irl": {
                 "enabled": false,
-                "authentication": "YOUR_PULL_KEY_HERE",
+                "api_key": "AIzaSyC4L8ICZbJDufxe8bimRdB5cAulPCaYVQQ",
+                "database_url": "https://rtirl-a1d7f-default-rtdb.firebaseio.com",
+                "project_id": "rtirl-a1d7f",
+                "measurement_id": "G-TR97D81LT3",
+                "app_id": "1:684852107701:web:d77a8ed0ee5095279a61fc",
+                "pull_key": "pull_key_here",
                 "contradictions": []
             },
             "spotter_network_feed": {
@@ -144,6 +149,19 @@
                 "cache_time": 3600,
                 "endpoint": "https://api.weatherusa.net/v1/wxradio",
                 "contradictions": []
+            },
+            "tempest_station": {
+                "enabled": false,
+                "api_key": "api_key_here",
+                "station": 0,
+                "device": 0
+            },
+            "pulse_point": {
+                "enabled": true,
+                "key": "api_key_here",
+                "interval": 30,
+                "events": [],
+                "agencies": []
             }
         }
     }

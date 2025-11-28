@@ -37,8 +37,8 @@ export class Init {
                 return response.status(429).json({ message: this.RATELIMIT_INVALID_MESSAGE});
             }
         })  
-        if (ConfigType.web_hosting_settings.settings.ratelimiting?.enabled) { loader.cache.internal.express.use(limiter); }
-        loader.cache.internal.express.use((request, response, next) => {
+        if (ConfigType.web_hosting_settings.settings.ratelimiting?.enabled) { loader.cache.handlers.express.use(limiter); }
+        loader.cache.handlers.express.use((request, response, next) => {
             const session = loader.cache.internal.accounts.find(a => a.session == request.headers.cookie?.split(`=`)[1]);
             const address = request.headers['cf-connecting-ip'] || request.connection.remoteAddress;
             const useragent = request.headers['user-agent'] || 'Unknown';
@@ -48,10 +48,10 @@ export class Init {
             }
             next();
         })
-        loader.cache.internal.express.use(loader.packages.cookieParser());
-        loader.cache.internal.express.use(`/src`, loader.packages.express.static(`${parentDirectory}/www`));
-        loader.cache.internal.express.use(`/widgets`, loader.packages.express.static(`${parentDirectory}/www/__pages/__widgets`));
-        loader.cache.internal.express.set(`trust proxy`, 1); 
+        loader.cache.handlers.express.use(loader.packages.cookieParser());
+        loader.cache.handlers.express.use(`/src`, loader.packages.express.static(`${parentDirectory}/www`));
+        loader.cache.handlers.express.use(`/widgets`, loader.packages.express.static(`${parentDirectory}/www/__pages/__widgets`));
+        loader.cache.handlers.express.set(`trust proxy`, 1); 
     }
 
     /**

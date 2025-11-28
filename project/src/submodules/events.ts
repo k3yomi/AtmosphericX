@@ -17,7 +17,7 @@ import * as loader from '../bootstrap';
 import * as types from '../types';
 
 export class Alerts { 
-    NAME_SPACE: string = `submodule:alerts`;
+    NAME_SPACE: string = `submodule:events`;
     PACKAGE: typeof loader.packages.AlertManager
     MANAGER: any;
     constructor() {
@@ -228,7 +228,7 @@ export class Alerts {
             this.MANAGER.setDisplayName(`AtmosphericX v${loader.submodules.utils.version()} -> ${displayName} (${displayTimestamp}) (x${service.reconnects})`);
         });
         this.MANAGER.on(`log`, (message: string) => { loader.submodules.utils.log(message, { title: `\x1b[33m[ATMOSX-PARSER]\x1b[0m` }); });
-        loader.cache.internal.manager = this.MANAGER;
+        loader.cache.handlers.eventManager = this.MANAGER;
     }
 }
 

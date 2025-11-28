@@ -2,7 +2,7 @@ import {
   cache,
   packages,
   submodules
-} from "./chunk-LZBD7MCR.mjs";
+} from "./chunk-US3JLQEF.mjs";
 
 // src/submodules/express/@middleware/authority.ts
 var Init = class {
@@ -32,9 +32,9 @@ var Init = class {
       }
     });
     if ((_c = ConfigType.web_hosting_settings.settings.ratelimiting) == null ? void 0 : _c.enabled) {
-      cache.internal.express.use(limiter);
+      cache.handlers.express.use(limiter);
     }
-    cache.internal.express.use((request, response, next) => {
+    cache.handlers.express.use((request, response, next) => {
       const session = cache.internal.accounts.find((a) => {
         var _a2;
         return a.session == ((_a2 = request.headers.cookie) == null ? void 0 : _a2.split(`=`)[1]);
@@ -49,10 +49,10 @@ var Init = class {
       }
       next();
     });
-    cache.internal.express.use(packages.cookieParser());
-    cache.internal.express.use(`/src`, packages.express.static(`${parentDirectory}/www`));
-    cache.internal.express.use(`/widgets`, packages.express.static(`${parentDirectory}/www/__pages/__widgets`));
-    cache.internal.express.set(`trust proxy`, 1);
+    cache.handlers.express.use(packages.cookieParser());
+    cache.handlers.express.use(`/src`, packages.express.static(`${parentDirectory}/www`));
+    cache.handlers.express.use(`/widgets`, packages.express.static(`${parentDirectory}/www/__pages/__widgets`));
+    cache.handlers.express.set(`trust proxy`, 1);
   }
   /**
    * @function invalidateSession

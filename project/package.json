@@ -35,7 +35,7 @@
 		"atmosx-nwws-parser": "beta",
 		"atmosx-placefile-parser": "beta",
 		"atmosx-pulse-point": "latest",
-		"atmosx-tempest-pulling": "latest",
+		"atmosx-tempest-station": "latest",
 		"axios": "^1.8.2",
 		"better-sqlite3": "^11.10.0",
 		"blessed": "^0.1.81",

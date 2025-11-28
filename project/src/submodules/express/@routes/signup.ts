@@ -24,7 +24,7 @@ export class Init {
     ALLOWED_CHARS: RegExp = /^[a-zA-Z0-9_\-\.]{3,20}$/;
     constructor() {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
-        loader.cache.internal.express.post(`/api/signup`, async (request: Record<string, any>, response: Record<string, any>) => { 
+        loader.cache.handlers.express.post(`/api/signup`, async (request: Record<string, any>, response: Record<string, any>) => { 
             const body = JSON.parse(await new Promise((resolve, reject) => { let data = ``; request.on(`data`, chunk => data += chunk); request.on(`end`, () => resolve(data)); request.on(`error`, error => reject(error)); }));
             const username = body.username;
             const password = body.password ? loader.packages.crypto.createHash(`sha256`).update(body.password).digest(`base64`) : '';

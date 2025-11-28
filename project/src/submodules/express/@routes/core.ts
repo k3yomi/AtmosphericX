@@ -23,7 +23,7 @@ export class Init {
     constructor() {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
         const parentDirectory = loader.packages.path.resolve(`..`, `storage`);
-        loader.cache.internal.express.get(`/`, (request: Record<string, any>, response: Record<string, any>) => { 
+        loader.cache.handlers.express.get(`/`, (request: Record<string, any>, response: Record<string, any>) => { 
             const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
             const isPortal = ConfigType.web_hosting_settings.is_login_required;
             const isLogon = loader.cache.internal.accounts.find(a => a.session == request.headers.cookie?.split(`=`)[1]);

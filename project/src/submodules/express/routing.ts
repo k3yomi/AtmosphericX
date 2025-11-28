@@ -32,11 +32,11 @@ export class Routes {
         const isPortal = ConfigType.web_hosting_settings.is_login_required;
         const getPort = ConfigType.web_hosting_settings.settings.port_number;
         const getCertificates = isHttps ? this.getCertificates() : null;
-        this.PACKAGE = loader.cache.internal.express = loader.packages.express();
+        this.PACKAGE = loader.cache.handlers.express = loader.packages.express();
         if (isHttps) {
-            loader.cache.internal.websocket = loader.packages.https.createServer(getCertificates, this.PACKAGE).listen(getPort, () => {})
+            loader.cache.handlers.websocket = loader.packages.https.createServer(getCertificates, this.PACKAGE).listen(getPort, () => {})
         } else {
-            loader.cache.internal.websocket = loader.packages.http.createServer(this.PACKAGE).listen(getPort, () => {})
+            loader.cache.handlers.websocket = loader.packages.http.createServer(this.PACKAGE).listen(getPort, () => {})
         }
         if (!isPortal) {
             loader.submodules.utils.log(`${loader.strings.portal_disabled_warning}`, { echoFile: true });

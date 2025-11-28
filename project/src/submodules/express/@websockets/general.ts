@@ -31,8 +31,8 @@ export class Init {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
         const cfg = loader.cache.internal.configurations as types.ConfigurationsType;
         const max = cfg.websocket_settings.maximum_connections_per_ip ?? 3;
-        const wss = loader.cache.internal.socket = new loader.packages.ws.WebSocketServer({
-            server: loader.cache.internal.websocket,
+        const wss = loader.cache.handlers.socket = new loader.packages.ws.WebSocketServer({
+            server: loader.cache.handlers.websocket,
             path: '/stream'
         });
         wss.on('connection', (client: any, req: any) => {

@@ -22,7 +22,7 @@ export class Init {
     constructor() {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
         const parentDirectory = loader.packages.path.resolve(`..`, `storage`);
-        loader.cache.internal.express.get(`/data/:endpoint/`, (request: Record<string, any>, response: Record<string, any>) => { 
+        loader.cache.handlers.express.get(`/data/:endpoint/`, (request: Record<string, any>, response: Record<string, any>) => { 
             const endpoint = request.params.endpoint;
             const isValid = Object.keys(loader.cache.external).includes(endpoint);
             if (!isValid) { return response.sendFile(`${parentDirectory}${this.UNKNOWN_DIRECTORY}`); }

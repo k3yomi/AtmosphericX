@@ -3,7 +3,7 @@ import {
   cache,
   packages,
   submodules
-} from "./chunk-LZBD7MCR.mjs";
+} from "./chunk-US3JLQEF.mjs";
 
 // src/submodules/express/@routes/login.ts
 var Init = class {
@@ -14,7 +14,7 @@ var Init = class {
     this.SESSION_INVALID_MESSAGE = `Invalid username or password.`;
     this.SESSION_SUCCESS_MESSAGE = `Login successful.`;
     submodules.utils.log(`${this.NAME_SPACE} initialized.`);
-    cache.internal.express.post(`/api/login`, (request, response) => __async(this, null, function* () {
+    cache.handlers.express.post(`/api/login`, (request, response) => __async(this, null, function* () {
       const ConfigType = cache.internal.configurations;
       const body = JSON.parse(yield new Promise((resolve, reject) => {
         let data = ``;

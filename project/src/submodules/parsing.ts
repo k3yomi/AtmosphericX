@@ -31,7 +31,7 @@ export class Parsing {
      */
     public async getGibsonReportStructure(body: string): Promise<types.GeoJSONFeatureCollection> {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
-        const parsed = await loader.packages.placefile.PlacefileManager.parseTable(body) as types.GibsonRidgeReportTypes[];
+        const parsed = await loader.packages.PlacefileManager.parseTable(body) as types.GibsonRidgeReportTypes[];
         for (const feature of parsed) {
             const lon = parseFloat(feature.lon);
             const lat = parseFloat(feature.lat);
@@ -64,7 +64,7 @@ export class Parsing {
      */
     public async getSpotterReportStructure(body: string): Promise<types.GeoJSONFeatureCollection> {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
-        const parsed = await loader.packages.placefile.PlacefileManager.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
+        const parsed = await loader.packages.PlacefileManager.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
         for (const feature of parsed) {
             const lon = parseFloat(feature.icon.x);
             const lat = parseFloat(feature.icon.y);
@@ -97,7 +97,7 @@ export class Parsing {
      */
     public async getSPCDiscussions(body: string): Promise<types.GeoJSONFeatureCollection> {
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
-        const parsed = await loader.packages.placefile.PlacefileManager.parseGeoJSON(body) as types.SPCDiscussionTypes[];
+        const parsed = await loader.packages.PlacefileManager.parseGeoJSON(body) as types.SPCDiscussionTypes[];
         for (const feature of parsed) {
             if (!feature.properties || !feature.coordinates) continue;
             if (feature.properties.expires_at_ms < Date.now()) continue;
@@ -140,7 +140,7 @@ export class Parsing {
         const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
         const feedConfig = ConfigType.sources?.location_settings?.spotter_network_feed;
         const structure: types.GeoJSONFeatureCollection = { type: 'FeatureCollection', features: [] };
-        const parsed = await loader.packages.placefile.PlacefileManager.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
+        const parsed = await loader.packages.PlacefileManager.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
         const locations = Object.keys(loader.cache.external.locations);
         for (const feature of parsed) {
             const lon = parseFloat(feature.object.coordinates[1]);
@@ -193,7 +193,7 @@ export class Parsing {
         const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
         const threshold = ConfigType.sources.probability_settings[type]?.percentage_threshold ?? 50;
         const typeRegexp = type === 'tornado' ? /ProbTor: (\d+)%\// : /PSv3: (\d+)%\//;
-        const parsed = await loader.packages.placefile.PlacefileManager.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
+        const parsed = await loader.packages.PlacefileManager.parsePlacefile(body) as types.DefaultPlacefileParsingTypes[];
         for (const feature of parsed) {
             if (!feature.line?.text) continue;
             const probMatch = feature.line.text.match(typeRegexp);
@@ -274,6 +274,24 @@ export class Parsing {
      */
     public getWxEyeSondeStructure(body: unknown[]): Record<string, string>[] {
         return body.map(feature => feature as Record<string, string>);
+    }
+
+    public getWeatherStationStructure(body) {
+        return {
+            features: [{
+                geometry: { type: "Point", coordinates: [body.latitude, body.longitude] },
+                type: "Feature",
+                properties: {
+                    temperature: body.temperature,
+                    dewpoints: body.dewpoints,
+                    humidity: body.humidity,
+                    wind_speed: body.wind_speed,
+                    wind_direction: body.wind_direction,  
+                    conditions: body.conditions,
+                    location: body.location  
+                }
+            }]
+        }
     }
 }
 

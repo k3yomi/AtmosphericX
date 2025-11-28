@@ -53,7 +53,7 @@
     "internal_settings": {
         "fancy_interface": true,
         "fancy_interface_feed": true,
-        "global_update": "*/10 * * * * *", 
+        "global_update": "*/1 * * * * *", 
         "random_update": "*/30 * * * * *", 
         "update_check": "0 */6 * * *",
         "request_timeout": 10

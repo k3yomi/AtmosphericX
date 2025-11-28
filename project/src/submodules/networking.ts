@@ -174,8 +174,8 @@ export class Alerts {
     public async sendWebhook(title: string, body: string, settings: types.WebhookSettings): Promise<void> {
         if (!settings.enabled) { return }
         const time = Date.now();
-        loader.cache.internal.webhooks = loader.cache.internal.webhooks.filter(ts => ts.time > time - settings.webhook_cooldown * 1000);
-        if (loader.cache.internal.webhooks.filter(ts => ts.type == title).length >= 3) {
+        loader.cache.internal.limiters = loader.cache.internal.limiters.filter(ts => ts.timestamp > time - settings.webhook_cooldown * 1000);
+        if (loader.cache.internal.limiters.filter(ts => ts.type == title).length >= 3) {
             return;
         }
         if (body.length > 1900) {
@@ -189,7 +189,7 @@ export class Alerts {
                 content: settings.content || ``,
                 embeds: [embed],
             });
-            loader.cache.internal.webhooks.push({ type: title, timestamp: time });
+            loader.cache.internal.limiters.push({ type: title, timestamp: time });
             return
         } catch (error) {}
     }

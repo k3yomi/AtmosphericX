@@ -2,7 +2,7 @@ import {
   cache,
   packages,
   submodules
-} from "./chunk-LZBD7MCR.mjs";
+} from "./chunk-US3JLQEF.mjs";
 
 // src/submodules/express/@websockets/general.ts
 var Init = class {
@@ -21,8 +21,8 @@ var Init = class {
     submodules.utils.log(`${this.NAME_SPACE} initialized.`);
     const cfg = cache.internal.configurations;
     const max = (_a = cfg.websocket_settings.maximum_connections_per_ip) != null ? _a : 3;
-    const wss = cache.internal.socket = new packages.ws.WebSocketServer({
-      server: cache.internal.websocket,
+    const wss = cache.handlers.socket = new packages.ws.WebSocketServer({
+      server: cache.handlers.websocket,
       path: "/stream"
     });
     wss.on("connection", (client, req) => {

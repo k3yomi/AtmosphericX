@@ -2,7 +2,7 @@ import {
   cache,
   packages,
   submodules
-} from "./chunk-LZBD7MCR.mjs";
+} from "./chunk-US3JLQEF.mjs";
 
 // src/submodules/express/@routes/core.ts
 var Init = class {
@@ -12,7 +12,7 @@ var Init = class {
     this.DASHBOARD_DIRECT = `/www/__pages/__dashboard/index.html`;
     submodules.utils.log(`${this.NAME_SPACE} initialized.`);
     const parentDirectory = packages.path.resolve(`..`, `storage`);
-    cache.internal.express.get(`/`, (request, response) => {
+    cache.handlers.express.get(`/`, (request, response) => {
       const ConfigType = cache.internal.configurations;
       const isPortal = ConfigType.web_hosting_settings.is_login_required;
       const isLogon = cache.internal.accounts.find((a) => {

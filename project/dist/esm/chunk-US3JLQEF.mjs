@@ -3900,14 +3900,16 @@ var require_websocket_server = __commonJS({
 // src/bootstrap.ts
 var bootstrap_exports = {};
 __export(bootstrap_exports, {
+  apis: () => apis,
   cache: () => cache,
   packages: () => packages,
   strings: () => strings,
   submodules: () => submodules
 });
 import { AlertManager, TextParser } from "atmosx-nwws-parser";
-import * as tempest from "atmosx-tempest-pulling";
-import * as placefile from "atmosx-placefile-parser";
+import { PulsePoint } from "atmosx-pulse-point";
+import { PlacefileManager } from "atmosx-placefile-parser";
+import { TempestStation } from "atmosx-tempest-station";
 import sqlite3 from "better-sqlite3";
 import express from "express";
 import rateLimit from "express-rate-limit";
@@ -4107,10 +4109,10 @@ var Utils = class {
 };
 var utils_default = Utils;
 
-// src/submodules/alerts.ts
+// src/submodules/events.ts
 var Alerts = class {
   constructor() {
-    this.NAME_SPACE = `submodule:alerts`;
+    this.NAME_SPACE = `submodule:events`;
     this.PACKAGE = packages.AlertManager;
     submodules.utils.log(`${this.NAME_SPACE} initialized.`);
     this.instance();
@@ -4307,10 +4309,105 @@ var Alerts = class {
     this.MANAGER.on(`log`, (message) => {
       submodules.utils.log(message, { title: `\x1B[33m[ATMOSX-PARSER]\x1B[0m` });
     });
-    cache.internal.manager = this.MANAGER;
+    cache.handlers.eventManager = this.MANAGER;
   }
 };
-var alerts_default = Alerts;
+var events_default = Alerts;
+
+// src/submodules/pulsepoint.ts
+var Alerts2 = class {
+  constructor() {
+    this.NAME_SPACE = `submodule:pulsepoint`;
+    this.PACKAGE = packages.PulsePoint;
+    submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+    this.instance();
+  }
+  instance() {
+    const ConfigType = cache.internal.configurations;
+    if (!ConfigType.sources.miscellaneous_settings.pulse_point.enabled) {
+      return;
+    }
+    const pulse = new this.PACKAGE({
+      key: ConfigType.sources.miscellaneous_settings.pulse_point.key,
+      interval: ConfigType.sources.miscellaneous_settings.pulse_point.interval,
+      journal: false,
+      filtering: {
+        events: ConfigType.sources.miscellaneous_settings.pulse_point.events,
+        agencies: ConfigType.sources.miscellaneous_settings.pulse_point.agencies
+      }
+    });
+    pulse.on(`onIncidentUpdate`, (event) => {
+      var _a;
+      const emergencies = cache.external.emergencies;
+      const index = emergencies ? emergencies.features.findIndex((f) => f.properties.ID === event.properties.ID) : -1;
+      if (index === -1) {
+        emergencies.features.push(event);
+      } else {
+        emergencies[index] = event;
+      }
+      submodules.utils.log(
+        `PulsePoint Incident Update: ${(_a = event.properties.type) != null ? _a : "Unknown Type"}`,
+        { title: `\x1B[33m[ATMOSX-PULSEPOINT]\x1B[0m` }
+      );
+    });
+    pulse.on(`log`, (message) => {
+      submodules.utils.log(message, { title: `\x1B[33m[ATMOSX-PULSEPOINT]\x1B[0m` });
+    });
+  }
+};
+var pulsepoint_default = Alerts2;
+
+// src/submodules/tempest.ts
+var Alerts3 = class {
+  constructor() {
+    this.NAME_SPACE = `submodule:tempest`;
+    this.DATA = { forecast: null, observation: null, rapidWind: null, lightning: null };
+    this.PACKAGE = packages.TempestStation;
+    submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+    this.instance();
+  }
+  instance() {
+    const ConfigType = cache.internal.configurations;
+    if (!ConfigType.sources.miscellaneous_settings.tempest_station.enabled) {
+      return;
+    }
+    this.MANAGER = new this.PACKAGE({
+      api: ConfigType.sources.miscellaneous_settings.tempest_station.api_key,
+      deviceId: ConfigType.sources.miscellaneous_settings.tempest_station.device,
+      stationId: ConfigType.sources.miscellaneous_settings.tempest_station.station,
+      journal: false
+    });
+    this.MANAGER.on(`onObservation`, (data) => {
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I, _J, _K, _L, _M, _N, _O, _P, _Q, _R, _S, _T, _U, _V, _W, _X, _Y, _Z, __, _$, _aa, _ba;
+      this.DATA.observation = data;
+      cache.external.mesonet = submodules.parsing.getWeatherStationStructure({
+        longitude: (_g = (_f = (_e = (_d = (_c = (_b = (_a = this.DATA) == null ? void 0 : _a.forecast) == null ? void 0 : _b.features) == null ? void 0 : _c[0]) == null ? void 0 : _d.geometry) == null ? void 0 : _e.coordinates) == null ? void 0 : _f[1]) != null ? _g : null,
+        latitude: (_n = (_m = (_l = (_k = (_j = (_i = (_h = this.DATA) == null ? void 0 : _h.forecast) == null ? void 0 : _i.features) == null ? void 0 : _j[0]) == null ? void 0 : _k.geometry) == null ? void 0 : _l.coordinates) == null ? void 0 : _m[0]) != null ? _n : null,
+        temperature: (_t = (_s = (_r = (_q = (_p = (_o = this.DATA) == null ? void 0 : _o.forecast) == null ? void 0 : _p.features) == null ? void 0 : _q[0]) == null ? void 0 : _r.properties) == null ? void 0 : _s.temperature) != null ? _t : null,
+        dewpoints: (_z = (_y = (_x = (_w = (_v = (_u = this.DATA) == null ? void 0 : _u.forecast) == null ? void 0 : _v.features) == null ? void 0 : _w[0]) == null ? void 0 : _x.properties) == null ? void 0 : _y.dew_point) != null ? _z : null,
+        humidity: (_F = (_E = (_D = (_C = (_B = (_A = this.DATA) == null ? void 0 : _A.forecast) == null ? void 0 : _B.features) == null ? void 0 : _C[0]) == null ? void 0 : _D.properties) == null ? void 0 : _E.humidity) != null ? _F : null,
+        wind_speed: (_L = (_K = (_J = (_I = (_H = (_G = this.DATA) == null ? void 0 : _G.rapidWind) == null ? void 0 : _H.features) == null ? void 0 : _I[0]) == null ? void 0 : _J.properties) == null ? void 0 : _K.speed) != null ? _L : null,
+        wind_direction: (_R = (_Q = (_P = (_O = (_N = (_M = this.DATA) == null ? void 0 : _M.rapidWind) == null ? void 0 : _N.features) == null ? void 0 : _O[0]) == null ? void 0 : _P.properties) == null ? void 0 : _Q.direction) != null ? _R : null,
+        conditions: (_X = (_W = (_V = (_U = (_T = (_S = this.DATA) == null ? void 0 : _S.forecast) == null ? void 0 : _T.features) == null ? void 0 : _U[0]) == null ? void 0 : _V.properties) == null ? void 0 : _W.conditions) != null ? _X : null,
+        location: (_ba = (_aa = (_$ = (__ = (_Z = (_Y = this.DATA) == null ? void 0 : _Y.forecast) == null ? void 0 : _Z.features) == null ? void 0 : __[0]) == null ? void 0 : _$.properties) == null ? void 0 : _aa.station_name) != null ? _ba : null
+      });
+    });
+    this.MANAGER.on(`onForecast`, (data) => {
+      this.DATA.forecast = data;
+    });
+    this.MANAGER.on(`onRapidWind`, (data) => {
+      this.DATA.rapidWind = data;
+    });
+    this.MANAGER.on(`onLightning`, (data) => {
+      this.DATA.lightning = data;
+    });
+    this.MANAGER.on(`log`, (message) => {
+      submodules.utils.log(message, { title: `\x1B[33m[ATMOSX-TEMPEST]\x1B[0m` });
+    });
+    cache.handlers.tempestStation = this.MANAGER;
+  }
+};
+var tempest_default = Alerts3;
 
 // src/submodules/calculations.ts
 var Calculations = class {
@@ -4399,7 +4496,7 @@ var Calculations = class {
 var calculations_default = Calculations;
 
 // src/submodules/networking.ts
-var Alerts2 = class {
+var Alerts4 = class {
   constructor() {
     this.NAME_SPACE = `submodule:networking`;
     submodules.utils.log(`${this.NAME_SPACE} initialized.`);
@@ -4561,8 +4658,8 @@ var Alerts2 = class {
         return;
       }
       const time = Date.now();
-      cache.internal.webhooks = cache.internal.webhooks.filter((ts) => ts.time > time - settings.webhook_cooldown * 1e3);
-      if (cache.internal.webhooks.filter((ts) => ts.type == title).length >= 3) {
+      cache.internal.limiters = cache.internal.limiters.filter((ts) => ts.timestamp > time - settings.webhook_cooldown * 1e3);
+      if (cache.internal.limiters.filter((ts) => ts.type == title).length >= 3) {
         return;
       }
       if (body.length > 1900) {
@@ -4578,7 +4675,7 @@ var Alerts2 = class {
           content: settings.content || ``,
           embeds: [embed]
         });
-        cache.internal.webhooks.push({ type: title, timestamp: time });
+        cache.internal.limiters.push({ type: title, timestamp: time });
         return;
       } catch (error) {
       }
@@ -4655,7 +4752,7 @@ var Alerts2 = class {
     });
   }
 };
-var networking_default = Alerts2;
+var networking_default = Alerts4;
 
 // src/submodules/structure.ts
 var Structure = class {
@@ -5015,7 +5112,7 @@ var Parsing = class {
     return __async(this, null, function* () {
       var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
       const structure = { type: "FeatureCollection", features: [] };
-      const parsed = yield packages.placefile.PlacefileManager.parseTable(body);
+      const parsed = yield packages.PlacefileManager.parseTable(body);
       for (const feature of parsed) {
         const lon = parseFloat(feature.lon);
         const lat = parseFloat(feature.lat);
@@ -5050,7 +5147,7 @@ var Parsing = class {
     return __async(this, null, function* () {
       var _a, _b, _c, _d, _e, _f, _g, _h;
       const structure = { type: "FeatureCollection", features: [] };
-      const parsed = yield packages.placefile.PlacefileManager.parsePlacefile(body);
+      const parsed = yield packages.PlacefileManager.parsePlacefile(body);
       for (const feature of parsed) {
         const lon = parseFloat(feature.icon.x);
         const lat = parseFloat(feature.icon.y);
@@ -5085,7 +5182,7 @@ var Parsing = class {
     return __async(this, null, function* () {
       var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o;
       const structure = { type: "FeatureCollection", features: [] };
-      const parsed = yield packages.placefile.PlacefileManager.parseGeoJSON(body);
+      const parsed = yield packages.PlacefileManager.parseGeoJSON(body);
       for (const feature of parsed) {
         if (!feature.properties || !feature.coordinates) continue;
         if (feature.properties.expires_at_ms < Date.now()) continue;
@@ -5130,7 +5227,7 @@ var Parsing = class {
       const ConfigType = cache.internal.configurations;
       const feedConfig = (_b = (_a = ConfigType.sources) == null ? void 0 : _a.location_settings) == null ? void 0 : _b.spotter_network_feed;
       const structure = { type: "FeatureCollection", features: [] };
-      const parsed = yield packages.placefile.PlacefileManager.parsePlacefile(body);
+      const parsed = yield packages.PlacefileManager.parsePlacefile(body);
       const locations = Object.keys(cache.external.locations);
       for (const feature of parsed) {
         const lon = parseFloat(feature.object.coordinates[1]);
@@ -5185,7 +5282,7 @@ var Parsing = class {
       const ConfigType = cache.internal.configurations;
       const threshold = (_b = (_a = ConfigType.sources.probability_settings[type]) == null ? void 0 : _a.percentage_threshold) != null ? _b : 50;
       const typeRegexp = type === "tornado" ? /ProbTor: (\d+)%\// : /PSv3: (\d+)%\//;
-      const parsed = yield packages.placefile.PlacefileManager.parsePlacefile(body);
+      const parsed = yield packages.PlacefileManager.parsePlacefile(body);
       for (const feature of parsed) {
         if (!((_c = feature.line) == null ? void 0 : _c.text)) continue;
         const probMatch = feature.line.text.match(typeRegexp);
@@ -5269,6 +5366,23 @@ var Parsing = class {
   getWxEyeSondeStructure(body) {
     return body.map((feature) => feature);
   }
+  getWeatherStationStructure(body) {
+    return {
+      features: [{
+        geometry: { type: "Point", coordinates: [body.latitude, body.longitude] },
+        type: "Feature",
+        properties: {
+          temperature: body.temperature,
+          dewpoints: body.dewpoints,
+          humidity: body.humidity,
+          wind_speed: body.wind_speed,
+          wind_direction: body.wind_direction,
+          conditions: body.conditions,
+          location: body.location
+        }
+      }]
+    };
+  }
 };
 var parsing_default = Parsing;
 
@@ -5287,24 +5401,24 @@ var Routes = class {
       const isPortal = ConfigType.web_hosting_settings.is_login_required;
       const getPort = ConfigType.web_hosting_settings.settings.port_number;
       const getCertificates = isHttps ? this.getCertificates() : null;
-      this.PACKAGE = cache.internal.express = packages.express();
+      this.PACKAGE = cache.handlers.express = packages.express();
       if (isHttps) {
-        cache.internal.websocket = packages.https.createServer(getCertificates, this.PACKAGE).listen(getPort, () => {
+        cache.handlers.websocket = packages.https.createServer(getCertificates, this.PACKAGE).listen(getPort, () => {
         });
       } else {
-        cache.internal.websocket = packages.http.createServer(this.PACKAGE).listen(getPort, () => {
+        cache.handlers.websocket = packages.http.createServer(this.PACKAGE).listen(getPort, () => {
         });
       }
       if (!isPortal) {
         submodules.utils.log(`${strings.portal_disabled_warning}`, { echoFile: true });
       }
-      submodules.middleware = new (yield import("./authority-52PBPQ6Z.mjs")).Init();
-      submodules.websockets = new (yield import("./general-YLU5YXDP.mjs")).Init();
-      new (yield import("./login-6BJ6UGDC.mjs")).Init();
-      new (yield import("./logout-GTC5C3PN.mjs")).Init();
-      new (yield import("./signup-XGDCBFMS.mjs")).Init();
-      new (yield import("./core-TTVBJXXT.mjs")).Init();
-      new (yield import("./data-DC4UIEV7.mjs")).Init();
+      submodules.middleware = new (yield import("./authority-CN74SJRQ.mjs")).Init();
+      submodules.websockets = new (yield import("./general-F4QYLXLJ.mjs")).Init();
+      new (yield import("./login-3DF4H5GI.mjs")).Init();
+      new (yield import("./logout-N2BVVTZT.mjs")).Init();
+      new (yield import("./signup-JQUVEN6P.mjs")).Init();
+      new (yield import("./core-EHR5RPEF.mjs")).Init();
+      new (yield import("./data-KTGWVZLB.mjs")).Init();
     });
   }
   /**
@@ -5348,19 +5462,113 @@ var Routes = class {
 };
 var routing_default = Routes;
 
-// src/submodules/gps.ts
+// src/submodules/locationtracking.ts
 var GlobalPositioningSystem = class {
   constructor() {
-    this.NAME_SPACE = `submodule:gps`;
+    this.NAME_SPACE = `submodule:locationtracking`;
+    this.LAST_RT_UPDATE = 0;
     submodules.utils.log(`${this.NAME_SPACE} initialized.`);
+    this.rtSocket();
   }
+  /**
+   * @function setCurrentCoordinates
+   * @description 
+   *   Updates the current coordinates for a given location name and triggers any associated events.
+   * 
+   * @param {string} name - The name of the location to update.
+   * @param {types.CoordinatesDefined} coords - The new coordinates to set.
+   * @returns {void}
+   */
   setCurrentCoordinates(name, coords) {
+    if (cache.handlers.eventManager == null) return;
     cache.external.locations[name] = coords;
-    cache.internal.manager.setCurrentLocation(name, coords);
+    cache.handlers.eventManager.setCurrentLocation(name, coords);
     submodules.utils.log(`Updated current coordinates for ${name} [LAT: ${coords.lat}, LON: ${coords.lon}]`);
   }
+  getTrackingInformation() {
+    return __async(this, null, function* () {
+      const ConfigType = cache.internal.configurations;
+      const time = Date.now();
+      cache.internal.limiters = cache.internal.limiters.filter((ts) => ts.timestamp > time - 15 * 1e3);
+      if (cache.internal.limiters.filter((ts) => ts.type == `gps.tracking.limit`).length >= 1) {
+        return;
+      }
+      const primaryTarget = Object.keys(cache.external.locations)[0];
+      const targetCoords = cache.external.locations[primaryTarget];
+      if (primaryTarget) {
+        cache.internal.limiters.push({ type: `gps.tracking.limit`, timestamp: time });
+        const getLocationNames = apis.open_street_map.replace("${X}", targetCoords.lat).replace("${Y}", targetCoords.lon);
+        const getWeatherConditions = apis.temperature_coordinates.replace("${X}", targetCoords.lat).replace("${Y}", targetCoords.lon);
+        const getLocationData = yield submodules.networking.httpRequest(getLocationNames);
+        const getWeatherData = yield submodules.networking.httpRequest(getWeatherConditions);
+        if (!ConfigType.sources.miscellaneous_settings.tempest_station.enabled) {
+          cache.external.mesonet = submodules.parsing.getWeatherStationStructure({
+            longitude: targetCoords.lon,
+            latitude: targetCoords.lat,
+            temperature: getWeatherData.message.main ? Math.round((getWeatherData.message.main.temp - 273.15) * 9 / 5 + 32) : null,
+            dewpoints: getWeatherData.message.main ? Math.round((getWeatherData.message.main.temp - (100 - getWeatherData.message.main.humidity) / 5 - 273.15) * 9 / 5 + 32) : null,
+            humidity: getWeatherData.message.main ? Math.round(getWeatherData.message.main.humidity) : null,
+            wind_speed: getWeatherData.message.wind ? Math.round(getWeatherData.message.wind.speed) : null,
+            wind_direction: getWeatherData.message.wind ? submodules.calculations.convertDegreesToCardinal(getWeatherData.message.wind.deg) : null,
+            conditions: getWeatherData.message.weather ? getWeatherData.message.weather[0].description : null,
+            location: `${getLocationData.message.address.county}, ${getLocationData.message.address.state} (${getLocationData.message.address.city ? getLocationData.message.address.city : `${getLocationData.message.address.house_number} ${getLocationData.message.address.road}`})`
+          });
+        } else {
+          cache.handlers.tempestStation.getClosestStation({ lat: targetCoords.lat, lon: targetCoords.lon }).then((station) => {
+            submodules.utils.log(`Closest Tempest Station to [LAT: ${targetCoords.lat}, LON: ${targetCoords.lon}] is ${station.properties.name}`);
+            cache.handlers.tempestStation.setSettings({ stationId: station.id, deviceId: station.properties.devices[0] });
+          });
+        }
+      }
+    });
+  }
+  /**
+   * @function rtListener
+   * @description
+   *    Sets up a listener for real-time location updates from Firebase Realtime Database.
+   * 
+   * @returns {void}
+   */
+  rtListener() {
+    const ConfigType = cache.internal.configurations;
+    const cfg = ConfigType.sources.location_settings.realtime_irl;
+    const db = packages.firebaseDatabase.getDatabase(cache.handlers.rtSocket);
+    const ref = packages.firebaseDatabase.child(packages.firebaseDatabase.ref(db, `pullables`), cfg.pull_key);
+    const listener = (snapshot) => {
+      let snap = snapshot.val();
+      if (snap == null) {
+        return;
+      }
+      if (snap.updatedAt != this.LAST_RT_UPDATE) {
+        this.LAST_RT_UPDATE = snap.updatedAt;
+        cache.external.locations[cfg.pull_key] = { lat: snap.location.latitude, lon: snap.location.longitude };
+        this.setCurrentCoordinates(cfg.pull_key, { lat: snap.location.latitude, lon: snap.location.longitude });
+      }
+    };
+    packages.firebaseDatabase.onValue(ref, listener);
+  }
+  /**
+   * @function rtSocket
+   * @description
+   *    Initializes the Firebase Realtime Database connection for real-time location tracking.
+   *
+   * @returns {string}
+   */
+  rtSocket() {
+    const ConfigType = cache.internal.configurations;
+    const cfg = ConfigType.sources.location_settings.realtime_irl;
+    if (!cfg.enabled) return;
+    cache.handlers.rtSocket = packages.firebaseApp.initializeApp({
+      apiKey: cfg.api_key,
+      databaseURL: cfg.database_url,
+      projectId: "rtirl-a1d7f",
+      appId: cfg.app_id,
+      measurementId: cfg.measurement_id
+    }, `rtlirl-api`);
+    this.rtListener();
+  }
 };
-var gps_default = GlobalPositioningSystem;
+var locationtracking_default = GlobalPositioningSystem;
 
 // src/submodules/database.ts
 var Database = class {
@@ -5419,9 +5627,13 @@ var cache = {
     severe: [],
     manual: { features: [] },
     events: { features: [] },
+    emergencies: { features: [] },
+    mesonet: { features: [] },
     rng: { index: 0, alert: null },
     hashes: [],
-    placefiles: {},
+    placefiles: {
+      locations: null
+    },
     locations: {}
   },
   internal: {
@@ -5432,21 +5644,28 @@ var cache = {
       __events__: []
     },
     accounts: [],
-    ratelimits: {},
     http_timers: {},
-    express: null,
-    limiter: null,
-    manager: null,
-    websocket: null,
-    socket: null,
-    webhooks: [],
+    limiters: [],
     last_cache_update: 0,
     metrics: {
       start_uptime: Date.now(),
       memory_usage: 0,
       events_processed: 0
     }
+  },
+  handlers: {
+    express: null,
+    eventManager: null,
+    tempestStation: null,
+    rtSocket: null,
+    socket: null,
+    websocket: null
   }
+};
+var apis = {
+  open_street_map: "https://nominatim.openstreetmap.org/reverse?format=json&lat=${X}&lon=${Y}",
+  cape_coordinates: "https://api.open-meteo.com/v1/gfs?latitude=${X}&longitude=${Y}&hourly=cape",
+  temperature_coordinates: "https://api.openweathermap.org/data/2.5/weather?lat=${X}&lon=${Y}&appid=64fb789b4ab267d578a5b1c24fd4b5ba"
 };
 var strings = {
   updated_requied: `New version available: {ONLINE_PARSED} (Current version: {OFFLINE_VERSION})
@@ -5481,41 +5700,44 @@ var packages = {
   events,
   path,
   fs,
-  sqlite3,
-  express,
-  cookieParser,
   crypto,
   http,
   https,
-  axios,
-  xmpp,
   os,
-  jsonc,
-  xml2js,
-  AlertManager,
-  TextParser,
-  tempest,
-  placefile,
-  shapefile,
-  ws: wrapper_exports,
+  sqlite3,
   firebaseApp,
   firebaseDatabase,
+  express,
+  rateLimit,
+  cookieParser,
+  axios,
+  ws: wrapper_exports,
+  xml2js,
+  shapefile,
+  jsonc,
+  gui,
+  xmpp,
   streamerBot,
   jobs,
-  gui,
-  rateLimit
+  AlertManager,
+  TextParser,
+  PulsePoint,
+  PlacefileManager,
+  TempestStation
 };
 var submoduleClasses = {
   utils: utils_default,
-  alerts: alerts_default,
+  alerts: events_default,
   calculations: calculations_default,
   networking: networking_default,
   structure: structure_default,
   display: display_default,
   parsing: parsing_default,
   routes: routing_default,
-  gps: gps_default,
-  database: database_default
+  gps: locationtracking_default,
+  database: database_default,
+  pulsepoint: pulsepoint_default,
+  tempest: tempest_default
 };
 var submodules = {};
 Object.entries(submoduleClasses).forEach(([key, Class]) => {

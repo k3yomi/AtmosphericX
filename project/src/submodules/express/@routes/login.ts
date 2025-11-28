@@ -24,7 +24,7 @@ export class Init {
     SESSION_SUCCESS_MESSAGE: string = `Login successful.`
     constructor() {
         loader.submodules.utils.log(`${this.NAME_SPACE} initialized.`)
-        loader.cache.internal.express.post(`/api/login`, async (request: Record<string, any>, response: Record<string, any>) => { 
+        loader.cache.handlers.express.post(`/api/login`, async (request: Record<string, any>, response: Record<string, any>) => { 
             const ConfigType = loader.cache.internal.configurations as types.ConfigurationsType;
             const body = JSON.parse(await new Promise((resolve, reject) => { let data = ``; request.on(`data`, chunk => data += chunk); request.on(`end`, () => resolve(data)); request.on(`error`, error => reject(error)); }));
             const username = body.username;

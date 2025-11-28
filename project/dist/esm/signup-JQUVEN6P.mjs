@@ -3,7 +3,7 @@ import {
   cache,
   packages,
   submodules
-} from "./chunk-LZBD7MCR.mjs";
+} from "./chunk-US3JLQEF.mjs";
 
 // src/submodules/express/@routes/signup.ts
 var Init = class {
@@ -14,7 +14,7 @@ var Init = class {
     this.SESSION_SUCCESS_MESSAGE = `Account created successfully. Please contact the host administrator to activate your account.`;
     this.ALLOWED_CHARS = /^[a-zA-Z0-9_\-\.]{3,20}$/;
     submodules.utils.log(`${this.NAME_SPACE} initialized.`);
-    cache.internal.express.post(`/api/signup`, (request, response) => __async(this, null, function* () {
+    cache.handlers.express.post(`/api/signup`, (request, response) => __async(this, null, function* () {
       const body = JSON.parse(yield new Promise((resolve, reject) => {
         let data = ``;
         request.on(`data`, (chunk) => data += chunk);

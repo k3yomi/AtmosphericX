@@ -15,8 +15,10 @@
 
 /* [ AtmosphericX Custom Modules ] */
 import {AlertManager, TextParser} from 'atmosx-nwws-parser';
-import * as tempest from 'atmosx-tempest-pulling';
-import * as placefile from 'atmosx-placefile-parser';
+import { PulsePoint } from 'atmosx-pulse-point';
+import { PlacefileManager  } from 'atmosx-placefile-parser';
+import { TempestStation } from 'atmosx-tempest-station';
+
 
 /* [ Variable Exports ] */
 import sqlite3 from 'better-sqlite3';
@@ -46,14 +48,16 @@ import * as jsonc from 'jsonc-parser';
 
 /* [ Submodule Exports ] */
 import utils from './submodules/utils';
-import alerts from './submodules/alerts';
+import alerts from './submodules/events';
+import pulsepoint from './submodules/pulsepoint';
+import tempest from './submodules/tempest';
 import calculations from './submodules/calculations';
 import networking from './submodules/networking';
 import structure from './submodules/structure';
 import display from './submodules/display';
 import parsing from './submodules/parsing';
 import routes from './submodules/express/routing';
-import gps from './submodules/gps';
+import gps from './submodules/locationtracking';
 import database from './submodules/database';
 
 
@@ -74,9 +78,13 @@ export const cache = {
         severe: [],
         manual: {features: []},
         events: {features: []},
+        emergencies: {features: []},
+        mesonet: {features: []},
         rng: {index: 0, alert: null},
         hashes: [],
-        placefiles: {},
+        placefiles: {
+            locations: null,
+        },
         locations: {},
     }, 
     internal: {
@@ -87,14 +95,8 @@ export const cache = {
             __events__: []
         },
         accounts: [],
-        ratelimits: {},
         http_timers: {},
-        express: null,
-        limiter: null,
-        manager: null,
-        websocket: null,
-        socket: null,
-        webhooks: [],
+        limiters: [],
         last_cache_update: 0,
         metrics: {
             start_uptime: Date.now(),
@@ -102,7 +104,21 @@ export const cache = {
             events_processed: 0,
         }
     },
+    handlers: {
+        express: null,
+        eventManager: null,
+        tempestStation: null,
+        rtSocket: null,
+        socket: null,
+        websocket: null,
+    }
 };
+
+export const apis = {
+    open_street_map: "https://nominatim.openstreetmap.org/reverse?format=json&lat=${X}&lon=${Y}",
+    cape_coordinates: "https://api.open-meteo.com/v1/gfs?latitude=${X}&longitude=${Y}&hourly=cape",
+    temperature_coordinates: "https://api.openweathermap.org/data/2.5/weather?lat=${X}&lon=${Y}&appid=64fb789b4ab267d578a5b1c24fd4b5ba"
+}
 
 export const strings = {
     updated_requied: `New version available: {ONLINE_PARSED} (Current version: {OFFLINE_VERSION})\n${("\t").repeat(5)} Update by running update.sh or download the latest version from GitHub.\n${("\t").repeat(5)} =================== CHANGE LOGS ======================= \n${("\t").repeat(5)} {ONLINE_CHANGELOGS}\n\n`,
@@ -115,13 +131,11 @@ export const strings = {
 
 /* [ Package Exports ] */
 export const packages = {
-    events, path, fs, sqlite3,
-    express, cookieParser, crypto, http,
-    https, axios, xmpp, os, jsonc,
-    xml2js, AlertManager, TextParser, tempest, placefile, 
-    shapefile, ws, firebaseApp, 
-    firebaseDatabase, streamerBot, jobs, 
-    gui, rateLimit
+    events, path, fs, crypto, http, https, os,
+    sqlite3, firebaseApp, firebaseDatabase, express, 
+    rateLimit, cookieParser, axios, ws, xml2js, shapefile, jsonc,
+    gui, xmpp, streamerBot, jobs,
+    AlertManager, TextParser, PulsePoint, PlacefileManager, TempestStation,
 };
 
 
@@ -129,7 +143,7 @@ export const packages = {
 const submoduleClasses = {
     utils, alerts, calculations, networking,
     structure, display, parsing, routes, gps,
-    database
+    database, pulsepoint, tempest
 };
 
 export const submodules: any = {};

@@ -2,7 +2,7 @@ import {
   cache,
   packages,
   submodules
-} from "./chunk-LZBD7MCR.mjs";
+} from "./chunk-US3JLQEF.mjs";
 
 // src/submodules/express/@routes/data.ts
 var Init = class {
@@ -11,7 +11,7 @@ var Init = class {
     this.UNKNOWN_DIRECTORY = `/www/__pages/__404/index.html`;
     submodules.utils.log(`${this.NAME_SPACE} initialized.`);
     const parentDirectory = packages.path.resolve(`..`, `storage`);
-    cache.internal.express.get(`/data/:endpoint/`, (request, response) => {
+    cache.handlers.express.get(`/data/:endpoint/`, (request, response) => {
       const endpoint = request.params.endpoint;
       const isValid = Object.keys(cache.external).includes(endpoint);
       if (!isValid) {
