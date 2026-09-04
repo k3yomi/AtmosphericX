@@ -1,5 +1,12 @@
 # Changelogs
 
+## September 3rd, 2026 - 8.0.0.65
+
+**Fix**: `getNearbyEvents` when picking up the closest event.
+
+------------------------------------------------------------------------------------------------------------------------
+
+
 ## July 27th, 2026 - 8.0.0.64
 
 [DEVELOPER NOTE]: All dashboard features will be revised for `v8.1.0`. As of right now, I have added the bare minimum. So expect bugs with the dashboard.

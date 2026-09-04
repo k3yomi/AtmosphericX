@@ -228,7 +228,7 @@
                                     const getQuery = feature.properties?.imported?.spotters.find(spotter => spotter.name?.toLowerCase().includes(String(getSearch)?.toLowerCase()));
                                     const getSelectedSpotter = getQuery ?? feature.properties?.imported?.spotters[0];
                                     const getEventPriority = utils.getEventPriority(feature?.properties?.event ?? `Default Event`);
-                                    if (getSelectedSpotter.metadata.distance < getMin && getSelectedSpotter.metadata.distance <= getMax) {
+                                    if (getSelectedSpotter.metadata.distance <= getMin && getSelectedSpotter.metadata.distance <= getMax) {
                                         if (getEventPriority < getPriority) {
                                             getPriority = getEventPriority;
                                             getMin = getSelectedSpotter.metadata.distance;
